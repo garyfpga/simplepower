@@ -1,0 +1,1 @@
+simplepower:subagent-driven-development, please execute the plan with plan-first parallel implementation.

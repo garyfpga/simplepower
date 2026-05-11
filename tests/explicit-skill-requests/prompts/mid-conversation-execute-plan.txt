@@ -1,0 +1,3 @@
+I have a plan at docs/simplepower/plans/auth-system.md that's ready to implement.
+
+simplepower:subagent-driven-development, please execute the plan with plan-first parallel implementation.

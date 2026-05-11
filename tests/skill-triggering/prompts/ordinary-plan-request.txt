@@ -1,0 +1,1 @@
+I have requirements for an auth system and need an implementation plan.

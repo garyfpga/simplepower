@@ -1,0 +1,2 @@
+The conversation design has been approved. Invoke simplepower:writing-plans to create
+the authoritative implementation plan.

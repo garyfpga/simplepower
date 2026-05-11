@@ -1,0 +1,7 @@
+interface:
+  display_name: "RO"
+  short_description: "Read-only code discussion mode"
+  default_prompt: "Use simplepower:ro to discuss this code without editing existing repo files."
+
+policy:
+  allow_implicit_invocation: false

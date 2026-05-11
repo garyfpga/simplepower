@@ -1,0 +1,85 @@
+# Plan Document Reviewer Prompt Template
+
+Use this template when dispatching a BEST-tier plan document reviewer subagent.
+
+**Purpose:** Verify that the plan is the authoritative implementation artifact
+and is ready for aggregate parallel implementation from an approved Interface
+Contract.
+
+**Dispatch after:** The complete plan is written and self-reviewed.
+
+```
+Task tool (general-purpose):
+  description: "Review plan document"
+  prompt: |
+    You are a BEST-tier plan document reviewer. Verify this plan is complete,
+    internally consistent, and ready for aggregate parallel implementation from
+    an approved Interface Contract.
+
+    **Plan to review:** [PLAN_FILE_PATH]
+    **Approved brainstorming design context:** [DESIGN_CONTEXT]
+
+    ## What to Check
+
+    | Category | Intent |
+    |----------|--------|
+    | Design Summary | Confirms the plan has a compact `Design Summary` covering the approved brainstorming design, constraints, success criteria, and key decisions. |
+    | Visual Aids | Confirms any `Optional Visual Aids` are present only as supporting material, that absence is acceptable, that the inline visual format and visual authority are explicit, and that any included visual aid stays consistent with the approved design, Interface Contract, File Ownership, Implementation Tasks, Model Allocation, Quick Verification, Review+Fix, Commit Policy, Context Handoff, and Approved Path Enforcement. Rejects visuals that contradict authoritative plan sections, imply `.html` plan artifacts, separate linked local HTML plan files, converted historical plans, skipped checks, or alternate implementation routes. |
+    | Interface Contract | Confirms the plan has a required `Interface Contract` section before File Ownership, with concrete public APIs, filenames, command contracts, fixtures, data shapes, behavior guarantees, and cross-task assumptions that workers can rely on before other workers finish. |
+    | File Ownership | Confirms exact ownership for every created or modified file, no unowned implied files, and no parallel file-edit collisions. |
+    | Implementation Task Contract Fields | Confirms every implementation task has `Contract inputs` that point to approved Interface Contract entries, approved design details, or explicit external facts; confirms every task has `Serialization required`; confirms `Serialization required` defaults to `No` and any `Yes` includes a concrete reason. |
+    | Aggregate Parallel Readiness | Confirms the plan expects aggregate parallel dispatch for all non-overlapping workers whose coordination needs are satisfied by the Interface Contract, including test workers writing against approved Interface Contract APIs while implementation workers create those APIs. |
+    | Model Allocation | Confirms every task has FAST or BEST, FAST defaults to `SIMPLEPOWER_FAST_MODEL` (`gpt-5.4-mini-high` when unset), BEST defaults to `SIMPLEPOWER_BEST_MODEL` (`gpt-5.5-high` when unset), the plan reviewer uses BEST, the final review+fix agent uses BEST, and the quick verifier uses `model="gpt-5.3-codex-spark"` with `reasoning_effort="high"`. |
+    | Quick Verification | Confirms quick lint/build/tests commands are concrete, use `timeout`, run after all file-edit workers complete, and happen before the quick-verified implementation checkpoint. |
+    | Quick Verifier Scope | Confirms the quick verifier may fix only tiny typo-level errors and must report behavior changes, structural edits, test rewrites, public interface changes, or unclear issues instead of fixing them. |
+    | Review+Fix | Confirms exactly one BEST-tier review+fix agent reviews and fixes the whole implementation after the quick-verified implementation checkpoint and before final verification. |
+    | Commit Policy | Confirms exactly three future coordinator checkpoint commits: accepted reviewed plan plus allocation, quick-verified implementation, and final verified implementation. Confirms No worker commits or per-task commits for workers, plan reviewers, quick verifiers, review+fix agents, and individual tasks. |
+    | Context Handoff | Confirms current-session context pct drives the primary current-session versus `/clear` recommendation, with `>= 55%` recommending `/clear` and `< 55%` recommending current-session execution. Confirms the coordinator in the main agent measures this using `skills/writing-plans/current-session-context.md`; if measurement fails, `wc -c "$PLAN_PATH"` is the fallback, and only strict greater than `35840` bytes recommends `/clear` while `35840` bytes or less recommends current-session execution. Confirms the plan requires asking the user which implementation handoff to use after the accepted plan checkpoint commit, always shows both current-session and `/clear` commands, marks the recommended option first, and uses aggregate parallel implementation with the approved model allocation and Interface Contract. |
+    | Retired Flow Removal | Confirms the plan does not rely on removed standalone-planning artifacts, removed review routing variants, removed worker roles, removed per-batch progress tables, or removed execution routes. |
+    | Approved Path Enforcement | Confirms the plan treats the accepted implementation plan as authoritative and does not authorize backup routes, scope reduction, docs-only substitutes, any stub substitute, placeholder implementations, skipped verification, skipped review, or execution-route changes without fresh explicit user approval. |
+
+    ## Calibration
+
+    Only flag issues that would cause real problems during implementation.
+    Minor wording preferences are advisory unless they create ambiguity in file
+    ownership, Interface Contract, Contract inputs, Serialization required,
+    aggregate parallel readiness, model allocation, review allocation,
+    verification, handoff, commit policy, visual-aid authority, or approved
+    path enforcement. Missing visual aids are not a blocking issue.
+
+    Treat any missing, contradictory, or non-executable required category as a
+    blocking issue.
+
+    Reject the plan if any category above is missing, contradictory, or too
+    vague to execute. Reject plans where file ownership and task instructions
+    disagree. Reject plans that use dependency staging where the Interface
+    Contract is sufficient for aggregate parallel dispatch. Reject plans that
+    omit `Contract inputs` on any implementation task. Reject plans that omit
+    `Serialization required` on any implementation task, or use
+    `Serialization required: Yes` without a concrete reason. Reject plans with
+    more or fewer than three future coordinator checkpoints. Reject plans that
+    allow any non-coordinator role or individual task to commit. Reject plans
+    that let the quick verifier make anything more than tiny typo-level fixes.
+    Reject plans that omit the one BEST-tier review+fix agent for the whole
+    implementation. Reject plans that omit the context-usage recommendation,
+    omit the fallback, omit either the current-session command or the `/clear`
+    command, or omit the explicit handoff ask. Reject plans whose visual aids,
+    when present, contradict the approved design or authoritative plan sections,
+    imply separate linked local HTML plan files, or suggest `.html` plan
+    artifacts, converted historical plans, skipped checks, or alternate
+    implementation routes.
+
+    ## Output Format
+
+    ## Plan Review
+
+    **Status:** Approved | Issues Found
+
+    **Issues (if any):**
+    - [Category]: [specific issue] - [why it matters for implementation]
+
+    **Recommendations (advisory, do not block approval):**
+    - [suggestions for improvement]
+```
+
+**Reviewer returns:** Status, Issues (if any), Recommendations

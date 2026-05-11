@@ -1,0 +1,2 @@
+The parser test is failing with TypeError: Cannot read property 'value' of undefined.
+Can you figure out what is wrong?
