@@ -51,6 +51,18 @@ require_dir_absent() {
     fi
 }
 
+require_path_absent() {
+    local path="$1"
+    local description="$2"
+
+    if [[ ! -e "$REPO_ROOT/$path" ]]; then
+        pass "$description"
+    else
+        fail "$description"
+        echo "    unexpected path: $path"
+    fi
+}
+
 require_contains() {
     local path="$1"
     local needle="$2"
@@ -102,6 +114,25 @@ require_no_active_match() {
     matches="$(
         cd "$REPO_ROOT"
         rg -n -- "$pattern" "$@" || true
+    )"
+
+    if [[ -z "$matches" ]]; then
+        pass "$description"
+    else
+        fail "$description"
+        echo "$matches" | sed 's/^/    /'
+    fi
+}
+
+require_no_active_multiline_match() {
+    local pattern="$1"
+    local description="$2"
+    shift 2
+
+    local matches
+    matches="$(
+        cd "$REPO_ROOT"
+        rg -n -U -- "$pattern" "$@" || true
     )"
 
     if [[ -z "$matches" ]]; then
@@ -217,7 +248,7 @@ require_contains "skills/writing-plans/SKILL.md" "workflow flowcharts" "writing-
 require_contains "skills/writing-plans/SKILL.md" "architecture or data-flow" "writing-plans names architecture or data-flow visual aid cases"
 require_contains "skills/writing-plans/SKILL.md" "task ownership matrices" "writing-plans names task ownership matrix visual aid cases"
 require_contains "skills/writing-plans/SKILL.md" "state or error-path diagrams" "writing-plans names state or error-path visual aid cases"
-require_dir_absent "skills/writing-plans/current-session-context.md" "writing-plans current session context helper is absent"
+require_path_absent "skills/writing-plans/current-session-context.md" "writing-plans current session context helper is absent"
 require_contains "skills/writing-plans/SKILL.md" "SIMPLEPOWER_BEST_MODEL" "writing-plans documents the BEST model env var"
 require_contains "skills/writing-plans/SKILL.md" "SIMPLEPOWER_FAST_MODEL" "writing-plans documents the FAST model env var"
 require_contains "skills/writing-plans/SKILL.md" "BEST-tier plan reviewer" "writing-plans dispatches a BEST-tier plan reviewer"
@@ -260,6 +291,7 @@ require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "No wor
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Commit Policy" "plan reviewer checks commit policy"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Current-Session Auto-Dispatch" "plan reviewer checks current-session auto-dispatch"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "combined approval" "plan reviewer checks combined approval"
+require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "accepted reviewed plan plus allocation plus immediate current-session execution after combined approval" "plan reviewer checks the combined approval checkpoint policy"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "same reviewer" "plan reviewer checks the same reviewer loop"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "accepted-plan checkpoint commit" "plan reviewer checks the accepted plan checkpoint"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "same reviewer loop open" "plan reviewer checks the reusable reviewer loop"
@@ -441,8 +473,10 @@ require_no_active_match "$legacy_docs_path" "active files do not point at legacy
 require_no_active_match "$legacy_state_path" "active files do not use the legacy brainstorm state path" "${active_paths[@]}"
 require_no_active_match "$legacy_tmp_path" "active tests do not use legacy temp output paths" tests/explicit-skill-requests tests/skill-triggering
 require_no_active_match "$legacy_brainstorm_title" "active brainstorm tests and assets do not use legacy branding" skills/brainstorming tests/brainstorm-server
-stale_context_handoff_language='Context[[:space:]]+Size[[:space:]]+Handoff|current-session-context[.]md|/clear|current Codex context usage|saved plan size|saved plan-size fallback|55%|35840|wc -c[[:space:]]+"\\$PLAN_PATH"|show both commands|handoff choice|which implementation handoff to use|implementation handoff to use|Run after /clear|Continue in current session'
+stale_context_handoff_language='Context[[:space:]]+Size[[:space:]]+Handoff|current-session-context[.]md|/clear|current Codex context usage|saved plan size|55%|35840|wc -c[[:space:]]+"\\$PLAN_PATH"|show both commands|handoff choice|which implementation handoff to use|implementation handoff to use|Run after /clear|Continue in current session'
+stale_context_handoff_multiline='saved[ -]plan[ -]size[[:space:]]+fallback|context[ -]usage[[:space:]]+measurement|context[[:space:]]+helper|context[[:space:]]+measurement[[:space:]]+helper|context[ -]size[[:space:]]+checking|context[ -]window[[:space:]]+checking|clear-session[[:space:]]+command|post-plan[[:space:]]+handoff-choice'
 require_no_active_match "$stale_context_handoff_language" "active workflow docs do not retain stale current-session handoff language" README.md docs/README.codex.md skills/writing-plans skills/subagent-driven-development tests/explicit-skill-requests tests/skill-triggering
+require_no_active_multiline_match "$stale_context_handoff_multiline" "active workflow docs do not retain multiline or hyphenated stale current-session handoff language" README.md docs/README.codex.md skills/writing-plans skills/subagent-driven-development tests/explicit-skill-requests tests/skill-triggering
 old_marketplace_repo='prime-radiant-inc/openai-codex''-plugins'
 require_no_active_match "$old_marketplace_repo" "active docs and sync scripts do not target the old marketplace repo" README.md AGENTS.md .codex/INSTALL.md .codex-plugin/plugin.json docs/README.codex.md docs/testing.md scripts
 require_no_active_match "$old_plan_flow_language" "active plan-first files do not contain old flow routing language" "${active_plan_first_paths[@]}"

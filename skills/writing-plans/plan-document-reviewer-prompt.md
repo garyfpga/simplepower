@@ -33,8 +33,8 @@ Task tool (general-purpose):
     | Quick Verification | Confirms quick lint/build/tests commands are concrete, use `timeout`, run after all file-edit workers complete, and happen before the quick-verified implementation checkpoint. |
     | Quick Verifier Scope | Confirms the quick verifier may fix only tiny typo-level errors and must report behavior changes, structural edits, test rewrites, public interface changes, or unclear issues instead of fixing them. |
     | Review+Fix | Confirms exactly one BEST-tier review+fix agent reviews and fixes the whole implementation after the quick-verified implementation checkpoint and before final verification. |
-    | Commit Policy | Confirms exactly three future coordinator checkpoint commits: accepted reviewed plan plus allocation, quick-verified implementation, and final verified implementation. Confirms No worker commits or per-task commits for workers, plan reviewers, quick verifiers, review+fix agents, and individual tasks. |
-    | Current-Session Auto-Dispatch | Confirms `simplepower:writing-plans` uses combined approval after reviewer approval: the user approves the reviewed plan, model/task allocation, and immediate current-session execution in one step. Confirms the accepted-plan checkpoint commit is created only after combined approval and before implementation dispatch. Confirms approved implementation immediately invokes `simplepower:subagent-driven-development` in the current session with the approved model allocation and Interface Contract. Rejects any normal-workflow legacy clear-session command, context-usage measurement, plan-size fallback, or post-plan handoff-choice behavior. |
+    | Commit Policy | Confirms exactly three future coordinator checkpoint commits: accepted reviewed plan plus allocation plus immediate current-session execution after combined approval, quick-verified implementation, and final verified implementation. Confirms No worker commits or per-task commits for workers, plan reviewers, quick verifiers, review+fix agents, and individual tasks. |
+    | Current-Session Auto-Dispatch | Confirms `simplepower:writing-plans` uses combined approval after reviewer approval: the user approves the reviewed plan, model/task allocation, and immediate current-session execution in one step. Confirms the accepted-plan checkpoint commit is created only after combined approval and before implementation dispatch. Confirms approved implementation immediately invokes `simplepower:subagent-driven-development` in the current session with the approved model allocation and Interface Contract. Rejects retired session-routing mechanics or post-plan route-selection behavior. |
     | Retired Flow Removal | Confirms the plan does not rely on removed standalone-planning artifacts, removed review routing variants, removed worker roles, removed per-batch progress tables, or removed execution routes. |
     | Approved Path Enforcement | Confirms the plan treats the accepted implementation plan as authoritative and does not authorize backup routes, scope reduction, docs-only substitutes, any stub substitute, placeholder implementations, skipped verification, skipped review, or execution-route changes without fresh explicit user approval. |
 
@@ -71,8 +71,8 @@ Task tool (general-purpose):
     accepted-plan checkpoint before reviewer approval or before user approval,
     delay implementation after combined approval, omit immediate current-session
     execution through `simplepower:subagent-driven-development`, introduce
-    legacy context sizing or saved-size fallback logic, or ask the user to pick
-    a post-plan execution route. Reject plans whose visual aids, when present,
+    retired session-routing mechanics, or ask the user to pick a post-plan
+    execution route. Reject plans whose visual aids, when present,
     contradict the approved design or authoritative plan sections, imply
     separate linked local HTML plan files, or suggest `.html` plan artifacts,
     converted historical plans, skipped checks, or alternate implementation

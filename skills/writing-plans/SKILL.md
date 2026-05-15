@@ -305,9 +305,8 @@ Do not include worker-owned commits or per-task commits.
 The saved plan is the execution artifact. Do not write a project-local
 implementation JSON artifact.
 
-Normal Simple Power planning proceeds in the current session. Do not measure
-context measurement helper and context-based routing
-heuristics, or offer alternate execution routes.
+Normal Simple Power planning proceeds in the current session. Do not run routing
+heuristics or offer alternate execution routes.
 
 After the plan reviewer approves, ask the user for one combined approval that
 covers:

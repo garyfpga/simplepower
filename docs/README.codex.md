@@ -69,9 +69,8 @@ verification, one BEST-tier review+fix pass, and final verification.
 ## Starting Implementation
 
 After the reviewed plan and model/task allocation are approved,
-`simplepower:writing-plans` keeps execution in the current session and does not
-inspect session headroom, read a context helper, compute a saved plan-size
-fallback, or offer an alternate handoff path.
+`simplepower:writing-plans` keeps execution in the current session and starts
+the implementation path directly.
 
 ```text
 Use `simplepower:subagent-driven-development` to execute `<PLAN_PATH>` in the current session with plan-first parallel implementation. Use the approved model allocation. Dispatch all non-conflicting `sp-impl` file-edit workers, run the quick `gpt-5.3-codex-spark` high-effort verifier with lint/build/tests and timeouts, commit the quick-verified implementation, then run one BEST-tier review+fix agent, final verification, and final commit.

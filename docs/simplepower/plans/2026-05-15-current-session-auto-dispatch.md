@@ -368,6 +368,6 @@ Every step must contain the actual content an engineer needs. These are plan fai
 - [x] Task 5: Codex Install Guide Workflow Docs
 - [x] Quick verification
 - [x] Quick-verified implementation checkpoint
-- [ ] Final review+fix
-- [ ] Final verification
-- [ ] Final checkpoint
+- [x] Final review+fix
+- [x] Final verification
+- [x] Final checkpoint
