@@ -59,42 +59,31 @@ visual aids when they reduce ambiguity. This is separate from the
 `simplepower:brainstorming` visual companion, which uses a temporary localhost
 page during brainstorming instead of saved plan visuals. After
 `simplepower:writing-plans` saves a plan, it asks the user to approve the
-reviewed plan and model/task allocation. After the accepted plan checkpoint
-commit, it checks current Codex context usage when available, falls back to
-saved plan size only if context measurement fails, and asks which
-implementation handoff to use. The implementation skill then uses plan-first
-parallel implementation, quick verification, one BEST-tier review+fix pass, and
-final verification.
+reviewed plan, model/task allocation, and immediate current-session execution in
+one step. If the user approves, the coordinator creates the accepted plan
+checkpoint commit and immediately invokes
+`simplepower:subagent-driven-development` with the approved allocation. The
+implementation skill then uses plan-first parallel implementation, quick
+verification, one BEST-tier review+fix pass, and final verification.
 
 ## Starting Implementation
 
 After the reviewed plan and model/task allocation are approved,
-`simplepower:writing-plans` checks current Codex context usage when available.
-It recommends current-session execution below `55%` and `/clear` at `55%` or
-higher. If context usage cannot be measured, it falls back to saved plan size.
-It still shows both commands and asks which implementation handoff to use.
-
-For current-session implementation:
+`simplepower:writing-plans` keeps execution in the current session and does not
+inspect session headroom, read a context helper, compute a saved plan-size
+fallback, or offer an alternate handoff path.
 
 ```text
-Use `simplepower:subagent-driven-development` to execute `<PLAN_PATH>` with plan-first parallel implementation. Use the approved model allocation. Dispatch all non-conflicting `sp-impl` file-edit workers, run the quick `gpt-5.3-codex-spark` high-effort verifier with lint/build/tests and timeouts, commit the quick-verified implementation, then run one BEST-tier review+fix agent, final verification, and final commit.
-```
-
-For fresh context, Run `/clear` first.
-
-```text
-/clear
-Use `simplepower:subagent-driven-development` to execute `<PLAN_PATH>` with plan-first parallel implementation. Use the approved model allocation. Dispatch all non-conflicting `sp-impl` file-edit workers, run the quick `gpt-5.3-codex-spark` high-effort verifier with lint/build/tests and timeouts, commit the quick-verified implementation, then run one BEST-tier review+fix agent, final verification, and final commit.
+Use `simplepower:subagent-driven-development` to execute `<PLAN_PATH>` in the current session with plan-first parallel implementation. Use the approved model allocation. Dispatch all non-conflicting `sp-impl` file-edit workers, run the quick `gpt-5.3-codex-spark` high-effort verifier with lint/build/tests and timeouts, commit the quick-verified implementation, then run one BEST-tier review+fix agent, final verification, and final commit.
 ```
 
 ## Usage
 
 - Mention a skill by name, such as `simplepower:brainstorming`.
-- Continue through approved Simple Power handoffs when prompted.
 - Use `simplepower:writing-plans` after a design is approved, or approve the
   `simplepower:brainstorming` handoff to it.
 - Use `simplepower:subagent-driven-development` for plan-first parallel
-  implementation when explicitly selected.
+  implementation after combined approval in the current session.
 - Use `simplepower:requesting-code-review` and
   `simplepower:verification-before-completion` to review and verify the work
   before handoff.

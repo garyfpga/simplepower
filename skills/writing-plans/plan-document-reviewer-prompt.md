@@ -24,7 +24,7 @@ Task tool (general-purpose):
     | Category | Intent |
     |----------|--------|
     | Design Summary | Confirms the plan has a compact `Design Summary` covering the approved brainstorming design, constraints, success criteria, and key decisions. |
-    | Visual Aids | Confirms any `Optional Visual Aids` are present only as supporting material, that absence is acceptable, that the inline visual format and visual authority are explicit, and that any included visual aid stays consistent with the approved design, Interface Contract, File Ownership, Implementation Tasks, Model Allocation, Quick Verification, Review+Fix, Commit Policy, Context Handoff, and Approved Path Enforcement. Rejects visuals that contradict authoritative plan sections, imply `.html` plan artifacts, separate linked local HTML plan files, converted historical plans, skipped checks, or alternate implementation routes. |
+    | Visual Aids | Confirms any `Optional Visual Aids` are present only as supporting material, that absence is acceptable, that the inline visual format and visual authority are explicit, and that any included visual aid stays consistent with the approved design, Interface Contract, File Ownership, Implementation Tasks, Model Allocation, Quick Verification, Review+Fix, Commit Policy, Current-Session Auto-Dispatch, and Approved Path Enforcement. Rejects visuals that contradict authoritative plan sections, imply `.html` plan artifacts, separate linked local HTML plan files, converted historical plans, skipped checks, or alternate implementation routes. |
     | Interface Contract | Confirms the plan has a required `Interface Contract` section before File Ownership, with concrete public APIs, filenames, command contracts, fixtures, data shapes, behavior guarantees, and cross-task assumptions that workers can rely on before other workers finish. |
     | File Ownership | Confirms exact ownership for every created or modified file, no unowned implied files, and no parallel file-edit collisions. |
     | Implementation Task Contract Fields | Confirms every implementation task has `Contract inputs` that point to approved Interface Contract entries, approved design details, or explicit external facts; confirms every task has `Serialization required`; confirms `Serialization required` defaults to `No` and any `Yes` includes a concrete reason. |
@@ -34,7 +34,7 @@ Task tool (general-purpose):
     | Quick Verifier Scope | Confirms the quick verifier may fix only tiny typo-level errors and must report behavior changes, structural edits, test rewrites, public interface changes, or unclear issues instead of fixing them. |
     | Review+Fix | Confirms exactly one BEST-tier review+fix agent reviews and fixes the whole implementation after the quick-verified implementation checkpoint and before final verification. |
     | Commit Policy | Confirms exactly three future coordinator checkpoint commits: accepted reviewed plan plus allocation, quick-verified implementation, and final verified implementation. Confirms No worker commits or per-task commits for workers, plan reviewers, quick verifiers, review+fix agents, and individual tasks. |
-    | Context Handoff | Confirms current-session context pct drives the primary current-session versus `/clear` recommendation, with `>= 55%` recommending `/clear` and `< 55%` recommending current-session execution. Confirms the coordinator in the main agent measures this using `skills/writing-plans/current-session-context.md`; if measurement fails, `wc -c "$PLAN_PATH"` is the fallback, and only strict greater than `35840` bytes recommends `/clear` while `35840` bytes or less recommends current-session execution. Confirms the plan requires asking the user which implementation handoff to use after the accepted plan checkpoint commit, always shows both current-session and `/clear` commands, marks the recommended option first, and uses aggregate parallel implementation with the approved model allocation and Interface Contract. |
+    | Current-Session Auto-Dispatch | Confirms `simplepower:writing-plans` uses combined approval after reviewer approval: the user approves the reviewed plan, model/task allocation, and immediate current-session execution in one step. Confirms the accepted-plan checkpoint commit is created only after combined approval and before implementation dispatch. Confirms approved implementation immediately invokes `simplepower:subagent-driven-development` in the current session with the approved model allocation and Interface Contract. Rejects any normal-workflow legacy clear-session command, context-usage measurement, plan-size fallback, or post-plan handoff-choice behavior. |
     | Retired Flow Removal | Confirms the plan does not rely on removed standalone-planning artifacts, removed review routing variants, removed worker roles, removed per-batch progress tables, or removed execution routes. |
     | Approved Path Enforcement | Confirms the plan treats the accepted implementation plan as authoritative and does not authorize backup routes, scope reduction, docs-only substitutes, any stub substitute, placeholder implementations, skipped verification, skipped review, or execution-route changes without fresh explicit user approval. |
 
@@ -44,8 +44,14 @@ Task tool (general-purpose):
     Minor wording preferences are advisory unless they create ambiguity in file
     ownership, Interface Contract, Contract inputs, Serialization required,
     aggregate parallel readiness, model allocation, review allocation,
-    verification, handoff, commit policy, visual-aid authority, or approved
+    verification, auto-dispatch, commit policy, visual-aid authority, or approved
     path enforcement. Missing visual aids are not a blocking issue.
+
+    If this is a revised plan sent back to the same reviewer after blocking
+    issues, compare it against the previous blocking issues. Report whether
+    each previous blocking issue is resolved, still present, or replaced by a
+    new blocker in the changed category. Keep the same reviewer loop open until
+    approval, unrecoverable interruption, or explicit user direction.
 
     Treat any missing, contradictory, or non-executable required category as a
     blocking issue.
@@ -61,13 +67,16 @@ Task tool (general-purpose):
     allow any non-coordinator role or individual task to commit. Reject plans
     that let the quick verifier make anything more than tiny typo-level fixes.
     Reject plans that omit the one BEST-tier review+fix agent for the whole
-    implementation. Reject plans that omit the context-usage recommendation,
-    omit the fallback, omit either the current-session command or the `/clear`
-    command, or omit the explicit handoff ask. Reject plans whose visual aids,
-    when present, contradict the approved design or authoritative plan sections,
-    imply separate linked local HTML plan files, or suggest `.html` plan
-    artifacts, converted historical plans, skipped checks, or alternate
-    implementation routes.
+    implementation. Reject plans that omit combined approval, put the
+    accepted-plan checkpoint before reviewer approval or before user approval,
+    delay implementation after combined approval, omit immediate current-session
+    execution through `simplepower:subagent-driven-development`, introduce
+    legacy context sizing or saved-size fallback logic, or ask the user to pick
+    a post-plan execution route. Reject plans whose visual aids, when present,
+    contradict the approved design or authoritative plan sections, imply
+    separate linked local HTML plan files, or suggest `.html` plan artifacts,
+    converted historical plans, skipped checks, or alternate implementation
+    routes.
 
     ## Output Format
 
@@ -77,6 +86,9 @@ Task tool (general-purpose):
 
     **Issues (if any):**
     - [Category]: [specific issue] - [why it matters for implementation]
+
+    **Previous Blocking Issues (revised plan only):**
+    - [Resolved | Still Blocking | Replaced]: [category and short reason]
 
     **Recommendations (advisory, do not block approval):**
     - [suggestions for improvement]

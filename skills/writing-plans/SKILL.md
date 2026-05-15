@@ -13,9 +13,9 @@ Power workflow. It must include a compact `Design Summary`, exact file
 ownership, a required `Interface Contract`, implementation task allocation
 using `Contract inputs` and `Serialization required`, FAST/BEST model
 allocation, aggregate parallel dispatch guidance, review allocation, quick
-verification commands with timeouts, context-size handoff guidance, and three
-coordinator commit checkpoints. Plans may include optional inline visual aids
-when they reduce ambiguity.
+verification commands with timeouts, current-session auto-dispatch guidance,
+combined approval, and three coordinator commit checkpoints. Plans may include
+optional inline visual aids when they reduce ambiguity.
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
@@ -77,7 +77,7 @@ user before changing approach.
 
 **Model Allocation:** FAST/BEST tiers are assigned per task below. FAST defaults to `SIMPLEPOWER_FAST_MODEL` (`gpt-5.4-mini-high` when unset). BEST defaults to `SIMPLEPOWER_BEST_MODEL` (`gpt-5.5-high` when unset). The plan reviewer and final review+fix agent use BEST. The quick verifier uses `model="gpt-5.3-codex-spark"` and `reasoning_effort="high"`.
 
-**Commit Policy:** The coordinator commits after the reviewed plan and allocation are accepted, after all file edits and quick verification complete before final review, and after final review/fix plus final verification. Workers, plan reviewers, quick verifiers, and review+fix agents must not commit. No per-task commits.
+**Commit Policy:** The coordinator commits after the reviewed plan, allocation, and immediate current-session execution receive combined approval, after all file edits and quick verification complete before final review, and after final review/fix plus final verification. Workers, plan reviewers, quick verifiers, and review+fix agents must not commit. No per-task commits.
 
 ---
 ```
@@ -233,17 +233,22 @@ Self-review checklist:
 
 Then dispatch a BEST-tier plan reviewer using
 `skills/writing-plans/plan-document-reviewer-prompt.md`. Provide the saved plan
-path and the approved brainstorming design context. If the reviewer reports
-issues, fix the plan and rerun the focused self-review checks for the changed
-categories before asking the user.
+path and the approved brainstorming design context. Keep the initial reviewer
+subagent open while it reports recoverable issues. If the reviewer reports
+issues, fix the plan, rerun the focused self-review checks for the changed
+categories, and send the revised plan back to the same reviewer. Close the
+reviewer only after approval, an unrecoverable interruption, or explicit user
+direction.
 
-After the plan reviewer approves, ask the user to approve both the reviewed
-plan and model/task allocation. The accepted plan checkpoint commit happens
-only after that approval. Workers and reviewers must not create this commit.
+After the plan reviewer approves, ask the user for combined approval of the
+reviewed plan, model/task allocation, and immediate current-session execution.
+The accepted plan checkpoint commit happens only after that combined approval.
+Workers and reviewers must not create this commit.
 
-After the user approves the reviewed plan and model/task allocation, the
-coordinator creates the accepted plan checkpoint commit before presenting the
-implementation handoff choice.
+After the user gives combined approval, the coordinator creates the accepted
+plan checkpoint commit and immediately invokes
+`simplepower:subagent-driven-development` to execute the accepted plan with the
+approved model allocation in the current session.
 
 ## Quick Verification
 
@@ -284,8 +289,9 @@ must not commit.
 
 Every plan must define exactly three future coordinator commit checkpoints:
 
-1. Accepted plan checkpoint: after the user approves the reviewed plan and
-   model/task allocation.
+1. Accepted plan checkpoint: after the user gives combined approval for the
+   reviewed plan, model/task allocation, and immediate current-session
+   execution, and before invoking `simplepower:subagent-driven-development`.
 2. Quick-verified implementation checkpoint: after all `sp-impl` file edits
    complete and the quick verifier passes.
 3. Final checkpoint: after the BEST-tier review+fix agent completes and final
@@ -294,60 +300,33 @@ Every plan must define exactly three future coordinator commit checkpoints:
 Workers, plan reviewers, quick verifiers, and review+fix agents must not commit.
 Do not include worker-owned commits or per-task commits.
 
-## Context-Size Handoff
+## Current-Session Auto-Dispatch
 
-The saved plan is the handoff artifact. Do not write a project-local
-implementation handoff JSON artifact.
+The saved plan is the execution artifact. Do not write a project-local
+implementation JSON artifact.
 
-After the user approves the reviewed plan and model/task allocation and the
-coordinator creates the accepted plan checkpoint commit, read
-`skills/writing-plans/current-session-context.md`. Measure the current
-coordinator session context pct in the main agent; do not spawn a subagent for
-this measurement. Use `CODEX_THREAD_ID` and the Codex JSONL file through the
-helper.
+Normal Simple Power planning proceeds in the current session. Do not measure
+context measurement helper and context-based routing
+heuristics, or offer alternate execution routes.
 
-If the current session context measurement succeeds, use `>= 55%` for the
-fresh-context `/clear` recommendation and `< 55%` for continuing in the
-current session. If measurement fails, fall back to the saved plan size:
+After the plan reviewer approves, ask the user for one combined approval that
+covers:
+- The reviewed plan
+- The model/task allocation
+- Immediate current-session execution
 
-```bash
-wc -c "$PLAN_PATH"
-```
+If the user requests changes, update the plan, rerun the focused self-review
+checks for the changed categories, and send the revised plan back to the same
+reviewer when review approval must be refreshed. Do not create the accepted
+plan checkpoint until the user gives combined approval.
 
-For fallback only, use bytes from the saved plan file, not characters, lines,
-combined artifacts, or token estimates. The fallback comparison is strict
-greater-than `35840`: a byte count greater than 35840 bytes selects the
-fresh-context `/clear` recommendation, and `35840` or less selects the current
-session recommendation.
-
-Always show both implementation handoff commands, state whether the
-recommendation came from current context pct or the plan-size fallback, and
-ask the user which implementation handoff to use. Use Codex's user-question
-tool, such as `request_user_input`, when available; otherwise ask in plain
-text.
-
-If the recommendation is fresh context, put this option first and label it
-`Run after /clear (Recommended)`. If the recommendation is continuing in the
-current session, put this option first and label it
-`Continue in current session (Recommended)`.
-
-For current-session handoff, show this exact command text:
+After combined approval, the coordinator creates the accepted plan checkpoint
+commit, then immediately invokes `simplepower:subagent-driven-development` in
+the current session with this instruction:
 
 ```text
-Use `simplepower:subagent-driven-development` to execute `<PLAN_PATH>` with aggregate parallel implementation from the approved Interface Contract. Use the approved model allocation. Dispatch all non-conflicting `sp-impl` file-edit workers whose coordination needs are satisfied by their Contract inputs, run the quick `gpt-5.3-codex-spark` high-effort verifier with lint/build/tests and timeouts after all workers finish, commit the quick-verified implementation, then run one BEST-tier review+fix agent, final verification, and final commit.
+Execute `<PLAN_PATH>` with aggregate parallel implementation from the approved Interface Contract. Use the approved model allocation. Dispatch all non-conflicting `sp-impl` file-edit workers whose coordination needs are satisfied by their Contract inputs, run the quick `gpt-5.3-codex-spark` high-effort verifier with lint/build/tests and timeouts after all workers finish, commit the quick-verified implementation, then run one BEST-tier review+fix agent, final verification, and final commit.
 ```
-
-For fresh-context handoff, show this exact command text:
-
-```text
-/clear
-Use `simplepower:subagent-driven-development` to execute `<PLAN_PATH>` with aggregate parallel implementation from the approved Interface Contract. Use the approved model allocation. Dispatch all non-conflicting `sp-impl` file-edit workers whose coordination needs are satisfied by their Contract inputs, run the quick `gpt-5.3-codex-spark` high-effort verifier with lint/build/tests and timeouts after all workers finish, commit the quick-verified implementation, then run one BEST-tier review+fix agent, final verification, and final commit.
-```
-
-If the user chooses current-session execution, that choice is an authorized
-handoff to `simplepower:subagent-driven-development`. If the user chooses fresh
-context, stop after showing the fresh-context command and tell the user to run
-`/clear` manually before sending the command.
 
 ## Verification
 
@@ -375,7 +354,8 @@ failures:
 - Worker commit instructions, per-task commit instructions, or task-local
   `git commit` commands
 - Text that pre-authorizes scope reduction, skipped checks, placeholder
-  implementations, docs-only substitutes, or execution-route changes
+  implementations, docs-only substitutes, execution-route changes, alternate
+  context execution modes, or user selection among execution routes
 - Separate linked local HTML files for plan visuals unless a future approved
   design explicitly adds them
 
@@ -395,11 +375,15 @@ failures:
 - Concrete commands with `timeout` and expected results
 - FAST/BEST allocation per task
 - BEST-tier plan reviewer
+- Keep the initial plan reviewer open for issue loops; send revised plans back
+  to the same reviewer until approval, unrecoverable interruption, or explicit
+  user direction
 - Quick `gpt-5.3-codex-spark` high-effort verifier
 - One BEST-tier review+fix agent
 - No worker commits or per-task commits
 - Exactly three coordinator checkpoints
-- Current coordinator session context pct decides the recommended implementation
-  handoff; `wc -c "$PLAN_PATH"` with strict greater-than `35840` is only the
-  fallback
-- Always show both implementation handoff commands and ask the user which implementation handoff to use
+- Ask for combined approval of the reviewed plan, model/task allocation, and
+  immediate current-session execution
+- After combined approval, commit the accepted plan checkpoint and immediately
+  invoke `simplepower:subagent-driven-development` with the approved model
+  allocation

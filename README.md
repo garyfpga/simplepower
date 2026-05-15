@@ -66,10 +66,9 @@ Simple Power skills 使用 `simplepower:*` namespace。当你想让 Codex 使用
 
 brainstorming skill 可以使用临时的 localhost visual companion 来处理 mockups、diagrams 和其他视觉问题。生成的 implementation plans 会保存到 `docs/simplepower/plans/`。
 
-在 `simplepower:writing-plans` 保存并 review 一个 plan 之后，它会询问使用哪种 implementation handoff。
-如果当前 Codex context usage 可用，推荐会基于它来决定：低于 `55%` 时继续在当前 session，`55%` 或更高时推荐 fresh session。
-如果无法测量 context，Simple Power 会 fallback 到保存的 plan size。
-handoff 仍然会显示两个命令；如果要 fresh context，先运行 `/clear`。
+在 `simplepower:writing-plans` 完成 plan review 之后，Simple Power 会一次性询问你是否批准已审阅的 plan、模型分配，以及立刻在当前 session 里启动 `simplepower:subagent-driven-development`。
+你确认后，coordinator 会创建 accepted plan checkpoint commit，并立即调用 `simplepower:subagent-driven-development` 执行已批准的 plan。
+如果 reviewer 提出问题，coordinator 会修正 plan、重新跑相关自检，再把 revised plan 送回同一个 reviewer。reviewer 会一直保持打开，直到通过、发生不可恢复中断，或你明确要求停止。
 
 ## 如何使用 Simple Power
 
@@ -153,12 +152,17 @@ The brainstorming skill can use a temporary localhost visual companion for
 mockups, diagrams, and other visual questions. Generated implementation plans
 are saved under `docs/simplepower/plans/`.
 
-After `simplepower:writing-plans` saves and reviews a plan, it asks which
-implementation handoff to use. The recommendation comes from current Codex context usage
-when available: below `55%` continues in the current session, and
-`55%` or higher recommends a fresh session. If context measurement is
-unavailable, Simple Power falls back to saved plan size. The handoff still shows
-both commands; for fresh context, run `/clear` first.
+After `simplepower:writing-plans` finishes reviewing a plan, Simple Power asks
+for combined approval of the reviewed plan, the model allocation, and
+immediate execution in the current session with
+`simplepower:subagent-driven-development`.
+Once you approve, the coordinator creates the accepted plan checkpoint commit
+and immediately invokes `simplepower:subagent-driven-development` in the
+current session.
+If the reviewer reports issues, the coordinator fixes the plan, reruns focused
+self-review checks for the changed categories, and sends the revised plan back
+to the same reviewer. The reviewer stays open until approval, an unrecoverable
+interruption, or explicit user direction.
 
 ## How To Use Simple Power
 

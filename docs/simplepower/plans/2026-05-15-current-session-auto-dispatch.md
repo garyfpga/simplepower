@@ -361,13 +361,13 @@ Every step must contain the actual content an engineer needs. These are plan fai
 
 ## Task Progress
 
-- [ ] Task 1: Static Assertions For Current-Session Auto-Dispatch
-- [ ] Task 2: Writing-Plans Workflow Policy
-- [ ] Task 3: Plan Reviewer Prompt And Obsolete Helper Removal
-- [ ] Task 4: Public README Workflow Docs
-- [ ] Task 5: Codex Install Guide Workflow Docs
-- [ ] Quick verification
-- [ ] Quick-verified implementation checkpoint
+- [x] Task 1: Static Assertions For Current-Session Auto-Dispatch
+- [x] Task 2: Writing-Plans Workflow Policy
+- [x] Task 3: Plan Reviewer Prompt And Obsolete Helper Removal
+- [x] Task 4: Public README Workflow Docs
+- [x] Task 5: Codex Install Guide Workflow Docs
+- [x] Quick verification
+- [x] Quick-verified implementation checkpoint
 - [ ] Final review+fix
 - [ ] Final verification
 - [ ] Final checkpoint
