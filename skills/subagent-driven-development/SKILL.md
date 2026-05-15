@@ -14,8 +14,9 @@ ownership, the Interface Contract, task Contract inputs, and
 contract-compatible `sp-impl` file-edit workers before waiting. Execute any
 explicitly serialized implementation tasks only when their approved concrete
 reason is satisfied. After all implementation workers finish, run the quick
-verifier with
-lint/build/tests and timeouts, commit the quick-verified implementation, then
+verifier using the approved FAST tier with lint/build/tests and timeouts. By
+default that resolves to `model="gpt-5.3-codex-spark"` and
+`reasoning_effort="high"`. Commit the quick-verified implementation, then
 dispatch one BEST-tier review+fix agent before final verification and final
 commit.
 
@@ -107,8 +108,9 @@ runtime or migration ordering.
    quick verification.
 7. Run a lifecycle checkpoint and close finished workers by default.
 8. Validate changed files against approved write scopes.
-9. Dispatch the quick verifier with `model="gpt-5.3-codex-spark"` and
-   `reasoning_effort="high"`.
+9. Dispatch the quick verifier using the approved FAST tier. By default,
+   `SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"` resolves to
+   `model="gpt-5.3-codex-spark"` and `reasoning_effort="high"`.
 10. Let the quick verifier fix only tiny typo-level issues.
 11. Stop for user direction if quick verification finds non-trivial failures.
 12. Commit the quick-verified implementation before final review.
@@ -158,8 +160,9 @@ runtime or migration ordering.
 After all implementation workers finish and their changed files pass scope
 validation, dispatch the quick verifier from `quick-verifier-prompt.md`.
 
-The quick verifier always uses `model="gpt-5.3-codex-spark"` and
-`reasoning_effort="high"`.
+The quick verifier uses the approved FAST tier by default. Unless
+`SIMPLEPOWER_FAST_MODEL` is overridden, that resolves to
+`model="gpt-5.3-codex-spark"` and `reasoning_effort="high"`.
 
 The quick verifier must run the linting checks, build or compile checks, and
 tests named in the plan with proper timeouts. It may fix only tiny typo-level
@@ -257,33 +260,46 @@ active written reason.
 
 ## Model Selection
 
-Use the plan's approved FAST/BEST allocation unless the user explicitly
-overrides it. These settings are an explicit Simple Power override to generic
-same-model defaults from AGENTS.md or other ambient instructions.
+Use the plan's approved FAST, NORMAL, or BEST allocation unless the user
+explicitly overrides it. These settings are an explicit Simple Power override
+to generic same-model defaults from AGENTS.md or other ambient instructions.
 
 Defaults:
 
 ```bash
 SIMPLEPOWER_BEST_MODEL="gpt-5.5-high"
-SIMPLEPOWER_FAST_MODEL="gpt-5.4-mini-high"
+SIMPLEPOWER_NORMAL_MODEL="gpt-5.4-mini-high"
+SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"
 ```
 
-If either variable is unset, use the default above. Resolve the final
-dash-delimited segment as `reasoning_effort` and the preceding string as
-`model`.
+If any variable is unset, use the default above. Resolve each env value by
+taking the final dash-delimited segment as `reasoning_effort` and the
+preceding string as `model`.
+
+Tier routing:
+
+- BEST: broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or
+  hard-to-test work; plan reviewer; final review+fix.
+- NORMAL: routine low-risk implementation work that used the old FAST tier,
+  especially localized edits where `gpt-5.4-mini-high` is appropriate.
+- FAST: obvious repetitive work, mechanical edits across many files, large
+  static text sweeps, simple fixture or assertion churn, and quick
+  verification.
 
 Role routing:
 
-- `sp-impl`: use the plan's FAST or BEST tier, `agent_type="worker"`,
+- `sp-impl`: use the plan's approved FAST, NORMAL, or BEST tier,
+  `agent_type="worker"`, `fork_context=false`.
+- Quick verifier: use the approved FAST tier, `agent_type="worker"`,
   `fork_context=false`.
-- Quick verifier: use `model="gpt-5.3-codex-spark"`,
-  `reasoning_effort="high"`, `agent_type="worker"`, `fork_context=false`.
 - Review+fix agent: always use BEST, `agent_type="worker"`,
   `fork_context=false`.
 
-If a planned FAST implementation task is broader, riskier, more ambiguous, or
-more behavior-shaping than the plan predicted, escalate that task to BEST and
-record the reason before dispatch.
+If a planned FAST implementation task is less mechanical or obvious than the
+plan predicted, escalate that task to NORMAL or BEST and record the reason
+before dispatch. If a planned NORMAL task is broader, riskier, more ambiguous,
+more behavior-shaping, or harder to verify than the plan predicted, escalate
+that task to BEST and record the reason before dispatch.
 
 ## Context Selection
 

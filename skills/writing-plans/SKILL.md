@@ -11,7 +11,7 @@ Write the authoritative implementation plan directly from the approved
 brainstorming design. The plan replaces standalone specs in the normal Simple
 Power workflow. It must include a compact `Design Summary`, exact file
 ownership, a required `Interface Contract`, implementation task allocation
-using `Contract inputs` and `Serialization required`, FAST/BEST model
+using `Contract inputs` and `Serialization required`, FAST/NORMAL/BEST model
 allocation, aggregate parallel dispatch guidance, review allocation, quick
 verification commands with timeouts, current-session auto-dispatch guidance,
 combined approval, and three coordinator commit checkpoints. Plans may include
@@ -23,24 +23,32 @@ optional inline visual aids when they reduce ambiguity.
 
 ## Model Tiers
 
-Simple Power uses two configurable model tiers when planning implementation and
-review work:
+Simple Power uses three configurable model tiers when planning implementation,
+review, and verification work:
 
 ```bash
 SIMPLEPOWER_BEST_MODEL="gpt-5.5-high"
-SIMPLEPOWER_FAST_MODEL="gpt-5.4-mini-high"
+SIMPLEPOWER_NORMAL_MODEL="gpt-5.4-mini-high"
+SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"
 ```
 
-If either environment variable is unset, use the default shown above. Interpret
+If any environment variable is unset, use the default shown above. Interpret
 the final dash-delimited segment as `reasoning_effort` and the preceding string
-as `model`. For example, `gpt-5.4-mini-high` resolves to
-`model="gpt-5.4-mini"` and `reasoning_effort="high"`.
-
-Use FAST for narrow, low-risk, localized implementation work. Use BEST for
-broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or hard-to-test
-implementation and review work. If the allocation is unclear, choose BEST. The
-plan reviewer and final review+fix agent use BEST. The quick verifier uses
+as `model`. For example, `gpt-5.3-codex-spark-high` resolves to
 `model="gpt-5.3-codex-spark"` and `reasoning_effort="high"`.
+
+Use BEST for broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or
+hard-to-test implementation and review work. The plan reviewer and final
+review+fix agent use BEST. Use NORMAL for routine low-risk implementation work
+that used the old FAST tier, especially localized edits where
+`gpt-5.4-mini-high` is appropriate. Use FAST for obvious repetitive work,
+mechanical edits across many files, large static text sweeps, simple
+fixture/assertion churn, and quick verification. The quick verifier uses the
+FAST tier by default, resolving to `model="gpt-5.3-codex-spark"` and
+`reasoning_effort="high"` unless `SIMPLEPOWER_FAST_MODEL` is overridden.
+Escalate FAST to NORMAL or BEST if the work is less mechanical or obvious, and
+escalate NORMAL to BEST if the work is broad, ambiguous, behavior-shaping, or
+hard to verify.
 
 ## Approved Path Enforcement
 
@@ -75,7 +83,7 @@ user before changing approach.
 
 **Tech Stack:** [Key technologies/libraries]
 
-**Model Allocation:** FAST/BEST tiers are assigned per task below. FAST defaults to `SIMPLEPOWER_FAST_MODEL` (`gpt-5.4-mini-high` when unset). BEST defaults to `SIMPLEPOWER_BEST_MODEL` (`gpt-5.5-high` when unset). The plan reviewer and final review+fix agent use BEST. The quick verifier uses `model="gpt-5.3-codex-spark"` and `reasoning_effort="high"`.
+**Model Allocation:** FAST/NORMAL/BEST tiers are assigned per task below. FAST defaults to `SIMPLEPOWER_FAST_MODEL` (`gpt-5.3-codex-spark-high` when unset), NORMAL defaults to `SIMPLEPOWER_NORMAL_MODEL` (`gpt-5.4-mini-high` when unset), and BEST defaults to `SIMPLEPOWER_BEST_MODEL` (`gpt-5.5-high` when unset). The plan reviewer and final review+fix agent use BEST. The quick verifier uses the FAST tier by default, resolving to `model="gpt-5.3-codex-spark"` and `reasoning_effort="high"` unless `SIMPLEPOWER_FAST_MODEL` is overridden.
 
 **Commit Policy:** The coordinator commits after the reviewed plan, allocation, and immediate current-session execution receive combined approval, after all file edits and quick verification complete before final review, and after final review/fix plus final verification. Workers, plan reviewers, quick verifiers, and review+fix agents must not commit. No per-task commits.
 
@@ -164,7 +172,7 @@ Each task must include:
 - Write scope with exact paths
 - Parallel: Yes or No, with compatible task names when Yes
 - Risk: Low, Medium, or High, with a concrete reason
-- Model tier: FAST or BEST, with the resolved default model and effort
+- Model tier: FAST, NORMAL, or BEST, with the resolved default model and effort
 - Worker role: `sp-impl`
 - Outputs and file-level responsibilities
 - Implementation steps with exact commands, code locations, and expected results
@@ -185,22 +193,29 @@ final review+fix agent.
 Required columns:
 - Stage
 - Role
-- Model tier
+- Model tier: FAST, NORMAL, or BEST
 - Resolved model
 - Reasoning effort
 - Reason
 
 Rules:
-- FAST defaults to `SIMPLEPOWER_FAST_MODEL` (`gpt-5.4-mini-high` when unset).
+- FAST defaults to `SIMPLEPOWER_FAST_MODEL` (`gpt-5.3-codex-spark-high` when unset).
+- NORMAL defaults to `SIMPLEPOWER_NORMAL_MODEL` (`gpt-5.4-mini-high` when unset).
 - BEST defaults to `SIMPLEPOWER_BEST_MODEL` (`gpt-5.5-high` when unset).
-- Implementation tasks may use FAST only when the work is narrow, localized,
-  low-risk, and easy to verify.
+- Implementation tasks may use FAST only when the work is obvious, repetitive,
+  mechanical, or simple fixture/assertion churn.
+- Implementation tasks use NORMAL for routine low-risk implementation work,
+  especially localized edits where `gpt-5.4-mini-high` is appropriate.
 - Broad, ambiguous, cross-cutting, behavior-shaping, high-risk, or hard-to-test
   implementation tasks use BEST.
+- Escalate FAST to NORMAL or BEST if the work is less mechanical or obvious.
+- Escalate NORMAL to BEST if the work is broad, ambiguous, behavior-shaping, or
+  hard to verify.
 - The plan reviewer uses BEST.
 - The final review+fix agent uses BEST.
-- The quick verifier uses `model="gpt-5.3-codex-spark"` and
-  `reasoning_effort="high"`.
+- The quick verifier uses the FAST tier by default, resolving to
+  `model="gpt-5.3-codex-spark"` and `reasoning_effort="high"` unless
+  `SIMPLEPOWER_FAST_MODEL` is overridden.
 
 ## Plan Review
 
@@ -221,8 +236,10 @@ Self-review checklist:
   parallel dispatch instead of prerequisite-ordered staging.
 - Visual aids: if present, they are consistent with authoritative written
   sections; if absent, that is acceptable and not a review issue.
-- Model allocation: FAST/BEST choices match risk, and reviewer/verifier roles
-  use the required models.
+- Model allocation: FAST/NORMAL/BEST choices match risk and mechanics, all
+  three configurable defaults are documented, the plan reviewer and final
+  review+fix agent use BEST, and the quick verifier uses the FAST tier by
+  default.
 - Review allocation: the plan has one BEST-tier review+fix agent after quick
   verification.
 - Commit policy: exactly three coordinator checkpoints are present and no
@@ -256,8 +273,9 @@ The quick verifier runs after all file-edit workers complete and before the
 coordinator creates the quick-verified implementation checkpoint. It checks that
 the implementation is coherent enough for final review.
 
-The quick verifier must use `model="gpt-5.3-codex-spark"` and
-`reasoning_effort="high"`.
+The quick verifier must use the FAST tier by default. With the default
+`SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"`, this resolves to
+`model="gpt-5.3-codex-spark"` and `reasoning_effort="high"`.
 
 The plan must list exact quick verification commands with timeouts, usually:
 - `timeout 30s <lint command>`
@@ -324,7 +342,7 @@ commit, then immediately invokes `simplepower:subagent-driven-development` in
 the current session with this instruction:
 
 ```text
-Execute `<PLAN_PATH>` with aggregate parallel implementation from the approved Interface Contract. Use the approved model allocation. Dispatch all non-conflicting `sp-impl` file-edit workers whose coordination needs are satisfied by their Contract inputs, run the quick `gpt-5.3-codex-spark` high-effort verifier with lint/build/tests and timeouts after all workers finish, commit the quick-verified implementation, then run one BEST-tier review+fix agent, final verification, and final commit.
+Execute `<PLAN_PATH>` with aggregate parallel implementation from the approved Interface Contract. Use the approved model allocation. Dispatch all non-conflicting `sp-impl` file-edit workers whose coordination needs are satisfied by their Contract inputs, run the quick FAST-tier verifier with lint/build/tests and timeouts after all workers finish, commit the quick-verified implementation, then run one BEST-tier review+fix agent, final verification, and final commit.
 ```
 
 ## Verification
@@ -372,12 +390,17 @@ failures:
 - Tests may be parallel workers against approved Interface Contract APIs
 - Complete task instructions, with code snippets when code shape matters
 - Concrete commands with `timeout` and expected results
-- FAST/BEST allocation per task
+- FAST/NORMAL/BEST allocation per task
+- FAST for obvious repetitive work, mechanical edits, static text sweeps, simple
+  fixture/assertion churn, and quick verification
+- NORMAL for routine low-risk localized implementation work
+- BEST for broad, ambiguous, behavior-shaping, high-risk, or hard-to-test work
 - BEST-tier plan reviewer
 - Keep the initial plan reviewer open for issue loops; send revised plans back
   to the same reviewer until approval, unrecoverable interruption, or explicit
   user direction
-- Quick `gpt-5.3-codex-spark` high-effort verifier
+- Quick verifier uses the FAST tier by default, resolving to
+  `gpt-5.3-codex-spark-high` when unset
 - One BEST-tier review+fix agent
 - No worker commits or per-task commits
 - Exactly three coordinator checkpoints

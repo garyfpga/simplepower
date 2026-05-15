@@ -12,20 +12,22 @@ Simple Power skills may mention generic skill tool names. When you encounter the
 | `Skill` tool (invoke a skill) | Skills load natively — just follow the instructions |
 | `Read`, `Write`, `Edit` (files) | Use your native file tools |
 | `Bash` (run commands) | Use your native shell tools |
-| sp-impl file-edit worker | `spawn_agent(agent_type="worker", model=<FAST_or_BEST_model>, reasoning_effort=<FAST_or_BEST_effort>, fork_context=false, message=...)` |
-| quick verifier | `spawn_agent(agent_type="worker", model="gpt-5.3-codex-spark", reasoning_effort="high", fork_context=false, message=...)` |
+| sp-impl file-edit worker | `spawn_agent(agent_type="worker", model=<FAST_or_NORMAL_or_BEST_model>, reasoning_effort=<FAST_or_NORMAL_or_BEST_effort>, fork_context=false, message=...)` |
+| quick verifier | `spawn_agent(agent_type="worker", model=<FAST_model>, reasoning_effort=<FAST_effort>, fork_context=false, message=...)` Default resolves to Spark high unless overridden. |
 | review+fix agent | `spawn_agent(agent_type="worker", model=<BEST_model>, reasoning_effort=<BEST_effort>, fork_context=false, message=...)` |
 | multiple independent file-edit tasks | Multiple `spawn_agent` calls, one per non-conflicting ownership unit, before `wait` |
 
 The role mappings are an explicit Simple Power override to generic same-model
 defaults from AGENTS.md or other ambient instructions. Resolve
-`SIMPLEPOWER_BEST_MODEL` and `SIMPLEPOWER_FAST_MODEL` before dispatch. If unset,
-use `SIMPLEPOWER_BEST_MODEL="gpt-5.5-high"` and
-`SIMPLEPOWER_FAST_MODEL="gpt-5.4-mini-high"`. The final dash-delimited segment
-is `reasoning_effort`; the preceding string is `model`.
+`SIMPLEPOWER_BEST_MODEL`, `SIMPLEPOWER_NORMAL_MODEL`, and
+`SIMPLEPOWER_FAST_MODEL` before dispatch. If unset, use
+`SIMPLEPOWER_BEST_MODEL="gpt-5.5-high"`,
+`SIMPLEPOWER_NORMAL_MODEL="gpt-5.4-mini-high"`, and
+`SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"`. The final
+dash-delimited segment is `reasoning_effort`; the preceding string is `model`.
 
-Use the plan's approved FAST/BEST allocation for `sp-impl` file-edit workers.
-Always dispatch the review+fix agent with BEST.
+Use the plan's approved FAST/NORMAL/BEST allocation for `sp-impl` file-edit
+workers. Always dispatch the review+fix agent with BEST.
 
 ## Subagent dispatch requires multi-agent support
 

@@ -50,15 +50,20 @@ codex plugin marketplace upgrade
 
 ## 模型分配
 
-Simple Power 使用两个可配置的模型层级：
+Simple Power 使用三个可配置的模型层级：
 
 ```bash
 SIMPLEPOWER_BEST_MODEL="gpt-5.5-high"
-SIMPLEPOWER_FAST_MODEL="gpt-5.4-mini-high"
+SIMPLEPOWER_NORMAL_MODEL="gpt-5.4-mini-high"
+SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"
 ```
 
 把每个值按 `<model>-<reasoning_effort>` 解析：最后一个以 dash 分隔的片段作为 `reasoning_effort`，前面的字符串作为 `model`。
 例如，`gpt-5.4-mini-high` 会解析为 `model="gpt-5.4-mini"` 和 `reasoning_effort="high"`。
+
+BEST 用于广泛、跨文件、含糊、会改变行为、高风险、难测试的工作，以及 plan reviewer 和 final review+fix。
+NORMAL 用于原来会放进旧 FAST 层的常规低风险实现工作，尤其是局部修改。
+FAST 是 Spark 层，用于明显重复的工作、多文件机械性修改、大量静态文本扫改、简单 fixture/assertion 变更，以及快速验证。
 
 ## 实现流程
 
@@ -131,17 +136,26 @@ marketplace updates.
 
 ## Model Allocation
 
-Simple Power uses two configurable model tiers:
+Simple Power uses three configurable model tiers:
 
 ```bash
 SIMPLEPOWER_BEST_MODEL="gpt-5.5-high"
-SIMPLEPOWER_FAST_MODEL="gpt-5.4-mini-high"
+SIMPLEPOWER_NORMAL_MODEL="gpt-5.4-mini-high"
+SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"
 ```
 
 Parse each value as `<model>-<reasoning_effort>` by taking the final
 dash-delimited segment as `reasoning_effort` and the preceding string as
 `model`. For example, `gpt-5.4-mini-high` resolves to
 `model="gpt-5.4-mini"` and `reasoning_effort="high"`.
+
+BEST is for broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or
+hard-to-test work, plus the plan reviewer and final review+fix.
+NORMAL is for routine low-risk implementation work that used to fit the old
+FAST tier, especially localized edits.
+FAST is the Spark tier for obvious repetitive work, mechanical edits across
+many files, large static text sweeps, simple fixture/assertion churn, and quick
+verification.
 
 ## Implementation Flow
 

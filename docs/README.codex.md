@@ -34,22 +34,26 @@ plan and model allocation.
 
 ## Model Allocation
 
-Simple Power uses two configurable model tiers:
+Simple Power uses three configurable model tiers:
 
 ```bash
 SIMPLEPOWER_BEST_MODEL="gpt-5.5-high"
-SIMPLEPOWER_FAST_MODEL="gpt-5.4-mini-high"
+SIMPLEPOWER_NORMAL_MODEL="gpt-5.4-mini-high"
+SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"
 ```
 
-If either environment variable is unset, use the default shown above. Parse the
+If any environment variable is unset, use the default shown above. Parse the
 value as `<model>-<reasoning_effort>` by taking the final dash-delimited
 segment as `reasoning_effort` and the preceding string as `model`. For
 example, `gpt-5.4-mini-high` resolves to `model="gpt-5.4-mini"` and
 `reasoning_effort="high"`.
 
-Use FAST for narrow, low-risk, localized implementation or review work. Use
-BEST for broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or
-hard-to-test work. Every `fixer` stage uses BEST.
+Use BEST for broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or
+hard-to-test work, plus the plan reviewer and final review+fix agent. Use
+NORMAL for routine low-risk implementation work that used to fit the old FAST
+tier, especially localized edits. Use FAST for obvious repetitive work,
+mechanical edits across many files, large static text sweeps, simple
+fixture/assertion churn, and quick verification. Every `fixer` stage uses BEST.
 
 ## Implementation Flow
 
@@ -64,7 +68,8 @@ one step. If the user approves, the coordinator creates the accepted plan
 checkpoint commit and immediately invokes
 `simplepower:subagent-driven-development` with the approved allocation. The
 implementation skill then uses plan-first parallel implementation, quick
-verification, one BEST-tier review+fix pass, and final verification.
+verification with the FAST tier by default, one BEST-tier review+fix pass, and
+final verification.
 
 ## Starting Implementation
 
@@ -73,7 +78,7 @@ After the reviewed plan and model/task allocation are approved,
 the implementation path directly.
 
 ```text
-Use `simplepower:subagent-driven-development` to execute `<PLAN_PATH>` in the current session with plan-first parallel implementation. Use the approved model allocation. Dispatch all non-conflicting `sp-impl` file-edit workers, run the quick `gpt-5.3-codex-spark` high-effort verifier with lint/build/tests and timeouts, commit the quick-verified implementation, then run one BEST-tier review+fix agent, final verification, and final commit.
+Use `simplepower:subagent-driven-development` to execute `<PLAN_PATH>` in the current session with plan-first parallel implementation. Use the approved FAST/NORMAL/BEST model allocation. Dispatch all non-conflicting `sp-impl` file-edit workers, run the quick FAST-tier verifier with lint/build/tests and timeouts, commit the quick-verified implementation, then run one BEST-tier review+fix agent, final verification, and final commit.
 ```
 
 ## Usage
