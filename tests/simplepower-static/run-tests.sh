@@ -500,6 +500,17 @@ stale_context_handoff_language='Context[[:space:]]+Size[[:space:]]+Handoff|curre
 stale_context_handoff_multiline='saved[ -]plan[ -]size[[:space:]]+fallback|context[ -]usage[[:space:]]+measurement|context[[:space:]]+helper|context[[:space:]]+measurement[[:space:]]+helper|context[ -]size[[:space:]]+checking|context[ -]window[[:space:]]+checking|clear-session[[:space:]]+command|post-plan[[:space:]]+handoff-choice'
 require_no_active_match "$stale_context_handoff_language" "active workflow docs do not retain stale current-session handoff language" README.md docs/README.codex.md skills/writing-plans skills/subagent-driven-development tests/explicit-skill-requests tests/skill-triggering
 require_no_active_multiline_match "$stale_context_handoff_multiline" "active workflow docs do not retain multiline or hyphenated stale current-session handoff language" README.md docs/README.codex.md skills/writing-plans skills/subagent-driven-development tests/explicit-skill-requests tests/skill-triggering
+active_model_tier_paths=(
+    README.md
+    docs/README.codex.md
+    skills/writing-plans/SKILL.md
+    skills/writing-plans/plan-document-reviewer-prompt.md
+    skills/subagent-driven-development/SKILL.md
+    skills/using-simplepower/references/codex-tools.md
+    tests/simplepower-static/run-tests.sh
+)
+stale_model_tier_language='two configurable model[[:space:]]+tiers|SIMPLEPOWER_FAST_MODEL=["]gpt-5[.]4-mini-high["]|FAST[/]BEST allocation|plan'\''s FAST (or|/) BEST|Quick .*gpt-5[.]3-codex-spark.* high-effort verifier'
+require_no_active_match "$stale_model_tier_language" "active model docs do not retain stale two-tier model allocation language" "${active_model_tier_paths[@]}"
 old_marketplace_repo='prime-radiant-inc/openai-codex''-plugins'
 require_no_active_match "$old_marketplace_repo" "active docs and sync scripts do not target the old marketplace repo" README.md AGENTS.md .codex/INSTALL.md .codex-plugin/plugin.json docs/README.codex.md docs/testing.md scripts
 require_no_active_match "$old_plan_flow_language" "active plan-first files do not contain old flow routing language" "${active_plan_first_paths[@]}"

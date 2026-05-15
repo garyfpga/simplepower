@@ -34,7 +34,7 @@ SimplePower 是 Jesse Vincent / Prime Radiant 的 [Superpowers](https://github.c
 | 阶段 | SuperPower | SimplePower |
 |---|---:|---:|
 | Spec / Plan | brainstorming -> <br> approve spec -> <br> spec.md (commit) -> <br> plan.md (approve and commit) | brainstorming -> <br> approve spec -> <br> plan.md (approve and commit) <br> 懒得同时检查 spec.md 和 plan.md
-| Subagent Implementation <br><br> 这就是 SimplePower 快的原因 | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | 多个 subagent 并行处理多个文件 -> <br> 快速测试 runner subagent (spark) -> <br> 单个最终 reviewer + fixer
+| Subagent Implementation <br><br> 这就是 SimplePower 快的原因 | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | 多个 subagent 并行处理多个文件 -> <br> FAST-tier 快速验证 subagent -> <br> 单个最终 reviewer + fixer
 | Git Commits? | 每一步 | parallel subagent 之后一次性提交 + <br> review 之后最终提交
 
 ## 安装
@@ -119,7 +119,7 @@ This table explains what SimplePower is trying to achieve (times are just estima
 | Pharse | SuperPower | SimplePower |
 |---|---:|---:|
 | Spec / Plan | brainstorming -> <br> approve spec -> <br> spec.md (commit) -> <br> plan.md (approve and commit) | brainstorming -> <br> approve spec -> <br> plan.md (approve and commit) <br> too lazy to check spec.md and plan.md
-| Subagent Implementation <br><br> this is why SimplePower is fast | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | Many subagents in parallel for multiple files -> <br> Quick tests runner subagent (spark) -> <br> Single final reviewer + fixer
+| Subagent Implementation <br><br> this is why SimplePower is fast | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | Many subagents in parallel for multiple files -> <br> FAST-tier quick verifier subagent -> <br> Single final reviewer + fixer
 | Git Commits? | every steps | all at once after parallel subagent + <br> final after review
 
 ## Installation

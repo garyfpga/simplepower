@@ -53,7 +53,8 @@ hard-to-test work, plus the plan reviewer and final review+fix agent. Use
 NORMAL for routine low-risk implementation work that used to fit the old FAST
 tier, especially localized edits. Use FAST for obvious repetitive work,
 mechanical edits across many files, large static text sweeps, simple
-fixture/assertion churn, and quick verification. Every `fixer` stage uses BEST.
+fixture/assertion churn, and quick verification. The review+fix stage uses
+BEST.
 
 ## Implementation Flow
 
