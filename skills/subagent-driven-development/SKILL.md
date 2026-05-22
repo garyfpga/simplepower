@@ -17,7 +17,7 @@ reason is satisfied. After all implementation workers finish, run the quick
 verifier using the approved FAST tier with lint/build/tests and timeouts. By
 default that resolves to `model="gpt-5.3-codex-spark"` and
 `reasoning_effort="high"`. Commit the quick-verified implementation, then
-dispatch one BEST-tier review+fix agent before final verification and final
+dispatch one REVIEW-tier review+fix agent before final verification and final
 commit.
 
 This workflow uses aggregate parallel dispatch: the accepted plan's Interface
@@ -114,7 +114,7 @@ runtime or migration ordering.
 10. Let the quick verifier fix only tiny typo-level issues.
 11. Stop for user direction if quick verification finds non-trivial failures.
 12. Commit the quick-verified implementation before final review.
-13. Dispatch one BEST-tier review+fix agent with the whole diff and approved
+13. Dispatch one REVIEW-tier review+fix agent with the whole diff and approved
     plan.
 14. Run final verification.
 15. Commit final changes.
@@ -199,7 +199,7 @@ checkpoint commit.
 
 ## Review+Fix
 
-After the coordinator checkpoint commit, dispatch one BEST-tier review+fix
+After the coordinator checkpoint commit, dispatch one REVIEW-tier review+fix
 agent from `review-fix-prompt.md` with the whole diff, approved plan, task
 requirements, file ownership, verification results, and any worker reports that
 matter.
@@ -260,26 +260,46 @@ active written reason.
 
 ## Model Selection
 
-Use the plan's approved FAST, NORMAL, or BEST allocation unless the user
-explicitly overrides it. These settings are an explicit Simple Power override
-to generic same-model defaults from AGENTS.md or other ambient instructions.
+Use the plan's approved FAST, NORMAL, BEST, or REVIEW allocation unless the
+user explicitly overrides it. `sp-impl` implementation tasks use only FAST,
+NORMAL, or BEST unless a future approved design explicitly adds REVIEW for
+implementation work.
 
 Defaults:
 
 ```bash
+SIMPLEPOWER_REVIEW_MODEL="gpt-5.5-xhigh"
 SIMPLEPOWER_BEST_MODEL="gpt-5.5-high"
 SIMPLEPOWER_NORMAL_MODEL="gpt-5.4-mini-high"
 SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"
 ```
 
-If any variable is unset, use the default above. Resolve each env value by
-taking the final dash-delimited segment as `reasoning_effort` and the
+Resolve each `SIMPLEPOWER_*_MODEL` value in this order:
+
+1. Explicit user override in the current request or approved plan.
+2. Quoted assignment in project root AGENTS.md, if `<repo>/AGENTS.md` exists.
+3. Process environment variable.
+4. Built-in default above.
+
+The AGENTS lookup reads only the project root AGENTS.md. It must not scan
+nested `AGENTS.md` files, inherited parent directories, or the whole repo.
+Accepted AGENTS assignment forms are:
+
+```bash
+SIMPLEPOWER_REVIEW_MODEL="gpt-5.5-xhigh"
+SIMPLEPOWER_REVIEW_MODEL = "gpt-5.5-xhigh"
+```
+
+The same quoted-assignment rule applies to `SIMPLEPOWER_BEST_MODEL`,
+`SIMPLEPOWER_NORMAL_MODEL`, and `SIMPLEPOWER_FAST_MODEL`. Resolve each value
+by taking the final dash-delimited segment as `reasoning_effort` and the
 preceding string as `model`.
 
 Tier routing:
 
+- REVIEW: plan reviewer and final review+fix.
 - BEST: broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or
-  hard-to-test work; plan reviewer; final review+fix.
+  hard-to-test implementation work.
 - NORMAL: routine low-risk implementation work that used the old FAST tier,
   especially localized edits where `gpt-5.4-mini-high` is appropriate.
 - FAST: obvious repetitive work, mechanical edits across many files, large
@@ -292,8 +312,8 @@ Role routing:
   `agent_type="worker"`, `fork_context=false`.
 - Quick verifier: use the approved FAST tier, `agent_type="worker"`,
   `fork_context=false`.
-- Review+fix agent: always use BEST, `agent_type="worker"`,
-  `fork_context=false`.
+- Review+fix agent: always use REVIEW, resolved from
+  `SIMPLEPOWER_REVIEW_MODEL`, `agent_type="worker"`, `fork_context=false`.
 
 If a planned FAST implementation task is less mechanical or obvious than the
 plan predicted, escalate that task to NORMAL or BEST and record the reason
@@ -317,7 +337,7 @@ prompt. Record the reason when making that exception.
 - `./implementer-prompt.md` - Template for `sp-impl` file-edit workers
 - `./quick-verifier-prompt.md` - Template for quick verification before the
   coordinator checkpoint commit
-- `./review-fix-prompt.md` - Template for the one BEST-tier review+fix agent
+- `./review-fix-prompt.md` - Template for the one REVIEW-tier review+fix agent
 
 ## Red Flags
 
@@ -350,7 +370,7 @@ prompt. Record the reason when making that exception.
 - Skip quick verification.
 - Skip the coordinator checkpoint commit after quick verification unless there
   are no uncommitted implementation changes.
-- Skip the one BEST-tier review+fix agent.
+- Skip the one REVIEW-tier review+fix agent.
 - Skip final verification.
 - Skip the subagent lifecycle checkpoint after a final subagent result.
 - Leave a finished subagent open without a written reason tied to the current

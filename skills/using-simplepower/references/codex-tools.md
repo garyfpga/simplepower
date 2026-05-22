@@ -14,20 +14,27 @@ Simple Power skills may mention generic skill tool names. When you encounter the
 | `Bash` (run commands) | Use your native shell tools |
 | sp-impl file-edit worker | `spawn_agent(agent_type="worker", model=<FAST_or_NORMAL_or_BEST_model>, reasoning_effort=<FAST_or_NORMAL_or_BEST_effort>, fork_context=false, message=...)` |
 | quick verifier | `spawn_agent(agent_type="worker", model=<FAST_model>, reasoning_effort=<FAST_effort>, fork_context=false, message=...)` Default resolves to Spark high unless overridden. |
-| review+fix agent | `spawn_agent(agent_type="worker", model=<BEST_model>, reasoning_effort=<BEST_effort>, fork_context=false, message=...)` |
+| plan reviewer | `spawn_agent(agent_type="worker", model=<REVIEW_model>, reasoning_effort=<REVIEW_effort>, fork_context=false, message=...)` |
+| review+fix agent | `spawn_agent(agent_type="worker", model=<REVIEW_model>, reasoning_effort=<REVIEW_effort>, fork_context=false, message=...)` |
 | multiple independent file-edit tasks | Multiple `spawn_agent` calls, one per non-conflicting ownership unit, before `wait` |
 
 The role mappings are an explicit Simple Power override to generic same-model
-defaults from AGENTS.md or other ambient instructions. Resolve
-`SIMPLEPOWER_BEST_MODEL`, `SIMPLEPOWER_NORMAL_MODEL`, and
-`SIMPLEPOWER_FAST_MODEL` before dispatch. If unset, use
+defaults from AGENTS.md or other ambient instructions. Resolve model settings
+in this order: explicit user override, quoted assignment in project root
+`<repo>/AGENTS.md`, process environment variable, built-in default. The model
+assignment lookup only reads `<repo>/AGENTS.md`; nested AGENTS files and
+repo-wide grep are not part of this feature.
+
+Resolve `SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_BEST_MODEL`,
+`SIMPLEPOWER_NORMAL_MODEL`, and `SIMPLEPOWER_FAST_MODEL` before dispatch. If
+unset, use `SIMPLEPOWER_REVIEW_MODEL="gpt-5.5-xhigh"`,
 `SIMPLEPOWER_BEST_MODEL="gpt-5.5-high"`,
 `SIMPLEPOWER_NORMAL_MODEL="gpt-5.4-mini-high"`, and
 `SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"`. The final
 dash-delimited segment is `reasoning_effort`; the preceding string is `model`.
 
 Use the plan's approved FAST/NORMAL/BEST allocation for `sp-impl` file-edit
-workers. Always dispatch the review+fix agent with BEST.
+workers. Always dispatch the plan reviewer and review+fix agent with REVIEW.
 
 ## Subagent dispatch requires multi-agent support
 

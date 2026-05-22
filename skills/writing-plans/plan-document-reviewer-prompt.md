@@ -1,6 +1,6 @@
 # Plan Document Reviewer Prompt Template
 
-Use this template when dispatching a BEST-tier plan document reviewer subagent.
+Use this template when dispatching a REVIEW-tier plan document reviewer worker.
 
 **Purpose:** Verify that the plan is the authoritative implementation artifact
 and is ready for aggregate parallel implementation from an approved Interface
@@ -12,12 +12,16 @@ Contract.
 Task tool (general-purpose):
   description: "Review plan document"
   prompt: |
-    You are a BEST-tier plan document reviewer. Verify this plan is complete,
+    You are a REVIEW-tier plan document reviewer. Verify this plan is complete,
     internally consistent, and ready for aggregate parallel implementation from
     an approved Interface Contract.
 
     **Plan to review:** [PLAN_FILE_PATH]
     **Approved brainstorming design context:** [DESIGN_CONTEXT]
+
+    Perform this assigned review directly in the current worker. Do not run Codex CLI.
+    Do not spawn subagents. Do not invoke Simple Power skills. Do not restart
+    execution. Do not reroute workflow.
 
     ## What to Check
 
@@ -29,10 +33,12 @@ Task tool (general-purpose):
     | File Ownership | Confirms exact ownership for every created or modified file, no unowned implied files, and no parallel file-edit collisions. |
     | Implementation Task Contract Fields | Confirms every implementation task has `Contract inputs` that point to approved Interface Contract entries, approved design details, or explicit external facts; confirms every task has `Serialization required`; confirms `Serialization required` defaults to `No` and any `Yes` includes a concrete reason. |
     | Aggregate Parallel Readiness | Confirms the plan expects aggregate parallel dispatch for all non-overlapping workers whose coordination needs are satisfied by the Interface Contract, including test workers writing against approved Interface Contract APIs while implementation workers create those APIs. |
-    | Model Allocation | Confirms every task has FAST, NORMAL, or BEST; FAST defaults to `SIMPLEPOWER_FAST_MODEL` (`gpt-5.3-codex-spark-high` when unset), NORMAL defaults to `SIMPLEPOWER_NORMAL_MODEL` (`gpt-5.4-mini-high` when unset), and BEST defaults to `SIMPLEPOWER_BEST_MODEL` (`gpt-5.5-high` when unset); FAST is limited to obvious repetitive/mechanical/static text/fixture or assertion churn and quick verification, NORMAL covers routine low-risk localized implementation work, and BEST covers broad, ambiguous, behavior-shaping, high-risk, or hard-to-test work; the plan reviewer uses BEST, the final review+fix agent uses BEST, and the quick verifier uses the FAST tier by default. |
+    | Model Allocation | Confirms the active model tiers are exactly FAST/NORMAL/BEST/REVIEW; every implementation task has FAST, NORMAL, or BEST; FAST defaults to `SIMPLEPOWER_FAST_MODEL` (`gpt-5.3-codex-spark-high` when unset), NORMAL defaults to `SIMPLEPOWER_NORMAL_MODEL` (`gpt-5.4-mini-high` when unset), BEST defaults to `SIMPLEPOWER_BEST_MODEL` (`gpt-5.5-high` when unset), and REVIEW defaults to `SIMPLEPOWER_REVIEW_MODEL` (`gpt-5.5-xhigh` when unset); FAST is limited to obvious repetitive/mechanical/static text/fixture or assertion churn and quick verification, NORMAL covers routine low-risk localized implementation work, BEST covers broad, ambiguous, behavior-shaping, high-risk, or hard-to-test implementation work, the plan reviewer is a REVIEW-tier plan reviewer, the final review+fix agent is a REVIEW-tier review+fix agent, and the quick verifier uses the FAST tier by default. |
+    | Model Resolution Precedence | Confirms the plan resolves each tier by explicit user override, quoted assignment in project root AGENTS.md if it exists, process environment variable, then built-in default. Confirms project root AGENTS.md means only `<repo>/AGENTS.md`, with no nested AGENTS.md scan and no repo-wide grep for model assignments. |
     | Quick Verification | Confirms quick lint/build/tests commands are concrete, use `timeout`, run after all file-edit workers complete, and happen before the quick-verified implementation checkpoint. |
     | Quick Verifier Scope | Confirms the quick verifier may fix only tiny typo-level errors and must report behavior changes, structural edits, test rewrites, public interface changes, or unclear issues instead of fixing them. |
-    | Review+Fix | Confirms exactly one BEST-tier review+fix agent reviews and fixes the whole implementation after the quick-verified implementation checkpoint and before final verification. |
+    | Review+Fix | Confirms exactly one REVIEW-tier review+fix agent reviews and fixes the whole implementation after the quick-verified implementation checkpoint and before final verification. |
+    | Reviewer Non-Recursion | Confirms the plan reviewer and final review+fix instructions require direct review in the current worker and forbid running Codex CLI, spawning subagents, invoking Simple Power skills, restarting execution, and rerouting workflow. |
     | Commit Policy | Confirms exactly three future coordinator checkpoint commits: accepted reviewed plan plus allocation plus immediate current-session execution after combined approval, quick-verified implementation, and final verified implementation. Confirms No worker commits or per-task commits for workers, plan reviewers, quick verifiers, review+fix agents, and individual tasks. |
     | Current-Session Auto-Dispatch | Confirms `simplepower:writing-plans` uses combined approval after reviewer approval: the user approves the reviewed plan, model/task allocation, and immediate current-session execution in one step. Confirms the accepted-plan checkpoint commit is created only after combined approval and before implementation dispatch. Confirms approved implementation immediately invokes `simplepower:subagent-driven-development` in the current session with the approved model allocation and Interface Contract. Rejects retired session-routing mechanics or post-plan route-selection behavior. |
     | Retired Flow Removal | Confirms the plan does not rely on removed standalone-planning artifacts, removed review routing variants, removed worker roles, removed per-batch progress tables, or removed execution routes. |
@@ -44,8 +50,9 @@ Task tool (general-purpose):
     Minor wording preferences are advisory unless they create ambiguity in file
     ownership, Interface Contract, Contract inputs, Serialization required,
     aggregate parallel readiness, model allocation, review allocation,
-    verification, auto-dispatch, commit policy, visual-aid authority, or approved
-    path enforcement. Missing visual aids are not a blocking issue.
+    verification, auto-dispatch, commit policy, reviewer non-recursion,
+    visual-aid authority, or approved path enforcement. Missing visual aids are
+    not a blocking issue.
 
     If this is a revised plan sent back to the same reviewer after blocking
     issues, compare it against the previous blocking issues. Report whether
@@ -66,17 +73,26 @@ Task tool (general-purpose):
     more or fewer than three future coordinator checkpoints. Reject plans that
     allow any non-coordinator role or individual task to commit. Reject plans
     that let the quick verifier make anything more than tiny typo-level fixes.
-    Reject plans that omit the one BEST-tier review+fix agent for the whole
+    Reject plans that omit the one REVIEW-tier review+fix agent for the whole
     implementation. Reject plans that omit combined approval, put the
     accepted-plan checkpoint before reviewer approval or before user approval,
     delay implementation after combined approval, omit immediate current-session
     execution through `simplepower:subagent-driven-development`, introduce
     retired session-routing mechanics, or ask the user to pick a post-plan
-    execution route. Reject plans whose visual aids, when present,
-    contradict the approved design or authoritative plan sections, imply
-    separate linked local HTML plan files, or suggest `.html` plan artifacts,
-    converted historical plans, skipped checks, or alternate implementation
-    routes.
+    execution route. Reject plans that route the plan reviewer or final
+    review+fix agent to BEST instead of REVIEW. Reject plans that do not state
+    the model resolution precedence as explicit user override, quoted assignment
+    in project root AGENTS.md, process environment variable, then built-in
+    default. Reject plans that scan nested AGENTS.md files or perform repo-wide
+    grep for model settings instead of reading only `<repo>/AGENTS.md`. Reject
+    plans whose plan reviewer or final review+fix instructions allow running
+    Codex CLI, spawning subagents, invoking Simple Power skills, restarting
+    execution, rerouting workflow, or delegating the assigned review instead of
+    performing it directly in the current worker. Reject plans whose visual
+    aids, when present, contradict the approved design or authoritative plan
+    sections, imply separate linked local HTML plan files, or suggest `.html`
+    plan artifacts, converted historical plans, skipped checks, or alternate
+    implementation routes.
 
     ## Output Format
 

@@ -16,4 +16,7 @@ skill handoffs focused on Codex.
   the reviewed plan and allocation are accepted, after all implementation file
   edits plus quick verification before final review, and after final review/fix
   plus final verification.
+- Active model docs must preserve root `AGENTS.md` precedence and must not set
+  local model override values unless intentionally changing this repo's
+  defaults.
 - Preserve fork attribution in user-facing docs.

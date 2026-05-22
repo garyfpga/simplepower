@@ -3,6 +3,6 @@ I have my implementation plan ready at docs/simplepower/plans/auth-system.md.
 I want to use simplepower:subagent-driven-development to execute it with plan-first parallel implementation. That means:
 - Dispatch non-conflicting sp-impl file-edit workers according to the approved plan
 - Run the quick verifier with lint/build/tests and timeouts
-- Run one BEST-tier review+fix pass before final verification
+- Run one REVIEW-tier review+fix pass before final verification
 
 Let's start.

@@ -21,7 +21,8 @@ marketplace updates.
 ## Subagent Support
 
 `simplepower:subagent-driven-development` depends on Codex multi-agent support
-for `sp-impl` file-edit workers, the quick verifier, and the review+fix agent.
+for `sp-impl` file-edit workers, the quick verifier, and the REVIEW-tier
+review+fix agent.
 Add this to your Codex config if it is not already present:
 
 ```toml
@@ -34,13 +35,19 @@ plan and model allocation.
 
 ## Model Allocation
 
-Simple Power uses three configurable model tiers:
+Simple Power uses four configurable model tiers:
 
 ```bash
+SIMPLEPOWER_REVIEW_MODEL="gpt-5.5-xhigh"
 SIMPLEPOWER_BEST_MODEL="gpt-5.5-high"
 SIMPLEPOWER_NORMAL_MODEL="gpt-5.4-mini-high"
 SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"
 ```
+
+Resolve model settings in this order: explicit user override, quoted
+assignment in project root `AGENTS.md`, process environment variable, built-in
+default. Model assignment lookup only reads `<repo>/AGENTS.md`; nested AGENTS
+files and repo-wide grep are not part of this feature.
 
 If any environment variable is unset, use the default shown above. Parse the
 value as `<model>-<reasoning_effort>` by taking the final dash-delimited
@@ -48,13 +55,12 @@ segment as `reasoning_effort` and the preceding string as `model`. For
 example, `gpt-5.4-mini-high` resolves to `model="gpt-5.4-mini"` and
 `reasoning_effort="high"`.
 
-Use BEST for broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or
-hard-to-test work, plus the plan reviewer and final review+fix agent. Use
-NORMAL for routine low-risk implementation work that used to fit the old FAST
-tier, especially localized edits. Use FAST for obvious repetitive work,
-mechanical edits across many files, large static text sweeps, simple
-fixture/assertion churn, and quick verification. The review+fix stage uses
-BEST.
+Use REVIEW for the plan reviewer and final review+fix agent. Use BEST for
+broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or hard-to-test
+work. Use NORMAL for routine low-risk implementation work that used to fit the
+old FAST tier, especially localized edits. Use FAST for obvious repetitive
+work, mechanical edits across many files, large static text sweeps, simple
+fixture/assertion churn, and quick verification.
 
 ## Implementation Flow
 
@@ -67,10 +73,7 @@ page during brainstorming instead of saved plan visuals. After
 reviewed plan, model/task allocation, and immediate current-session execution in
 one step. If the user approves, the coordinator creates the accepted plan
 checkpoint commit and immediately invokes
-`simplepower:subagent-driven-development` with the approved allocation. The
-implementation skill then uses plan-first parallel implementation, quick
-verification with the FAST tier by default, one BEST-tier review+fix pass, and
-final verification.
+`simplepower:subagent-driven-development` with the approved allocation. The implementation skill then uses plan-first parallel implementation, quick verification with the FAST tier by default, one REVIEW-tier review+fix pass, and final verification.
 
 ## Starting Implementation
 
@@ -79,7 +82,7 @@ After the reviewed plan and model/task allocation are approved,
 the implementation path directly.
 
 ```text
-Use `simplepower:subagent-driven-development` to execute `<PLAN_PATH>` in the current session with plan-first parallel implementation. Use the approved FAST/NORMAL/BEST model allocation. Dispatch all non-conflicting `sp-impl` file-edit workers, run the quick FAST-tier verifier with lint/build/tests and timeouts, commit the quick-verified implementation, then run one BEST-tier review+fix agent, final verification, and final commit.
+Use `simplepower:subagent-driven-development` to execute `<PLAN_PATH>` in the current session with plan-first parallel implementation. Use the approved FAST/NORMAL/BEST allocation for `sp-impl` workers and REVIEW for the review+fix agent. Dispatch all non-conflicting `sp-impl` file-edit workers, run the quick FAST-tier verifier with lint/build/tests and timeouts, commit the quick-verified implementation, then run one REVIEW-tier review+fix agent, final verification, and final commit.
 ```
 
 ## Usage

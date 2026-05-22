@@ -34,7 +34,7 @@ SimplePower 是 Jesse Vincent / Prime Radiant 的 [Superpowers](https://github.c
 | 阶段 | SuperPower | SimplePower |
 |---|---:|---:|
 | Spec / Plan | brainstorming -> <br> approve spec -> <br> spec.md (commit) -> <br> plan.md (approve and commit) | brainstorming -> <br> approve spec -> <br> plan.md (approve and commit) <br> 懒得同时检查 spec.md 和 plan.md
-| Subagent Implementation <br><br> 这就是 SimplePower 快的原因 | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | 多个 subagent 并行处理多个文件 -> <br> FAST-tier 快速验证 subagent -> <br> 单个最终 reviewer + fixer
+| Subagent Implementation <br><br> 这就是 SimplePower 快的原因 | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | 多个 subagent 并行处理多个文件 -> <br> FAST-tier 快速验证 subagent -> <br> 单个 REVIEW-tier reviewer + fixer
 | Git Commits? | 每一步 | parallel subagent 之后一次性提交 + <br> review 之后最终提交
 
 ## 安装
@@ -50,18 +50,22 @@ codex plugin marketplace upgrade
 
 ## 模型分配
 
-Simple Power 使用三个可配置的模型层级：
+Simple Power 使用四个可配置的模型层级：
 
 ```bash
+SIMPLEPOWER_REVIEW_MODEL="gpt-5.5-xhigh"
 SIMPLEPOWER_BEST_MODEL="gpt-5.5-high"
 SIMPLEPOWER_NORMAL_MODEL="gpt-5.4-mini-high"
 SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"
 ```
 
+先按这个顺序解析模型设置：显式用户 override、项目根目录 `AGENTS.md` 里的 quoted assignment、进程环境变量、内建默认值。模型赋值只读取 `<repo>/AGENTS.md`；不会扫描嵌套 AGENTS 文件，也不会对整个仓库做 grep。
+
 把每个值按 `<model>-<reasoning_effort>` 解析：最后一个以 dash 分隔的片段作为 `reasoning_effort`，前面的字符串作为 `model`。
 例如，`gpt-5.4-mini-high` 会解析为 `model="gpt-5.4-mini"` 和 `reasoning_effort="high"`。
 
-BEST 用于广泛、跨文件、含糊、会改变行为、高风险、难测试的工作，以及 plan reviewer 和 final review+fix。
+REVIEW 用于 plan reviewer 和 final review+fix。
+BEST 用于广泛、跨文件、含糊、会改变行为、高风险、难测试的工作。
 NORMAL 用于原来会放进旧 FAST 层的常规低风险实现工作，尤其是局部修改。
 FAST 是 Spark 层，用于明显重复的工作、多文件机械性修改、大量静态文本扫改、简单 fixture/assertion 变更，以及快速验证。
 
@@ -73,7 +77,7 @@ brainstorming skill 可以使用临时的 localhost visual companion 来处理 m
 
 在 `simplepower:writing-plans` 完成 plan review 之后，Simple Power 会一次性询问你是否批准已审阅的 plan、模型分配，以及立刻在当前 session 里启动 `simplepower:subagent-driven-development`。
 你确认后，coordinator 会创建 accepted plan checkpoint commit，并立即调用 `simplepower:subagent-driven-development` 执行已批准的 plan。
-如果 reviewer 提出问题，coordinator 会修正 plan、重新跑相关自检，再把 revised plan 送回同一个 reviewer。reviewer 会一直保持打开，直到通过、发生不可恢复中断，或你明确要求停止。
+如果 REVIEW-tier reviewer 提出问题，coordinator 会修正 plan、重新跑相关自检，再把 revised plan 送回同一个 reviewer。REVIEW-tier reviewer 会一直保持打开，直到通过、发生不可恢复中断，或你明确要求停止。
 
 ## 如何使用 Simple Power
 
@@ -119,7 +123,7 @@ This table explains what SimplePower is trying to achieve (times are just estima
 | Pharse | SuperPower | SimplePower |
 |---|---:|---:|
 | Spec / Plan | brainstorming -> <br> approve spec -> <br> spec.md (commit) -> <br> plan.md (approve and commit) | brainstorming -> <br> approve spec -> <br> plan.md (approve and commit) <br> too lazy to check spec.md and plan.md
-| Subagent Implementation <br><br> this is why SimplePower is fast | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | Many subagents in parallel for multiple files -> <br> FAST-tier quick verifier subagent -> <br> Single final reviewer + fixer
+| Subagent Implementation <br><br> this is why SimplePower is fast | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | Many subagents in parallel for multiple files -> <br> FAST-tier quick verifier subagent -> <br> Single REVIEW-tier reviewer + fixer
 | Git Commits? | every steps | all at once after parallel subagent + <br> final after review
 
 ## Installation
@@ -136,21 +140,28 @@ marketplace updates.
 
 ## Model Allocation
 
-Simple Power uses three configurable model tiers:
+Simple Power uses four configurable model tiers:
 
 ```bash
+SIMPLEPOWER_REVIEW_MODEL="gpt-5.5-xhigh"
 SIMPLEPOWER_BEST_MODEL="gpt-5.5-high"
 SIMPLEPOWER_NORMAL_MODEL="gpt-5.4-mini-high"
 SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"
 ```
+
+Resolve model settings in this order: explicit user override, quoted
+assignment in project root `AGENTS.md`, process environment variable, built-in
+default. Model assignment lookup only reads `<repo>/AGENTS.md`; nested AGENTS
+files and repo-wide grep are not part of this feature.
 
 Parse each value as `<model>-<reasoning_effort>` by taking the final
 dash-delimited segment as `reasoning_effort` and the preceding string as
 `model`. For example, `gpt-5.4-mini-high` resolves to
 `model="gpt-5.4-mini"` and `reasoning_effort="high"`.
 
+REVIEW is for the plan reviewer and final review+fix agent.
 BEST is for broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or
-hard-to-test work, plus the plan reviewer and final review+fix.
+hard-to-test work.
 NORMAL is for routine low-risk implementation work that used to fit the old
 FAST tier, especially localized edits.
 FAST is the Spark tier for obvious repetitive work, mechanical edits across
@@ -173,10 +184,10 @@ immediate execution in the current session with
 Once you approve, the coordinator creates the accepted plan checkpoint commit
 and immediately invokes `simplepower:subagent-driven-development` in the
 current session.
-If the reviewer reports issues, the coordinator fixes the plan, reruns focused
-self-review checks for the changed categories, and sends the revised plan back
-to the same reviewer. The reviewer stays open until approval, an unrecoverable
-interruption, or explicit user direction.
+If the REVIEW-tier reviewer reports issues, the coordinator fixes the plan,
+reruns focused self-review checks for the changed categories, and sends the
+revised plan back to the same reviewer. The REVIEW-tier reviewer stays open
+until approval, an unrecoverable interruption, or explicit user direction.
 
 ## How To Use Simple Power
 

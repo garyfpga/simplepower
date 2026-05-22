@@ -3,8 +3,9 @@
 Use this template when dispatching the quick verifier after all implementation
 workers finish and before the pre-review implementation commit.
 
-The quick verifier always uses `model="gpt-5.3-codex-spark"` and
-`reasoning_effort="high"`.
+The quick verifier uses the approved FAST tier. With built-in defaults and no
+override, `SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"` resolves to
+`model="gpt-5.3-codex-spark"` and `reasoning_effort="high"`.
 
 ## Rules
 

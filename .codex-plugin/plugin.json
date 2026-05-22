@@ -19,7 +19,7 @@
   "interface": {
     "displayName": "Simple Power",
     "shortDescription": "Codex-only brainstorming, planning, and parallel implementation workflows",
-    "longDescription": "Use Simple Power to guide Codex through brainstorming, authoritative implementation planning, plan-first parallel file edits, quick verification, one BEST-tier review+fix pass, final verification, and an explicit read-only code discussion mode.",
+    "longDescription": "Use Simple Power to guide Codex through brainstorming, authoritative implementation planning, plan-first parallel file edits, quick verification, one REVIEW-tier review+fix pass, final verification, and an explicit read-only code discussion mode.",
     "developerName": "Simple Power maintainers",
     "category": "Coding",
     "capabilities": [

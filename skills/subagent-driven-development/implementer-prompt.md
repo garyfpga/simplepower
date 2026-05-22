@@ -42,7 +42,8 @@ Task tool (general-purpose):
 
     ## Model Tier
 
-    [State FAST or BEST and the reason from the plan or escalation decision.]
+    [State FAST, NORMAL, or BEST and the reason from the plan or escalation
+    decision.]
 
     ## Approved Path Enforcement
 
