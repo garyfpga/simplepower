@@ -19,9 +19,9 @@ Task tool (general-purpose):
     **Plan to review:** [PLAN_FILE_PATH]
     **Approved brainstorming design context:** [DESIGN_CONTEXT]
 
-    Perform this assigned review directly in the current worker. Do not run Codex CLI.
+    Perform the assigned review directly in the current worker. Do not run Codex CLI.
     Do not spawn subagents. Do not invoke Simple Power skills. Do not restart
-    execution. Do not reroute workflow.
+    execution. Do not reroute the workflow.
 
     ## What to Check
 
@@ -38,7 +38,7 @@ Task tool (general-purpose):
     | Quick Verification | Confirms quick lint/build/tests commands are concrete, use `timeout`, run after all file-edit workers complete, and happen before the quick-verified implementation checkpoint. |
     | Quick Verifier Scope | Confirms the quick verifier may fix only tiny typo-level errors and must report behavior changes, structural edits, test rewrites, public interface changes, or unclear issues instead of fixing them. |
     | Review+Fix | Confirms exactly one REVIEW-tier review+fix agent reviews and fixes the whole implementation after the quick-verified implementation checkpoint and before final verification. |
-    | Reviewer Non-Recursion | Confirms the plan reviewer and final review+fix instructions require direct review in the current worker and forbid running Codex CLI, spawning subagents, invoking Simple Power skills, restarting execution, and rerouting workflow. |
+    | Reviewer Non-Recursion | Confirms the plan reviewer and final review+fix instructions require direct review in the current worker and forbid running Codex CLI, spawning subagents, invoking Simple Power skills, restarting execution, and rerouting the workflow. |
     | Commit Policy | Confirms exactly three future coordinator checkpoint commits: accepted reviewed plan plus allocation plus immediate current-session execution after combined approval, quick-verified implementation, and final verified implementation. Confirms No worker commits or per-task commits for workers, plan reviewers, quick verifiers, review+fix agents, and individual tasks. |
     | Current-Session Auto-Dispatch | Confirms `simplepower:writing-plans` uses combined approval after reviewer approval: the user approves the reviewed plan, model/task allocation, and immediate current-session execution in one step. Confirms the accepted-plan checkpoint commit is created only after combined approval and before implementation dispatch. Confirms approved implementation immediately invokes `simplepower:subagent-driven-development` in the current session with the approved model allocation and Interface Contract. Rejects retired session-routing mechanics or post-plan route-selection behavior. |
     | Retired Flow Removal | Confirms the plan does not rely on removed standalone-planning artifacts, removed review routing variants, removed worker roles, removed per-batch progress tables, or removed execution routes. |
@@ -87,7 +87,7 @@ Task tool (general-purpose):
     grep for model settings instead of reading only `<repo>/AGENTS.md`. Reject
     plans whose plan reviewer or final review+fix instructions allow running
     Codex CLI, spawning subagents, invoking Simple Power skills, restarting
-    execution, rerouting workflow, or delegating the assigned review instead of
+    execution, rerouting the workflow, or delegating the assigned review instead of
     performing it directly in the current worker. Reject plans whose visual
     aids, when present, contradict the approved design or authoritative plan
     sections, imply separate linked local HTML plan files, or suggest `.html`

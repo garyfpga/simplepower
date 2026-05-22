@@ -26,8 +26,8 @@ assignment lookup only reads `<repo>/AGENTS.md`; nested AGENTS files and
 repo-wide grep are not part of this feature.
 
 Resolve `SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_BEST_MODEL`,
-`SIMPLEPOWER_NORMAL_MODEL`, and `SIMPLEPOWER_FAST_MODEL` before dispatch. If
-unset, use `SIMPLEPOWER_REVIEW_MODEL="gpt-5.5-xhigh"`,
+`SIMPLEPOWER_NORMAL_MODEL`, and `SIMPLEPOWER_FAST_MODEL` before dispatch. If no
+source provides a value, use `SIMPLEPOWER_REVIEW_MODEL="gpt-5.5-xhigh"`,
 `SIMPLEPOWER_BEST_MODEL="gpt-5.5-high"`,
 `SIMPLEPOWER_NORMAL_MODEL="gpt-5.4-mini-high"`, and
 `SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"`. The final

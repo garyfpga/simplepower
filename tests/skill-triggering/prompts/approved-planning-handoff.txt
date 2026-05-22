@@ -1,2 +1,2 @@
-The reviewed plan and model allocation are approved.
+The reviewed plan and FAST/NORMAL/BEST/REVIEW model allocation are approved.
 simplepower:subagent-driven-development, please execute it with plan-first parallel implementation.

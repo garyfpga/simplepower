@@ -184,10 +184,13 @@ require_not_contains "README.md" "55%" "README does not preserve the 55 percent 
 require_not_contains "README.md" "current-session-context.md" "README does not preserve the retired context helper reference"
 
 require_contains ".codex-plugin/plugin.json" '"version": "1.0.0"' "plugin manifest version is 1.0.0"
+require_contains ".codex-plugin/plugin.json" "one REVIEW-tier review+fix pass" "plugin metadata documents REVIEW-tier review+fix"
+require_not_contains ".codex-plugin/plugin.json" "one BEST-tier review+fix pass" "plugin metadata no longer documents BEST-tier review+fix"
 require_contains "package.json" '"version": "1.0.0"' "package.json version is 1.0.0"
 
 require_contains "AGENTS.md" "simplepower:*" "AGENTS.md uses the Simple Power namespace"
 require_contains "AGENTS.md" "docs/simplepower" "AGENTS.md points generated docs at docs/simplepower"
+require_contains "AGENTS.md" 'root `AGENTS.md` precedence' "AGENTS.md preserves root AGENTS model precedence guidance"
 
 require_contains "docs/README.codex.md" "simplepower:*" "Codex install guide uses the Simple Power namespace"
 require_contains "docs/README.codex.md" "sp-impl" "Codex install guide mentions sp-impl"
@@ -283,7 +286,7 @@ require_contains "skills/writing-plans/SKILL.md" "Do not run Codex CLI" "writing
 require_contains "skills/writing-plans/SKILL.md" "Do not spawn subagents" "writing-plans reviewer dispatch forbids subagents"
 require_contains "skills/writing-plans/SKILL.md" "Do not invoke Simple Power skills" "writing-plans reviewer dispatch forbids skill recursion"
 require_contains "skills/writing-plans/SKILL.md" "Do not restart execution" "writing-plans reviewer dispatch forbids restart routing"
-require_contains "skills/writing-plans/SKILL.md" "Do not reroute workflow" "writing-plans reviewer dispatch forbids rerouting"
+require_contains "skills/writing-plans/SKILL.md" "Do not reroute the workflow" "writing-plans reviewer dispatch forbids rerouting"
 require_contains "skills/writing-plans/SKILL.md" "aggregate parallel implementation" "writing-plans emits aggregate implementation handoff"
 require_contains "skills/writing-plans/SKILL.md" "gpt-5.3-codex-spark" "writing-plans documents the default FAST Spark model"
 require_contains "skills/writing-plans/SKILL.md" "review+fix" "writing-plans uses review+fix"
@@ -330,8 +333,8 @@ require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Do not
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Do not spawn subagents" "plan reviewer prompt forbids subagents"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Do not invoke Simple Power skills" "plan reviewer prompt forbids skill recursion"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Do not restart" "plan reviewer prompt forbids restart routing"
-require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Do not reroute workflow" "plan reviewer prompt forbids rerouting"
-require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Perform this assigned review directly in the current worker" "plan reviewer prompt requires direct review"
+require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Do not reroute the workflow" "plan reviewer prompt forbids rerouting"
+require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Perform the assigned review directly in the current worker" "plan reviewer prompt requires direct review"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "coordinator checkpoint commits" "plan reviewer checks coordinator checkpoint commits"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "No worker commits or per-task commits" "plan reviewer checks the worker commit restriction"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Commit Policy" "plan reviewer checks commit policy"
@@ -475,6 +478,7 @@ require_contains "tests/explicit-skill-requests/run-all.sh" "simplepower" "expli
 
 require_contains "tests/skill-triggering/prompts/approved-brainstorming-handoff.txt" "simplepower:writing-plans" "skill-triggering fixture preserves the brainstorming handoff"
 require_contains "tests/skill-triggering/prompts/approved-planning-handoff.txt" "simplepower:subagent-driven-development" "skill-triggering fixture preserves the planning handoff"
+require_contains "tests/skill-triggering/prompts/approved-planning-handoff.txt" "FAST/NORMAL/BEST/REVIEW model allocation" "skill-triggering fixture names the four-tier model allocation"
 
 require_contains "tests/explicit-skill-requests/prompts/after-planning-flow.txt" "docs/simplepower/plans/auth-system.md" "explicit skill prompt uses the Simple Power plan path"
 require_contains "tests/explicit-skill-requests/prompts/codex-suggested-it.txt" "docs/simplepower/plans/auth-system.md" "follow-up explicit skill prompt uses the Simple Power plan path"
@@ -555,6 +559,8 @@ require_no_active_multiline_match "$stale_context_handoff_multiline" "active wor
 active_model_tier_paths=(
     README.md
     docs/README.codex.md
+    AGENTS.md
+    .codex-plugin/plugin.json
     skills/writing-plans/SKILL.md
     skills/writing-plans/plan-document-reviewer-prompt.md
     skills/subagent-driven-development/SKILL.md

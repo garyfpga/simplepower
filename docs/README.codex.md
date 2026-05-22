@@ -49,10 +49,11 @@ assignment in project root `AGENTS.md`, process environment variable, built-in
 default. Model assignment lookup only reads `<repo>/AGENTS.md`; nested AGENTS
 files and repo-wide grep are not part of this feature.
 
-If any environment variable is unset, use the default shown above. Parse the
-value as `<model>-<reasoning_effort>` by taking the final dash-delimited
-segment as `reasoning_effort` and the preceding string as `model`. For
-example, `gpt-5.4-mini-high` resolves to `model="gpt-5.4-mini"` and
+If no override, root `AGENTS.md` assignment, or environment variable provides a
+value, use the default shown above. Parse the value as
+`<model>-<reasoning_effort>` by taking the final dash-delimited segment as
+`reasoning_effort` and the preceding string as `model`. For example,
+`gpt-5.4-mini-high` resolves to `model="gpt-5.4-mini"` and
 `reasoning_effort="high"`.
 
 Use REVIEW for the plan reviewer and final review+fix agent. Use BEST for
@@ -73,7 +74,10 @@ page during brainstorming instead of saved plan visuals. After
 reviewed plan, model/task allocation, and immediate current-session execution in
 one step. If the user approves, the coordinator creates the accepted plan
 checkpoint commit and immediately invokes
-`simplepower:subagent-driven-development` with the approved allocation. The implementation skill then uses plan-first parallel implementation, quick verification with the FAST tier by default, one REVIEW-tier review+fix pass, and final verification.
+`simplepower:subagent-driven-development` with the approved allocation. The
+implementation skill then uses plan-first parallel implementation, quick
+verification with the FAST tier by default, one REVIEW-tier review+fix pass,
+and final verification.
 
 ## Starting Implementation
 

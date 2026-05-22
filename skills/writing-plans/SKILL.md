@@ -277,9 +277,9 @@ categories, and send the revised plan back to the same reviewer. Close the
 reviewer only after approval, an unrecoverable interruption, or explicit user
 direction.
 
-The REVIEW-tier plan reviewer must perform the assigned plan review directly in
-the current worker. Do not run Codex CLI. Do not spawn subagents. Do not invoke
-Simple Power skills. Do not restart execution. Do not reroute workflow.
+The REVIEW-tier plan reviewer must perform the assigned review directly in the
+current worker. Do not run Codex CLI. Do not spawn subagents. Do not invoke
+Simple Power skills. Do not restart execution. Do not reroute the workflow.
 
 After the plan reviewer approves, ask the user for combined approval of the
 reviewed plan, model/task allocation, and immediate current-session execution.
@@ -329,7 +329,7 @@ must not commit.
 
 The REVIEW-tier review+fix agent must perform the assigned review and fixes
 directly in the current worker. Do not run Codex CLI. Do not spawn subagents.
-Do not invoke Simple Power skills. Do not restart execution. Do not reroute
+Do not invoke Simple Power skills. Do not restart execution. Do not reroute the
 workflow.
 
 ## Commit Checkpoints
