@@ -46,11 +46,15 @@ You MUST create a task for each of these items and complete them in order:
 Before substantive context exploration, create or confirm a normal current-checkout feature branch. This setup is not implementation work.
 
 - Use an in-place branch: the current checkout gets a normal branch with `git checkout -b`, not a Git worktree.
-- Default branch name: `feature/<slug>`, where `<slug>` is a short, descriptive slug from the user's request.
+- Default branch name: `feature/<slug>`, where `<slug>` is a short,
+  descriptive slug from the user's request or your short task summary. Keep it
+  lowercased, dash-separated, and short; avoid sensitive names.
 - If already on a `feature/` branch, report the branch and continue.
 - If the worktree is dirty, branch creation is still allowed. Report that existing changes are carried onto the new branch, then continue.
 - If `feature/<slug>` already exists, create a short unique suffix such as `feature/<slug>-2` and report the final branch name.
-- If branch creation is unavailable, blocked, or unsafe, ask the user before deciding to continue in the current checkout.
+- If branch creation is unavailable, blocked, or unsafe, ask the user whether to
+  continue in the current checkout. Do not continue substantive work until the
+  user explicitly approves continuing.
 - Do not invoke simplepower:using-git-worktrees by default; worktrees are not the default branch mechanism for brainstorming.
 
 ## Process Flow

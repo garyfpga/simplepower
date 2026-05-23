@@ -73,13 +73,14 @@ page during brainstorming instead of saved plan visuals. After
 `simplepower:brainstorming` starts, it uses an in-place `feature/<slug>` branch
 by default, and `simplepower:systematic-debugging` uses an in-place
 `debug/<slug>` branch by default; neither path creates a worktree unless the
-user explicitly asks for one. It asks the user before invoking simplepower:writing-plans.
-It uses `git checkout -b` for in-place branch setup.
-After
-`simplepower:writing-plans` saves a plan, it asks the user to approve the
-reviewed plan, model/task allocation, and immediate current-session execution in
-one step. It asks for explicit approval before dispatching the REVIEW-tier plan reviewer. If the user approves, the coordinator creates
-the accepted plan checkpoint commit and immediately invokes
+user explicitly asks for one. It uses `git checkout -b` for in-place branch
+setup. Brainstorming asks the user before invoking simplepower:writing-plans.
+After `simplepower:writing-plans` saves and self-reviews a plan, it asks for
+explicit approval before dispatching the REVIEW-tier plan reviewer. After that
+reviewer approves, it asks the user to approve the reviewed plan, model/task
+allocation, and immediate current-session execution in one step. If the user
+approves, the coordinator creates the accepted plan checkpoint commit and
+immediately invokes
 `simplepower:subagent-driven-development` with the approved allocation. The
 implementation skill then uses plan-first parallel implementation, quick
 verification with the FAST tier by default, one REVIEW-tier review+fix pass,
@@ -102,6 +103,8 @@ Use `simplepower:subagent-driven-development` to execute `<PLAN_PATH>` in the cu
 - Mention a skill by name, such as `simplepower:brainstorming`.
 - Use `simplepower:writing-plans` after a design is approved, or approve the
   `simplepower:brainstorming` handoff to it.
+- Approve the REVIEW-tier plan reviewer only after the plan is saved and
+  self-reviewed.
 - Use `simplepower:subagent-driven-development` for plan-first parallel
   implementation after combined approval in the current session.
 - Use `simplepower:requesting-code-review` and

@@ -29,11 +29,14 @@ not weaken the Iron Law: no fixes or proposed fixes are allowed before root
 cause investigation.
 
 - Use an in-place branch: the current checkout gets a normal branch with `git checkout -b`, not a Git worktree.
-- Default branch name: `debug/<slug>`, where `<slug>` is a short, descriptive slug from the issue.
+- Default branch name: `debug/<slug>`, where `<slug>` is a short, descriptive
+  slug from the issue or your short task summary. Keep it lowercased, dash-separated, and short; avoid sensitive names.
 - If already on a `debug/` branch, report the branch and continue to Phase 1.
 - If the worktree is dirty, branch creation is still allowed. Report that existing changes are carried onto the new branch, then continue to Phase 1.
 - If `debug/<slug>` already exists, create a short unique suffix such as `debug/<slug>-2` and report the final branch name.
-- If branch creation is unavailable, blocked, or unsafe, ask the user before deciding to continue in the current checkout.
+- If branch creation is unavailable, blocked, or unsafe, ask the user whether to
+  continue in the current checkout. Do not continue substantive work until the
+  user explicitly approves continuing.
 - Do not invoke simplepower:using-git-worktrees by default; worktrees are not the default branch mechanism for systematic debugging.
 
 ## When to Use
