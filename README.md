@@ -75,7 +75,12 @@ Simple Power skills 使用 `simplepower:*` namespace。当你想让 Codex 使用
 
 brainstorming skill 可以使用临时的 localhost visual companion 来处理 mockups、diagrams 和其他视觉问题。生成的 implementation plans 会保存到 `docs/simplepower/plans/`。
 
+默认情况下，`simplepower:brainstorming` 会在当前仓库内直接创建并切换到 `feature/<slug>` 分支，`simplepower:systematic-debugging` 会切到 `debug/<slug>` 分支；两者都不会默认创建 worktree。
+
+在调用 `simplepower:writing-plans` 之前，brainstorming 会先询问你。
+
 在 `simplepower:writing-plans` 完成 plan review 之后，Simple Power 会一次性询问你是否批准已审阅的 plan、模型分配，以及立刻在当前 session 里启动 `simplepower:subagent-driven-development`。
+在它派出 REVIEW-tier plan reviewer 之前，它也会先询问你是否继续。
 你确认后，coordinator 会创建 accepted plan checkpoint commit，并立即调用 `simplepower:subagent-driven-development` 执行已批准的 plan。
 如果 REVIEW-tier reviewer 提出问题，coordinator 会修正 plan、重新跑相关自检，再把 revised plan 送回同一个 reviewer。REVIEW-tier reviewer 会一直保持打开，直到通过、发生不可恢复中断，或你明确要求停止。
 
@@ -177,10 +182,18 @@ The brainstorming skill can use a temporary localhost visual companion for
 mockups, diagrams, and other visual questions. Generated implementation plans
 are saved under `docs/simplepower/plans/`.
 
+By default, `simplepower:brainstorming` starts in-place on a `feature/<slug>`
+branch and `simplepower:systematic-debugging` starts in-place on a
+`debug/<slug>` branch; neither path creates a worktree by default and both use
+`git checkout -b` for in-place setup.
+
+Brainstorming asks you before invoking simplepower:writing-plans.
+
 After `simplepower:writing-plans` finishes reviewing a plan, Simple Power asks
 for combined approval of the reviewed plan, the model allocation, and
 immediate execution in the current session with
 `simplepower:subagent-driven-development`.
+It asks for explicit approval before dispatching the REVIEW-tier plan reviewer.
 Once you approve, the coordinator creates the accepted plan checkpoint commit
 and immediately invokes `simplepower:subagent-driven-development` in the
 current session.

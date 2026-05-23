@@ -209,9 +209,14 @@ Ready to implement auth feature
 ## Integration
 
 **Called by:**
-- **brainstorming** (Phase 4) - REQUIRED when design is approved and implementation follows
-- **simplepower:subagent-driven-development** - REQUIRED before executing any tasks
-- Any skill needing isolated workspace
+- Explicit user requests for `simplepower:using-git-worktrees`
+- Approved Simple Power flows that specifically require an isolated workspace
+- Any skill needing an isolated workspace after explicit approval
+
+`simplepower:brainstorming` and `simplepower:systematic-debugging` use
+in-place branches by default (`feature/<slug>` and `debug/<slug>`). They should
+not invoke simplepower:using-git-worktrees by default; worktrees are not the
+default branch mechanism for those process skills.
 
 **Pairs with:**
 - **simplepower:finishing-a-development-branch** - REQUIRED for cleanup after work complete

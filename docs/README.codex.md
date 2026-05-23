@@ -70,10 +70,16 @@ Simple Power keeps generated implementation plans in
 visual aids when they reduce ambiguity. This is separate from the
 `simplepower:brainstorming` visual companion, which uses a temporary localhost
 page during brainstorming instead of saved plan visuals. After
+`simplepower:brainstorming` starts, it uses an in-place `feature/<slug>` branch
+by default, and `simplepower:systematic-debugging` uses an in-place
+`debug/<slug>` branch by default; neither path creates a worktree unless the
+user explicitly asks for one. It asks the user before invoking simplepower:writing-plans.
+It uses `git checkout -b` for in-place branch setup.
+After
 `simplepower:writing-plans` saves a plan, it asks the user to approve the
 reviewed plan, model/task allocation, and immediate current-session execution in
-one step. If the user approves, the coordinator creates the accepted plan
-checkpoint commit and immediately invokes
+one step. It asks for explicit approval before dispatching the REVIEW-tier plan reviewer. If the user approves, the coordinator creates
+the accepted plan checkpoint commit and immediately invokes
 `simplepower:subagent-driven-development` with the approved allocation. The
 implementation skill then uses plan-first parallel implementation, quick
 verification with the FAST tier by default, one REVIEW-tier review+fix pass,
@@ -83,7 +89,9 @@ and final verification.
 
 After the reviewed plan and model/task allocation are approved,
 `simplepower:writing-plans` keeps execution in the current session and starts
-the implementation path directly.
+the implementation path directly. This continues on the in-place branch that
+brainstorming or debugging already created; it does not switch to a worktree by
+default.
 
 ```text
 Use `simplepower:subagent-driven-development` to execute `<PLAN_PATH>` in the current session with plan-first parallel implementation. Use the approved FAST/NORMAL/BEST allocation for `sp-impl` workers and REVIEW for the review+fix agent. Dispatch all non-conflicting `sp-impl` file-edit workers, run the quick FAST-tier verifier with lint/build/tests and timeouts, commit the quick-verified implementation, then run one REVIEW-tier review+fix agent, final verification, and final commit.

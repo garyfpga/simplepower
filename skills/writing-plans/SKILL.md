@@ -14,6 +14,7 @@ ownership, a required `Interface Contract`, implementation task allocation
 using `Contract inputs` and `Serialization required`, FAST/NORMAL/BEST/REVIEW
 model allocation, aggregate parallel dispatch guidance, review allocation, quick
 verification commands with timeouts, current-session auto-dispatch guidance,
+explicit reviewer-dispatch approval before the REVIEW-tier plan reviewer,
 combined approval, and three coordinator commit checkpoints. Plans may include
 optional inline visual aids when they reduce ambiguity.
 
@@ -238,7 +239,8 @@ Rules:
 
 ## Plan Review
 
-After writing the plan, self-review it before dispatching a reviewer.
+After writing the plan, self-review it before asking whether to dispatch a
+reviewer.
 
 Self-review checklist:
 - Design Summary: compactly captures the approved brainstorming design,
@@ -268,14 +270,23 @@ Self-review checklist:
 - Approved path enforcement: the plan does not authorize unapproved route
   changes, skipped checks, or reduced deliverables.
 
-Then dispatch a REVIEW-tier plan reviewer using
-`skills/writing-plans/plan-document-reviewer-prompt.md`. Provide the saved plan
-path and the approved brainstorming design context. Keep the initial reviewer
-subagent open while it reports recoverable issues. If the reviewer reports
-issues, fix the plan, rerun the focused self-review checks for the changed
-categories, and send the revised plan back to the same reviewer. Close the
-reviewer only after approval, an unrecoverable interruption, or explicit user
-direction.
+After self-review and before dispatching the REVIEW-tier plan reviewer, ask the
+user whether to start the plan reviewer. Provide the saved plan path and the
+self-review status. Do not dispatch the REVIEW-tier plan reviewer until the user
+explicitly approves reviewer dispatch.
+
+If the user declines or pauses instead of approving reviewer dispatch, stop and
+report the saved plan path, self-review status, and that reviewer dispatch is
+pending.
+
+After the user approves reviewer dispatch, dispatch a REVIEW-tier plan reviewer
+using `skills/writing-plans/plan-document-reviewer-prompt.md`. Provide the saved
+plan path and the approved brainstorming design context. Keep the initial
+reviewer subagent open while it reports recoverable issues. If the reviewer
+reports issues, fix the plan, rerun the focused self-review checks for the
+changed categories, and send the revised plan back to the same reviewer. Close
+the reviewer only after approval, an unrecoverable interruption, or explicit
+user direction.
 
 The REVIEW-tier plan reviewer must perform the assigned review directly in the
 current worker. Do not run Codex CLI. Do not spawn subagents. Do not invoke
@@ -355,6 +366,11 @@ implementation JSON artifact.
 Normal Simple Power planning proceeds in the current session. Do not run routing
 heuristics or offer alternate execution routes.
 
+After the plan is saved and self-reviewed, ask the user whether to start the
+REVIEW-tier plan reviewer. Do not dispatch that reviewer without explicit
+reviewer-dispatch approval. If the user declines or pauses, report the saved
+plan path, self-review status, and pending reviewer dispatch, then stop.
+
 After the plan reviewer approves, ask the user for one combined approval that
 covers:
 - The reviewed plan
@@ -430,6 +446,9 @@ failures:
 - NORMAL for routine low-risk localized implementation work
 - BEST for broad, ambiguous, behavior-shaping, high-risk, or hard-to-test work
 - REVIEW-tier plan reviewer
+- Ask for explicit reviewer-dispatch approval before dispatching the REVIEW-tier
+  plan reviewer; if approval is declined or paused, report the saved plan path,
+  self-review status, and pending reviewer dispatch, then stop
 - Keep the initial plan reviewer open for issue loops; send revised plans back
   to the same reviewer until approval, unrecoverable interruption, or explicit
   user direction

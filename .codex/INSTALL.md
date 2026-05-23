@@ -14,9 +14,10 @@ codex plugin marketplace upgrade
 ```
 
 Use `codex plugin marketplace upgrade` again whenever you want to pull
-marketplace updates.
-
-Restart Codex if you want it to rescan installed skills immediately.
+marketplace updates. Restart Codex after an upgrade if you want it to rescan
+installed skills immediately. If you also maintain a local `/home/gary/.codex`
+checkout or submodule mirror, update that repository separately; marketplace
+upgrades do not move it for you.
 
 ## Multi-Agent Support
 

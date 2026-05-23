@@ -6,7 +6,8 @@ Use this template when dispatching a REVIEW-tier plan document reviewer worker.
 and is ready for aggregate parallel implementation from an approved Interface
 Contract.
 
-**Dispatch after:** The complete plan is written and self-reviewed.
+**Dispatch after:** The complete plan is written, self-reviewed, and the user
+has explicitly approved starting the REVIEW-tier plan reviewer.
 
 ```
 Task tool (general-purpose):
@@ -37,10 +38,11 @@ Task tool (general-purpose):
     | Model Resolution Precedence | Confirms the plan resolves each tier by explicit user override, quoted assignment in project root AGENTS.md if it exists, process environment variable, then built-in default. Confirms project root AGENTS.md means only `<repo>/AGENTS.md`, with no nested AGENTS.md scan and no repo-wide grep for model assignments. |
     | Quick Verification | Confirms quick lint/build/tests commands are concrete, use `timeout`, run after all file-edit workers complete, and happen before the quick-verified implementation checkpoint. |
     | Quick Verifier Scope | Confirms the quick verifier may fix only tiny typo-level errors and must report behavior changes, structural edits, test rewrites, public interface changes, or unclear issues instead of fixing them. |
+    | Plan Reviewer Dispatch Gate | Confirms the generated plan states that writing-plans writes and self-reviews the saved Markdown plan first, asks the user before dispatching the REVIEW-tier plan reviewer, does not dispatch that reviewer until explicit user approval, and reports the saved plan path, self-review status, and pending reviewer dispatch if the user declines or pauses. |
     | Review+Fix | Confirms exactly one REVIEW-tier review+fix agent reviews and fixes the whole implementation after the quick-verified implementation checkpoint and before final verification. |
     | Reviewer Non-Recursion | Confirms the plan reviewer and final review+fix instructions require direct review in the current worker and forbid running Codex CLI, spawning subagents, invoking Simple Power skills, restarting execution, and rerouting the workflow. |
     | Commit Policy | Confirms exactly three future coordinator checkpoint commits: accepted reviewed plan plus allocation plus immediate current-session execution after combined approval, quick-verified implementation, and final verified implementation. Confirms No worker commits or per-task commits for workers, plan reviewers, quick verifiers, review+fix agents, and individual tasks. |
-    | Current-Session Auto-Dispatch | Confirms `simplepower:writing-plans` uses combined approval after reviewer approval: the user approves the reviewed plan, model/task allocation, and immediate current-session execution in one step. Confirms the accepted-plan checkpoint commit is created only after combined approval and before implementation dispatch. Confirms approved implementation immediately invokes `simplepower:subagent-driven-development` in the current session with the approved model allocation and Interface Contract. Rejects retired session-routing mechanics or post-plan route-selection behavior. |
+    | Current-Session Auto-Dispatch | Confirms `simplepower:writing-plans` uses combined approval after reviewer approval: the user approves the reviewed plan, model/task allocation, and immediate current-session execution in one step. Confirms the accepted-plan checkpoint commit is created only after reviewer approval and combined approval, and before implementation dispatch. Confirms approved implementation immediately invokes `simplepower:subagent-driven-development` in the current session with the approved model allocation and Interface Contract only after combined approval. Rejects retired session-routing mechanics or post-plan route-selection behavior. |
     | Retired Flow Removal | Confirms the plan does not rely on removed standalone-planning artifacts, removed review routing variants, removed worker roles, removed per-batch progress tables, or removed execution routes. |
     | Approved Path Enforcement | Confirms the plan treats the accepted implementation plan as authoritative and does not authorize backup routes, scope reduction, docs-only substitutes, any stub substitute, placeholder implementations, skipped verification, skipped review, or execution-route changes without fresh explicit user approval. |
 
@@ -50,9 +52,9 @@ Task tool (general-purpose):
     Minor wording preferences are advisory unless they create ambiguity in file
     ownership, Interface Contract, Contract inputs, Serialization required,
     aggregate parallel readiness, model allocation, review allocation,
-    verification, auto-dispatch, commit policy, reviewer non-recursion,
-    visual-aid authority, or approved path enforcement. Missing visual aids are
-    not a blocking issue.
+    verification, plan reviewer dispatch, auto-dispatch, commit policy,
+    reviewer non-recursion, visual-aid authority, or approved path enforcement.
+    Missing visual aids are not a blocking issue.
 
     If this is a revised plan sent back to the same reviewer after blocking
     issues, compare it against the previous blocking issues. Report whether
@@ -74,9 +76,13 @@ Task tool (general-purpose):
     allow any non-coordinator role or individual task to commit. Reject plans
     that let the quick verifier make anything more than tiny typo-level fixes.
     Reject plans that omit the one REVIEW-tier review+fix agent for the whole
-    implementation. Reject plans that omit combined approval, put the
-    accepted-plan checkpoint before reviewer approval or before user approval,
-    delay implementation after combined approval, omit immediate current-session
+    implementation. Reject plans that omit the reviewer dispatch gate before
+    dispatching the REVIEW-tier plan reviewer, allow that reviewer to be
+    dispatched before explicit user approval, or omit the paused/declined status
+    report with saved plan path, self-review status, and pending reviewer
+    dispatch. Reject plans that omit combined approval, put the accepted-plan
+    checkpoint before reviewer approval or before user approval, delay
+    implementation after combined approval, omit immediate current-session
     execution through `simplepower:subagent-driven-development`, introduce
     retired session-routing mechanics, or ask the user to pick a post-plan
     execution route. Reject plans that route the plan reviewer or final

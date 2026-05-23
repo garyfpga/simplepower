@@ -21,6 +21,21 @@ NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
 
 If you haven't completed Phase 1, you cannot propose fixes.
 
+## Start In-Place Debug Branch
+
+Before Phase 1 root-cause investigation, create or confirm a normal
+current-checkout debug branch. Branch creation is setup, not a fix, and it does
+not weaken the Iron Law: no fixes or proposed fixes are allowed before root
+cause investigation.
+
+- Use an in-place branch: the current checkout gets a normal branch with `git checkout -b`, not a Git worktree.
+- Default branch name: `debug/<slug>`, where `<slug>` is a short, descriptive slug from the issue.
+- If already on a `debug/` branch, report the branch and continue to Phase 1.
+- If the worktree is dirty, branch creation is still allowed. Report that existing changes are carried onto the new branch, then continue to Phase 1.
+- If `debug/<slug>` already exists, create a short unique suffix such as `debug/<slug>-2` and report the final branch name.
+- If branch creation is unavailable, blocked, or unsafe, ask the user before deciding to continue in the current checkout.
+- Do not invoke simplepower:using-git-worktrees by default; worktrees are not the default branch mechanism for systematic debugging.
+
 ## When to Use
 
 Use for ANY technical issue:

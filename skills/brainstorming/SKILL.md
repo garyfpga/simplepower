@@ -7,7 +7,7 @@ description: Use only when the user explicitly requests simplepower:brainstormin
 
 Help turn ideas into fully formed designs through natural collaborative dialogue.
 
-Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
+Start by creating or confirming the in-place feature branch, then understand the current project context and ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
 
 <HARD-GATE>
 Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
@@ -33,17 +33,31 @@ Every project goes through this process. A todo list, a single-function utility,
 
 You MUST create a task for each of these items and complete them in order:
 
-1. **Explore project context** — check files, docs, recent commits
-2. **Offer visual companion** (if topic will involve visual questions) — this is its own message, not combined with a clarifying question. See the Visual Companion section below.
-3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
-4. **Propose 2-3 approaches** — with trade-offs and your recommendation
-5. **Present design** — in sections scaled to their complexity, get user approval after each section
-6. **Transition to implementation planning** — invoke `simplepower:writing-plans` to create the authoritative implementation plan
+1. **Start in-place feature branch** — create or confirm a normal current-checkout `feature/<slug>` branch before substantive context exploration
+2. **Explore project context** — check files, docs, recent commits
+3. **Offer visual companion** (if topic will involve visual questions) — this is its own message, not combined with a clarifying question. See the Visual Companion section below.
+4. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
+5. **Propose 2-3 approaches** — with trade-offs and your recommendation
+6. **Present design** — in sections scaled to their complexity, get user approval after each section
+7. **Planning handoff gate** — ask before invoking simplepower:writing-plans to create the authoritative implementation plan
+
+## Start In-Place Feature Branch
+
+Before substantive context exploration, create or confirm a normal current-checkout feature branch. This setup is not implementation work.
+
+- Use an in-place branch: the current checkout gets a normal branch with `git checkout -b`, not a Git worktree.
+- Default branch name: `feature/<slug>`, where `<slug>` is a short, descriptive slug from the user's request.
+- If already on a `feature/` branch, report the branch and continue.
+- If the worktree is dirty, branch creation is still allowed. Report that existing changes are carried onto the new branch, then continue.
+- If `feature/<slug>` already exists, create a short unique suffix such as `feature/<slug>-2` and report the final branch name.
+- If branch creation is unavailable, blocked, or unsafe, ask the user before deciding to continue in the current checkout.
+- Do not invoke simplepower:using-git-worktrees by default; worktrees are not the default branch mechanism for brainstorming.
 
 ## Process Flow
 
 ```dot
 digraph brainstorming {
+    "Start in-place feature branch" [shape=box];
     "Explore project context" [shape=box];
     "Visual questions ahead?" [shape=diamond];
     "Offer Visual Companion\n(own message, no other content)" [shape=box];
@@ -51,8 +65,11 @@ digraph brainstorming {
     "Propose 2-3 approaches" [shape=box];
     "Present design sections" [shape=box];
     "User approves design?" [shape=diamond];
+    "Planning Handoff Gate:\nUser approves writing-plans?" [shape=diamond];
+    "Stop with approved design\nsummary/status" [shape=doublecircle];
     "Invoke simplepower:writing-plans" [shape=doublecircle];
 
+    "Start in-place feature branch" -> "Explore project context";
     "Explore project context" -> "Visual questions ahead?";
     "Visual questions ahead?" -> "Offer Visual Companion\n(own message, no other content)" [label="yes"];
     "Visual questions ahead?" -> "Ask clarifying questions" [label="no"];
@@ -61,11 +78,13 @@ digraph brainstorming {
     "Propose 2-3 approaches" -> "Present design sections";
     "Present design sections" -> "User approves design?";
     "User approves design?" -> "Present design sections" [label="no, revise"];
-    "User approves design?" -> "Invoke simplepower:writing-plans" [label="yes"];
+    "User approves design?" -> "Planning Handoff Gate:\nUser approves writing-plans?" [label="yes"];
+    "Planning Handoff Gate:\nUser approves writing-plans?" -> "Invoke simplepower:writing-plans" [label="yes"];
+    "Planning Handoff Gate:\nUser approves writing-plans?" -> "Stop with approved design\nsummary/status" [label="decline/pause"];
 }
 ```
 
-**The terminal state is invoking `simplepower:writing-plans`.** Do NOT write a standalone spec document, invoke frontend-design, invoke mcp-builder, or take implementation action from brainstorming. The ONLY skill you invoke after brainstorming is `simplepower:writing-plans`.
+**The terminal state is either invoking `simplepower:writing-plans` after explicit planning handoff approval, or stopping with the approved design summary/status when the user declines or pauses the handoff.** Do NOT write a standalone spec document, invoke frontend-design, invoke mcp-builder, or take implementation action from brainstorming. The ONLY skill you invoke after brainstorming is `simplepower:writing-plans`, and only after the planning handoff gate.
 
 ## The Process
 
@@ -108,10 +127,18 @@ digraph brainstorming {
 
 ## After the Design
 
-After the user approves the conversational design, invoke
-`simplepower:writing-plans`. Pass the approved design summary, constraints,
-decisions, and success criteria forward in the current conversation. The plan
-file is the authoritative artifact for implementation.
+After the user approves the conversational design, ask whether to hand the
+approved design to `simplepower:writing-plans`. You must ask before invoking
+`simplepower:writing-plans`, and you must not invoke `simplepower:writing-plans`
+until the user explicitly approves that planning handoff.
+
+If the user approves, invoke `simplepower:writing-plans`. Pass the approved
+design summary, constraints, decisions, and success criteria forward in the
+current conversation. The plan file is the authoritative artifact for
+implementation.
+
+If the user declines or pauses, stop with the approved design summary and
+current status instead of invoking another skill.
 
 Do not write a standalone spec document. Do not ask the user to review a
 written spec. Do not create a spec-review loop. If the approved design is

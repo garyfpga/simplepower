@@ -29,6 +29,11 @@ Expected behavior:
   `simplepower:brainstorming` or the active Simple Power chain hands off to it.
 - The brainstorming flow should use the Simple Power branding and session
   paths, including `.simplepower/brainstorm`.
+- The brainstorming flow should create or switch to an in-place `feature/<slug>`
+  branch by default, and `debug/<slug>` for systematic-debugging, not a worktree.
+- before invoking simplepower:writing-plans, Codex should ask for approval.
+- before dispatching the REVIEW-tier plan reviewer, Codex should ask for approval to
+  continue.
 - After the design is approved, Codex should move on to planning and
   implementation instead of jumping straight into code.
 
