@@ -218,13 +218,13 @@ and leaving branch history unchanged. Use a temporary index with this command
 shape:
 
 ```bash
-run_id="$(date +%Y%m%d-%H%M%S)-$(git rev-parse --short HEAD)"
-ref="refs/simplepower/scratch/${run_id}/quick-verifier/before"
+run_id="${run_id:-$(date -u +%Y%m%d-%H%M%S)-$(git rev-parse --short HEAD)}"
+ref="refs/simplepower/scratch/${run_id}/<phase>/<label>"
 tmp_index="$(mktemp)"
 GIT_INDEX_FILE="$tmp_index" git read-tree HEAD
 GIT_INDEX_FILE="$tmp_index" git add -- $APPROVED_CHANGED_FILES
 tree="$(GIT_INDEX_FILE="$tmp_index" git write-tree)"
-commit="$(printf '%s\n' "simplepower scratch ${run_id}" | git commit-tree "$tree")"
+commit="$(printf '%s\n' "simplepower scratch ${run_id} <phase>/<label>" | git commit-tree "$tree" -p HEAD)"
 git update-ref "$ref" "$commit"
 rm -f "$tmp_index"
 ```

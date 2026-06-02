@@ -16,9 +16,9 @@ model allocation, aggregate parallel dispatch guidance, review allocation, quick
 verification commands with timeouts, current-session auto-dispatch guidance,
 combined approval, and three coordinator commit checkpoints. Plans may include
 optional inline visual aids when they reduce ambiguity.
-Plans may also use coordinator-owned temporary scratch refs as local review
-diff anchors. Scratch refs are not accepted history commits and do not change
-the three-checkpoint commit policy.
+Planning and execution also use coordinator-owned temporary scratch refs as
+local review diff anchors. Scratch refs are not accepted history commits and do
+not change the three-checkpoint commit policy.
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
@@ -84,7 +84,7 @@ user before changing approach.
 
 ## Scratch Ref Review Anchors
 
-Temporary scratch refs may be used by the coordinator to give reviewers concrete
+Temporary scratch refs are used by the coordinator to give reviewers concrete
 diff anchors without adding permanent commits. Workers, plan reviewers, quick
 verifiers, review+fix agents, and individual tasks must not create scratch refs
 or commits.
@@ -117,7 +117,7 @@ Scratch refs must capture the current worktree state for the approved file list
 without changing the real index or branch history. Prefer a temporary index:
 
 ```bash
-SP_RUN_ID="YYYYMMDD-HHMMSS-<short-head>"
+SP_RUN_ID="${SP_RUN_ID:-$(date -u +%Y%m%d-%H%M%S)-$(git rev-parse --short HEAD)}"
 SP_SCRATCH_PREFIX="refs/simplepower/scratch/$SP_RUN_ID"
 SP_REF="$SP_SCRATCH_PREFIX/<phase>/<label>"
 SP_TMP_INDEX="$(mktemp)"
