@@ -108,19 +108,41 @@ runtime or migration ordering.
    quick verification.
 7. Run a lifecycle checkpoint and close finished workers by default.
 8. Validate changed files against approved write scopes.
-9. Dispatch the quick verifier using the approved FAST tier. By default,
+9. Record the scratch-ref run id if one is not already active, then create
+   `refs/simplepower/scratch/<run-id>/quick-verifier/before` for the approved
+   file list before quick verifier dispatch. If this fails, stop before
+   relying on the missing anchor.
+10. Dispatch the quick verifier using the approved FAST tier. By default,
    `SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"` resolves to
    `model="gpt-5.3-codex-spark"` and `reasoning_effort="high"`.
-10. Let the quick verifier fix only tiny typo-level issues.
-11. Stop for user direction if quick verification finds non-trivial failures.
-12. Commit the quick-verified implementation before final review.
-13. Dispatch one REVIEW-tier review+fix agent with the whole diff and approved
+11. Let the quick verifier fix only tiny typo-level issues.
+12. If quick verifier tiny fixes changed files, validate those files, create
+    `refs/simplepower/scratch/<run-id>/quick-verifier/after`, and inspect the
+    quick-verifier scratch diff before the implementation checkpoint. If no
+    files changed, omit the `after` ref.
+13. Stop for user direction if quick verification finds non-trivial failures,
+    before further implementation, review, or commit work.
+14. Commit the quick-verified implementation before final review.
+15. Delete quick-verifier scratch refs only after the quick-verified
+    implementation checkpoint succeeds, or after a no-empty-commit case is
+    explicitly recorded as the successful checkpoint outcome.
+16. Create `refs/simplepower/scratch/<run-id>/review-fix/before` from the
+    quick-verified checkpoint state before dispatching review+fix.
+17. Dispatch one REVIEW-tier review+fix agent with the whole diff and approved
     plan.
-14. Run final verification.
-15. Commit final changes.
-16. Report verification results, commit SHAs, changed files, aggregate
-    dispatch decisions, any serialized tasks with reasons, and subagent
-    lifecycle status.
+18. If review+fix changes files, validate those files, create
+    `refs/simplepower/scratch/<run-id>/review-fix/after`, and inspect the
+    review+fix scratch diff before final verification. If no files changed,
+    omit the `after` ref.
+19. Run final verification.
+20. Commit final changes.
+21. Delete review+fix scratch refs after the final checkpoint succeeds, then
+    run a cleanup check for remaining refs under
+    `refs/simplepower/scratch/<run-id>/`.
+22. Report verification results, commit SHAs, changed files, aggregate
+    dispatch decisions, any serialized tasks with reasons, subagent lifecycle
+    status, the scratch run id when refs were created, and scratch-ref cleanup
+    status or cleanup commands when refs are preserved.
 
 ## Dispatch Rules
 
@@ -155,10 +177,91 @@ runtime or migration ordering.
     lifecycle exception with a written reason.
 11. No worker commits or per-task commits. No per-task commits.
 
+## Scratch Refs
+
+Scratch refs are coordinator-owned local review artifacts. They are not
+branches, accepted checkpoints, pushed, merged, rebased, or subagent commits.
+They provide concrete diff anchors for plan review changes, quick-verifier
+tiny fixes, and review+fix edits without changing real branch history. Scratch
+refs do not add accepted commits; the workflow still has exactly three
+accepted coordinator checkpoints: accepted plan, quick-verified
+implementation, and final verification.
+
+All temporary refs for one Simple Power run live under
+`refs/simplepower/scratch/<run-id>/`. The run id format is
+`YYYYMMDD-HHMMSS-<short-head>`. Record the run id in working notes and final
+reporting whenever scratch refs are created.
+
+Scratch ref names:
+
+- Plan review:
+  `refs/simplepower/scratch/<run-id>/plan-review/before` and
+  `refs/simplepower/scratch/<run-id>/plan-review/after-<n>`.
+- Quick verifier:
+  `refs/simplepower/scratch/<run-id>/quick-verifier/before` and
+  `refs/simplepower/scratch/<run-id>/quick-verifier/after`.
+- Review+fix:
+  `refs/simplepower/scratch/<run-id>/review-fix/before` and
+  `refs/simplepower/scratch/<run-id>/review-fix/after`.
+
+A phase may omit an `after` ref only when no file changes happened in that
+phase. Plan-review scratch refs are deleted after the accepted plan checkpoint
+succeeds. Quick-verifier scratch refs are deleted only after the
+quick-verified implementation checkpoint succeeds. Review+fix scratch refs are
+deleted only after the final checkpoint succeeds. On user direction, a
+blocker, or a failed checkpoint commit, preserve scratch refs and report the
+cleanup command instead of deleting evidence.
+
+Scratch refs must capture the current worktree state for the approved file
+list while preserving approved files only, leaving the real index unchanged,
+and leaving branch history unchanged. Use a temporary index with this command
+shape:
+
+```bash
+run_id="$(date +%Y%m%d-%H%M%S)-$(git rev-parse --short HEAD)"
+ref="refs/simplepower/scratch/${run_id}/quick-verifier/before"
+tmp_index="$(mktemp)"
+GIT_INDEX_FILE="$tmp_index" git read-tree HEAD
+GIT_INDEX_FILE="$tmp_index" git add -- $APPROVED_CHANGED_FILES
+tree="$(GIT_INDEX_FILE="$tmp_index" git write-tree)"
+commit="$(printf '%s\n' "simplepower scratch ${run_id}" | git commit-tree "$tree")"
+git update-ref "$ref" "$commit"
+rm -f "$tmp_index"
+```
+
+If scratch-ref creation fails, stop the review loop before relying on the
+missing anchor.
+
+Use this diff shape before creating the next accepted checkpoint whenever a
+phase changed files:
+
+```bash
+git diff refs/simplepower/scratch/<run-id>/<phase>/<before-label> refs/simplepower/scratch/<run-id>/<phase>/<after-label> -- $APPROVED_CHANGED_FILES
+```
+
+Every revised-plan review prompt after a blocking issue must include either an
+exact diff command with the relevant scratch refs or an explicit diff summary.
+For quick-verifier tiny fixes and review+fix edits, the coordinator must
+inspect the scratch diff before creating the next accepted checkpoint.
+
+Cleanup check:
+
+```bash
+git for-each-ref --format='%(refname)' "refs/simplepower/scratch/${run_id}/"
+```
+
+Cleanup command for preserved refs:
+
+```bash
+git for-each-ref --format='%(refname)' "refs/simplepower/scratch/${run_id}/" | xargs -r -n1 git update-ref -d
+```
+
 ## Quick Verification
 
 After all implementation workers finish and their changed files pass scope
-validation, dispatch the quick verifier from `quick-verifier-prompt.md`.
+validation, create
+`refs/simplepower/scratch/<run-id>/quick-verifier/before` for the approved file
+list, then dispatch the quick verifier from `quick-verifier-prompt.md`.
 
 The quick verifier uses the approved FAST tier by default. Unless
 `SIMPLEPOWER_FAST_MODEL` is overridden, that resolves to
@@ -168,6 +271,20 @@ The quick verifier must run the linting checks, build or compile checks, and
 tests named in the plan with proper timeouts. It may fix only tiny typo-level
 issues that directly cause a command failure. If it finds non-trivial failures,
 stop for user direction before further implementation, review, or commit work.
+The quick verifier must not create refs or commits.
+
+After quick verifier returns, run a lifecycle checkpoint, inspect its report,
+and validate any changed files against approved write scopes. If tiny fixes
+changed files, create
+`refs/simplepower/scratch/<run-id>/quick-verifier/after`, then inspect:
+
+```bash
+git diff refs/simplepower/scratch/<run-id>/quick-verifier/before refs/simplepower/scratch/<run-id>/quick-verifier/after -- $APPROVED_CHANGED_FILES
+```
+
+Only proceed to the quick-verified implementation checkpoint after this diff
+inspection passes. If the quick verifier reports any non-trivial failure, stop
+for user direction before further implementation, review, or commit work.
 
 ## Coordinator Checkpoint Commits
 
@@ -177,7 +294,8 @@ quick-verified implementation before dispatching the review+fix agent.
 
 Workers and verification agents must not commit. The coordinator owns the
 checkpoint once accepted implementation changes and any tiny verification fixes
-are ready.
+are ready. Scratch refs are not checkpoint commits and do not change the
+workflow's exactly three accepted coordinator checkpoints.
 
 Use commands like:
 
@@ -195,14 +313,27 @@ needed before final review.
 If the checkpoint commit fails, stop before final review. Inspect
 `git status --short`, resolve the failure within the coordinator's approved
 scope, rerun required verification if committed content changes, then retry the
-checkpoint commit.
+checkpoint commit. Preserve quick-verifier scratch refs while the checkpoint is
+blocked or failed, and report the cleanup command instead of deleting evidence.
+
+Delete
+`refs/simplepower/scratch/<run-id>/quick-verifier/before` and
+`refs/simplepower/scratch/<run-id>/quick-verifier/after` only after the
+quick-verified implementation checkpoint succeeds, or after the no-empty-commit
+case is explicitly recorded as the successful checkpoint outcome.
 
 ## Review+Fix
 
-After the coordinator checkpoint commit, dispatch one REVIEW-tier review+fix
-agent from `review-fix-prompt.md` with the whole diff, approved plan, task
-requirements, file ownership, verification results, and any worker reports that
-matter.
+After the quick-verified implementation checkpoint succeeds, or after the
+no-empty-commit case is recorded as the successful checkpoint outcome, create
+`refs/simplepower/scratch/<run-id>/review-fix/before` from the quick-verified
+checkpoint state for the approved file list. If this scratch ref cannot be
+created, stop before dispatching review+fix.
+
+Then dispatch one REVIEW-tier review+fix agent from `review-fix-prompt.md` with
+the whole diff, approved plan, task requirements, file ownership, verification
+results, worker reports that matter, and the coordinator-owned scratch diff
+context. The review+fix agent must not create refs or commits.
 
 The review+fix agent reviews the actual diff, fixes in-scope correctness,
 quality, and plan-compliance issues, runs focused verification when practical,
@@ -213,6 +344,18 @@ implementation path.
 
 Stop for user direction if the review+fix agent reports `BLOCKED` or if a
 required fix needs fresh explicit approval.
+
+After review+fix returns, run a lifecycle checkpoint, inspect its report, and
+validate any changed files against approved write scopes. If review+fix changed
+files, create
+`refs/simplepower/scratch/<run-id>/review-fix/after`, then inspect:
+
+```bash
+git diff refs/simplepower/scratch/<run-id>/review-fix/before refs/simplepower/scratch/<run-id>/review-fix/after -- $APPROVED_CHANGED_FILES
+```
+
+Create `review-fix/after` only when review+fix changes files. Only proceed to
+final verification after the review+fix scratch diff inspection passes.
 
 ## Final Verification And Final Commit
 
@@ -235,8 +378,17 @@ git rev-parse --short HEAD
 ```
 
 Report the final verification results, coordinator checkpoint commit SHA, final
-commit SHA when one was created, changed files, and confirmation that all
-finished subagents were closed or have an active written reason to remain open.
+commit SHA when one was created, changed files, scratch run id if scratch refs
+were created, scratch-ref cleanup status or cleanup commands for preserved
+refs, and confirmation that all finished subagents were closed or have an
+active written reason to remain open.
+
+After the final checkpoint succeeds, or after the no-empty-final-commit case
+is recorded as the successful final checkpoint outcome, delete review+fix
+scratch refs for the run, then run a cleanup check for remaining refs under
+`refs/simplepower/scratch/<run-id>/`. If the final checkpoint fails, user
+direction preserves refs, or a blocker remains, keep refs and report the
+cleanup command instead of deleting evidence.
 
 ## Subagent Lifecycle Checkpoint
 
@@ -372,6 +524,10 @@ prompt. Record the reason when making that exception.
   are no uncommitted implementation changes.
 - Skip the one REVIEW-tier review+fix agent.
 - Skip final verification.
+- Skip required scratch-ref creation, scratch diff inspection, or cleanup
+  checks.
+- Let a worker, quick verifier, or review+fix agent create, update, or delete
+  scratch refs.
 - Skip the subagent lifecycle checkpoint after a final subagent result.
 - Leave a finished subagent open without a written reason tied to the current
   plan execution.
@@ -402,8 +558,14 @@ prompt. Record the reason when making that exception.
 **If quick verification finds issues:**
 
 - Allow only tiny typo-level fixes that directly cause a command failure.
-- Stop for user direction when failures are non-trivial.
+- Require an exact changed-file report, commands rerun, and whether any issue
+  is non-trivial.
+- Stop for user direction when failures are non-trivial, before further
+  implementation, review, or commit work.
 - Re-run the failed command after any tiny fix.
+- Create and inspect `quick-verifier/after` only if tiny fixes changed files,
+  then delete quick-verifier scratch refs only after the quick-verified
+  implementation checkpoint succeeds.
 
 **If review+fix finds issues:**
 
@@ -412,6 +574,8 @@ prompt. Record the reason when making that exception.
   scope, docs-only substitute, stub substitute, skipped verification, changed
   implementation strategy, or broader rewrite.
 - Run focused verification for fixes when practical.
+- Require exact changed files and focused verification results so the
+  coordinator can create and inspect `review-fix/after` when files changed.
 - Re-run final verification before final completion.
 
 ## Integration
@@ -433,8 +597,10 @@ prompt. Record the reason when making that exception.
   verification.
 - Report the final verification results, aggregate dispatch decisions, any
   serialized tasks and reasons, coordinator checkpoint commit SHA, any final
-  commit SHA, changed files, and confirmation that all finished subagents were
-  closed or have an active written reason to remain open.
+  commit SHA, changed files, scratch run id when refs were created,
+  scratch-ref cleanup status or cleanup commands for preserved refs, and
+  confirmation that all finished subagents were closed or have an active
+  written reason to remain open.
 - Do not merge, push, or create a PR unless the user separately asks.
 
 No worker commits or per-task commits. No per-task commits. Workers,

@@ -40,6 +40,7 @@ Task tool (general-purpose):
     | Review+Fix | Confirms exactly one REVIEW-tier review+fix agent reviews and fixes the whole implementation after the quick-verified implementation checkpoint and before final verification. |
     | Reviewer Non-Recursion | Confirms the plan reviewer and final review+fix instructions require direct review in the current worker and forbid running Codex CLI, spawning subagents, invoking Simple Power skills, restarting execution, and rerouting the workflow. |
     | Commit Policy | Confirms exactly three future coordinator checkpoint commits: accepted reviewed plan plus allocation plus immediate current-session execution after combined approval, quick-verified implementation, and final verified implementation. Confirms No worker commits or per-task commits for workers, plan reviewers, quick verifiers, review+fix agents, and individual tasks. |
+    | Scratch Ref Review Anchors | Confirms the plan requires scratch refs to be coordinator-owned local review diff anchors under `refs/simplepower/scratch/<run-id>/` with run id format `YYYYMMDD-HHMMSS-<short-head>`, not branches or accepted checkpoint commits, not pushed, merged, or rebased, and never changing the exactly-three-checkpoint commit policy. Confirms plan-review refs use `plan-review/before` before first review and `plan-review/after-<n>` after coordinator revisions; revised-plan review loops provide a concrete `git diff` command or explicit diff summary for the same reviewer. Confirms quick-verifier and review+fix edits are inspectable with the same scratch-ref diff command shape before the next accepted checkpoint. Confirms cleanup after successful checkpoints, preservation and manual cleanup reporting on blockers or failed checkpoints, and a final cleanup check. |
     | Current-Session Auto-Dispatch | Confirms `simplepower:writing-plans` uses combined approval after reviewer approval: the user approves the reviewed plan, model/task allocation, and immediate current-session execution in one step. Confirms the accepted-plan checkpoint commit is created only after combined approval and before implementation dispatch. Confirms approved implementation immediately invokes `simplepower:subagent-driven-development` in the current session with the approved model allocation and Interface Contract. Rejects retired session-routing mechanics or post-plan route-selection behavior. |
     | Retired Flow Removal | Confirms the plan does not rely on removed standalone-planning artifacts, removed review routing variants, removed worker roles, removed per-batch progress tables, or removed execution routes. |
     | Approved Path Enforcement | Confirms the plan treats the accepted implementation plan as authoritative and does not authorize backup routes, scope reduction, docs-only substitutes, any stub substitute, placeholder implementations, skipped verification, skipped review, or execution-route changes without fresh explicit user approval. |
@@ -51,13 +52,20 @@ Task tool (general-purpose):
     ownership, Interface Contract, Contract inputs, Serialization required,
     aggregate parallel readiness, model allocation, review allocation,
     verification, auto-dispatch, commit policy, reviewer non-recursion,
-    visual-aid authority, or approved path enforcement. Missing visual aids are
-    not a blocking issue.
+    scratch-ref review anchors, visual-aid authority, or approved path
+    enforcement. Missing visual aids are not a blocking issue.
+
+    Scratch refs are local review artifacts, not permanent commits. Do not
+    count scratch refs as extra accepted checkpoint commits. Do treat missing,
+    contradictory, non-coordinator, or cleanup-free scratch-ref instructions as
+    blocking because they can erase the concrete diff trail needed for revised
+    plan review.
 
     If this is a revised plan sent back to the same reviewer after blocking
-    issues, compare it against the previous blocking issues. Report whether
-    each previous blocking issue is resolved, still present, or replaced by a
-    new blocker in the changed category. Keep the same reviewer loop open until
+    issues, compare it against the previous blocking issues and the provided
+    scratch-ref diff command or explicit diff summary. Report whether each
+    previous blocking issue is resolved, still present, or replaced by a new
+    blocker in the changed category. Keep the same reviewer loop open until
     approval, unrecoverable interruption, or explicit user direction.
 
     Treat any missing, contradictory, or non-executable required category as a
@@ -72,6 +80,13 @@ Task tool (general-purpose):
     `Serialization required: Yes` without a concrete reason. Reject plans with
     more or fewer than three future coordinator checkpoints. Reject plans that
     allow any non-coordinator role or individual task to commit. Reject plans
+    that omit required scratch-ref review anchor guidance, treat scratch refs as
+    accepted checkpoint commits, add extra accepted commits for review diffs,
+    allow non-coordinator scratch refs, omit the
+    `refs/simplepower/scratch/<run-id>/` namespace, omit revised-plan concrete
+    diff anchors after blocking issues, omit scratch cleanup after successful
+    checkpoints, or delete scratch refs instead of preserving and reporting
+    cleanup on blockers or failed checkpoints. Reject plans
     that let the quick verifier make anything more than tiny typo-level fixes.
     Reject plans that omit the one REVIEW-tier review+fix agent for the whole
     implementation. Reject plans that omit combined approval, put the
@@ -106,8 +121,12 @@ Task tool (general-purpose):
     **Previous Blocking Issues (revised plan only):**
     - [Resolved | Still Blocking | Replaced]: [category and short reason]
 
+    **Scratch Ref Review:**
+    - [Not Applicable | Anchor Present | Missing/Invalid]: [run id, ref names, diff command or summary status, cleanup status]
+
     **Recommendations (advisory, do not block approval):**
     - [suggestions for improvement]
 ```
 
-**Reviewer returns:** Status, Issues (if any), Recommendations
+**Reviewer returns:** Status, Issues (if any), Previous Blocking Issues for
+revised plans, Scratch Ref Review, Recommendations

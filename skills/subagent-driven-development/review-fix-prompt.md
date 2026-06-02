@@ -16,9 +16,14 @@ quick-verified implementation checkpoint.
 - Do not invoke Simple Power skills.
 - Do not restart execution.
 - Do not reroute the workflow.
+- Do not create, update, or delete scratch refs. The coordinator owns
+  `review-fix/before` and will create `review-fix/after` only if your edits
+  changed files.
 - Perform the assigned review directly in the current worker.
 - Stop and report `BLOCKED` if a required fix needs fresh user approval.
 - Run focused verification for fixes when practical.
+- Report exact changed files and focused verification so the coordinator can
+  create and inspect `review-fix/after` when files changed.
 - Do not commit.
 
 ## Report Format
@@ -26,6 +31,6 @@ quick-verified implementation checkpoint.
 - **Status:** FIXED | APPROVED_WITHOUT_CHANGES | PARTIALLY_FIXED | BLOCKED
 - Findings
 - Fixes made
-- Files changed
-- Verification run and results
+- Exact files changed
+- Focused verification run and results
 - Remaining issues or user decisions needed

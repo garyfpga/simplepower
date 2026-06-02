@@ -25,6 +25,11 @@ in this order: explicit user override, quoted assignment in project root
 assignment lookup only reads `<repo>/AGENTS.md`; nested AGENTS files and
 repo-wide grep are not part of this feature.
 
+Scratch refs under `refs/simplepower/scratch/<run-id>/` are coordinator-owned
+local refs used to provide concrete `git diff` commands to reviewers. They are
+not branches, accepted checkpoints, pushed refs, or subagent commits; workers
+and review agents must not create, update, delete, or commit them.
+
 Resolve `SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_BEST_MODEL`,
 `SIMPLEPOWER_NORMAL_MODEL`, and `SIMPLEPOWER_FAST_MODEL` before dispatch. If no
 source provides a value, use `SIMPLEPOWER_REVIEW_MODEL="gpt-5.5-xhigh"`,

@@ -77,6 +77,7 @@ brainstorming skill 可以使用临时的 localhost visual companion 来处理 m
 
 在 `simplepower:writing-plans` 完成 plan review 之后，Simple Power 会一次性询问你是否批准已审阅的 plan、模型分配，以及立刻在当前 session 里启动 `simplepower:subagent-driven-development`。
 你确认后，coordinator 会创建 accepted plan checkpoint commit，并立即调用 `simplepower:subagent-driven-development` 执行已批准的 plan。
+为了让 reviewer 更容易对 revised plan 和 review/fix 变化做 diff，coordinator 会在本地创建临时 scratch refs 作为 diff anchors；这些 refs 只是审阅辅助，不是 branch 或 accepted checkpoint，成功后会清理。
 如果 REVIEW-tier reviewer 提出问题，coordinator 会修正 plan、重新跑相关自检，再把 revised plan 送回同一个 reviewer。REVIEW-tier reviewer 会一直保持打开，直到通过、发生不可恢复中断，或你明确要求停止。
 
 ## 如何使用 Simple Power
@@ -184,6 +185,10 @@ immediate execution in the current session with
 Once you approve, the coordinator creates the accepted plan checkpoint commit
 and immediately invokes `simplepower:subagent-driven-development` in the
 current session.
+To make revised plans and review/fix changes easier to diff, the coordinator
+creates temporary local scratch refs as diff anchors; they are review-only
+artifacts, not branches or accepted checkpoints, and they are cleaned up after
+success.
 If the REVIEW-tier reviewer reports issues, the coordinator fixes the plan,
 reruns focused self-review checks for the changed categories, and sends the
 revised plan back to the same reviewer. The REVIEW-tier reviewer stays open

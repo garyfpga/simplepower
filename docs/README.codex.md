@@ -78,6 +78,10 @@ checkpoint commit and immediately invokes
 implementation skill then uses plan-first parallel implementation, quick
 verification with the FAST tier by default, one REVIEW-tier review+fix pass,
 and final verification.
+For revised plans and review/fix work, Simple Power also writes temporary local
+Git scratch refs as diff anchors so reviewers can compare before/after changes;
+the accepted checkpoint history stays at the usual three coordinator commits,
+and the scratch refs are cleaned up after success.
 
 ## Starting Implementation
 

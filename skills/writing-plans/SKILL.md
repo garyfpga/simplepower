@@ -16,6 +16,9 @@ model allocation, aggregate parallel dispatch guidance, review allocation, quick
 verification commands with timeouts, current-session auto-dispatch guidance,
 combined approval, and three coordinator commit checkpoints. Plans may include
 optional inline visual aids when they reduce ambiguity.
+Plans may also use coordinator-owned temporary scratch refs as local review
+diff anchors. Scratch refs are not accepted history commits and do not change
+the three-checkpoint commit policy.
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
@@ -79,6 +82,85 @@ alternate implementation work. If the approved path is blocked during execution,
 the agent must stop, report the exact mismatch, show current status, and ask the
 user before changing approach.
 
+## Scratch Ref Review Anchors
+
+Temporary scratch refs may be used by the coordinator to give reviewers concrete
+diff anchors without adding permanent commits. Workers, plan reviewers, quick
+verifiers, review+fix agents, and individual tasks must not create scratch refs
+or commits.
+
+All scratch refs for one Simple Power run live under
+`refs/simplepower/scratch/<run-id>/`. The run id format is
+`YYYYMMDD-HHMMSS-<short-head>`, such as `20260602-143012-c4ad811`. The
+coordinator records the run id in working notes and final reporting when any
+scratch ref is created.
+
+Scratch refs are local review artifacts. They are not branches, accepted
+checkpoint commits, pushed, merged, or rebased, and they do not count as one of
+the three coordinator checkpoint commits.
+
+Use these phase names:
+- Plan review refs:
+  `refs/simplepower/scratch/<run-id>/plan-review/before` and
+  `refs/simplepower/scratch/<run-id>/plan-review/after-<n>`
+- Quick verifier refs:
+  `refs/simplepower/scratch/<run-id>/quick-verifier/before` and
+  `refs/simplepower/scratch/<run-id>/quick-verifier/after`
+- Review+fix refs:
+  `refs/simplepower/scratch/<run-id>/review-fix/before` and
+  `refs/simplepower/scratch/<run-id>/review-fix/after`
+
+A phase may omit an `after` ref only when no file changes happened in that
+phase.
+
+Scratch refs must capture the current worktree state for the approved file list
+without changing the real index or branch history. Prefer a temporary index:
+
+```bash
+SP_RUN_ID="YYYYMMDD-HHMMSS-<short-head>"
+SP_SCRATCH_PREFIX="refs/simplepower/scratch/$SP_RUN_ID"
+SP_REF="$SP_SCRATCH_PREFIX/<phase>/<label>"
+SP_TMP_INDEX="$(mktemp)"
+GIT_INDEX_FILE="$SP_TMP_INDEX" git read-tree HEAD
+GIT_INDEX_FILE="$SP_TMP_INDEX" git add -- <approved-files>
+SP_TREE="$(GIT_INDEX_FILE="$SP_TMP_INDEX" git write-tree)"
+SP_COMMIT="$(printf '%s\n' "simplepower scratch $SP_RUN_ID <phase>/<label>" | git commit-tree "$SP_TREE" -p HEAD)"
+git update-ref "$SP_REF" "$SP_COMMIT"
+rm -f "$SP_TMP_INDEX"
+```
+
+If scratch-ref creation fails, stop the review loop before relying on the
+missing anchor.
+
+Every revised-plan review prompt after a blocking issue must include either an
+exact scratch-ref diff command or an explicit diff summary based on the relevant
+scratch refs. Preferred command shape:
+
+```bash
+git diff refs/simplepower/scratch/<run-id>/<phase>/<before-label> refs/simplepower/scratch/<run-id>/<phase>/<after-label> -- <approved-files>
+```
+
+Quick-verifier tiny fixes and review+fix edits must be inspectable with the same
+command shape before the coordinator creates the next accepted checkpoint.
+
+After an accepted checkpoint succeeds, delete the scratch refs for that phase:
+
+```bash
+git for-each-ref --format='%(refname)' "refs/simplepower/scratch/<run-id>/<phase>" | while read -r ref; do git update-ref -d "$ref"; done
+```
+
+After the accepted plan checkpoint succeeds, delete the `plan-review` refs.
+After the quick-verified implementation checkpoint succeeds, delete the
+`quick-verifier` refs. After the final checkpoint succeeds, delete the
+`review-fix` refs. At final reporting, run a cleanup check for remaining refs
+under the run id. If the workflow stops because of user direction, a blocker, or
+a failed checkpoint commit, keep scratch refs as evidence and report this manual
+cleanup command instead of deleting them:
+
+```bash
+git for-each-ref --format='%(refname)' "refs/simplepower/scratch/<run-id>" | while read -r ref; do git update-ref -d "$ref"; done
+```
+
 ## Plan Document Header
 
 **Every plan MUST start with this header:**
@@ -98,7 +180,7 @@ user before changing approach.
 
 **Model Allocation:** FAST/NORMAL/BEST/REVIEW tiers are assigned below. Resolve each tier by explicit user override, quoted assignment in project root AGENTS.md, process environment variable, then built-in default. The project root AGENTS.md lookup reads only `<repo>/AGENTS.md`, not nested AGENTS.md files or repo-wide grep. FAST defaults to `SIMPLEPOWER_FAST_MODEL` (`gpt-5.3-codex-spark-high` when unset), NORMAL defaults to `SIMPLEPOWER_NORMAL_MODEL` (`gpt-5.4-mini-high` when unset), BEST defaults to `SIMPLEPOWER_BEST_MODEL` (`gpt-5.5-high` when unset), and REVIEW defaults to `SIMPLEPOWER_REVIEW_MODEL` (`gpt-5.5-xhigh` when unset). The plan reviewer is a REVIEW-tier plan reviewer, and the final review+fix agent is a REVIEW-tier review+fix agent. The quick verifier uses the FAST tier by default, resolving to `model="gpt-5.3-codex-spark"` and `reasoning_effort="high"` unless `SIMPLEPOWER_FAST_MODEL` is overridden.
 
-**Commit Policy:** The coordinator commits after the reviewed plan, allocation, and immediate current-session execution receive combined approval, after all file edits and quick verification complete before final review, and after final review/fix plus final verification. Workers, plan reviewers, quick verifiers, and review+fix agents must not commit. No per-task commits.
+**Commit Policy:** The coordinator commits after the reviewed plan, allocation, and immediate current-session execution receive combined approval, after all file edits and quick verification complete before final review, and after final review/fix plus final verification. Workers, plan reviewers, quick verifiers, and review+fix agents must not commit. No per-task commits. Coordinator-owned temporary scratch refs under `refs/simplepower/scratch/<run-id>/...` may be created only as local review diff anchors; they are not accepted history commits, not pushed, not merged, not rebased, and must be cleaned up after successful checkpoints or reported for manual cleanup on blockers or failed checkpoints.
 
 ---
 ```
@@ -263,19 +345,43 @@ Self-review checklist:
 - Review allocation: the plan has one REVIEW-tier review+fix agent after quick
   verification.
 - Commit policy: exactly three coordinator checkpoints are present and no
-  non-coordinator role commits.
+  non-coordinator role commits; scratch refs are local review anchors, not
+  accepted checkpoint commits.
+- Scratch refs: the plan includes coordinator-only scratch-ref namespace, run
+  id, creation, revised-plan diff handoff, cleanup, blocker preservation, and
+  final cleanup check guidance.
 - Verification: quick and final commands are concrete and use `timeout`.
 - Approved path enforcement: the plan does not authorize unapproved route
   changes, skipped checks, or reduced deliverables.
 
+Before first review, the coordinator creates
+`refs/simplepower/scratch/<run-id>/plan-review/before` for the saved plan file
+using the temporary-index pattern in `Scratch Ref Review Anchors`.
+
 Then dispatch a REVIEW-tier plan reviewer using
 `skills/writing-plans/plan-document-reviewer-prompt.md`. Provide the saved plan
-path and the approved brainstorming design context. Keep the initial reviewer
-subagent open while it reports recoverable issues. If the reviewer reports
-issues, fix the plan, rerun the focused self-review checks for the changed
-categories, and send the revised plan back to the same reviewer. Close the
-reviewer only after approval, an unrecoverable interruption, or explicit user
-direction.
+path, the approved brainstorming design context, the scratch run id when one was
+created, and the `plan-review/before` ref. Keep the initial reviewer subagent
+open while it reports recoverable issues. If the reviewer reports issues, fix
+the plan, rerun the focused self-review checks for the changed categories,
+create `refs/simplepower/scratch/<run-id>/plan-review/after-<n>`, and send the
+revised plan back to the same reviewer with the concrete diff command:
+
+```bash
+git diff refs/simplepower/scratch/<run-id>/plan-review/before refs/simplepower/scratch/<run-id>/plan-review/after-<n> -- <plan-file>
+```
+
+If the same reviewer still finds issues, the next revision creates
+`plan-review/after-<n+1>` and compares the last `after-<n>` ref to the new
+`after-<n+1>` ref:
+
+```bash
+git diff refs/simplepower/scratch/<run-id>/plan-review/after-<n> refs/simplepower/scratch/<run-id>/plan-review/after-<n+1> -- <plan-file>
+```
+
+Close the reviewer only after approval, an unrecoverable interruption, or
+explicit user direction. If a needed scratch ref is missing, stop the review loop
+before relying on that missing diff anchor.
 
 The REVIEW-tier plan reviewer must perform the assigned review directly in the
 current worker. Do not run Codex CLI. Do not spawn subagents. Do not invoke
@@ -289,13 +395,27 @@ Workers and reviewers must not create this commit.
 After the user gives combined approval, the coordinator creates the accepted
 plan checkpoint commit and immediately invokes
 `simplepower:subagent-driven-development` to execute the accepted plan with the
-approved model allocation in the current session.
+approved model allocation in the current session. After the accepted plan
+checkpoint succeeds, delete that run's `plan-review` scratch refs. If the
+checkpoint fails or the workflow stops before the checkpoint, preserve the refs
+and report the manual cleanup command.
 
 ## Quick Verification
 
 The quick verifier runs after all file-edit workers complete and before the
 coordinator creates the quick-verified implementation checkpoint. It checks that
 the implementation is coherent enough for final review.
+
+Before dispatching the quick verifier, the coordinator creates
+`refs/simplepower/scratch/<run-id>/quick-verifier/before` for the approved
+implementation file list. If the quick verifier makes tiny typo-level fixes, the
+coordinator creates `refs/simplepower/scratch/<run-id>/quick-verifier/after`
+after those edits and before the quick-verified implementation checkpoint, then
+inspects or hands off this diff command:
+
+```bash
+git diff refs/simplepower/scratch/<run-id>/quick-verifier/before refs/simplepower/scratch/<run-id>/quick-verifier/after -- <approved-files>
+```
 
 The quick verifier must use the FAST tier by default. With the default
 `SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"`, this resolves to
@@ -312,7 +432,11 @@ state the nearest available command and the reason it is the right quick check.
 The quick verifier may fix only tiny typo-level errors discovered while running
 the quick checks. Any behavior change, structural edit, test rewrite, public
 interface change, or unclear issue must be reported to the coordinator instead
-of fixed by the quick verifier.
+of fixed by the quick verifier. If no file changes happen during quick
+verification, omit the `quick-verifier/after` ref. After the quick-verified
+implementation checkpoint succeeds, delete that run's `quick-verifier` scratch
+refs. If the checkpoint fails or the workflow stops before the checkpoint,
+preserve the refs and report the manual cleanup command.
 
 ## Final Review And Fix
 
@@ -322,6 +446,16 @@ implementation against the accepted plan, file ownership, approved path
 enforcement, aggregate parallel dispatch semantics, and verification
 requirements.
 
+Before dispatching the review+fix agent, the coordinator creates
+`refs/simplepower/scratch/<run-id>/review-fix/before` for the approved
+implementation file list. If the review+fix agent edits files, the coordinator
+creates `refs/simplepower/scratch/<run-id>/review-fix/after` after those edits
+and before final verification, then inspects or hands off this diff command:
+
+```bash
+git diff refs/simplepower/scratch/<run-id>/review-fix/before refs/simplepower/scratch/<run-id>/review-fix/after -- <approved-files>
+```
+
 The review+fix agent may edit files within the plan's approved file ownership
 when fixing issues it finds. It must report changed files, commands run, results,
 remaining risks, and any unresolved deviations that require user approval. It
@@ -330,7 +464,10 @@ must not commit.
 The REVIEW-tier review+fix agent must perform the assigned review and fixes
 directly in the current worker. Do not run Codex CLI. Do not spawn subagents.
 Do not invoke Simple Power skills. Do not restart execution. Do not reroute the
-workflow.
+workflow. If no file changes happen during review+fix, omit the
+`review-fix/after` ref. After the final checkpoint succeeds, delete that run's
+`review-fix` scratch refs. If the checkpoint fails or the workflow stops before
+the checkpoint, preserve the refs and report the manual cleanup command.
 
 ## Commit Checkpoints
 
@@ -347,6 +484,12 @@ Every plan must define exactly three future coordinator commit checkpoints:
 Workers, plan reviewers, quick verifiers, and review+fix agents must not commit.
 Do not include worker-owned commits or per-task commits.
 
+Scratch refs are the only allowed temporary review anchors. They are
+coordinator-owned, local-only, and not accepted checkpoint commits. They must be
+deleted after the successful checkpoint for their phase or preserved and
+reported for manual cleanup if the workflow stops or the checkpoint commit
+fails.
+
 ## Current-Session Auto-Dispatch
 
 The saved plan is the execution artifact. Do not write a project-local
@@ -362,13 +505,15 @@ covers:
 - Immediate current-session execution
 
 If the user requests changes, update the plan, rerun the focused self-review
-checks for the changed categories, and send the revised plan back to the same
-reviewer when review approval must be refreshed. Do not create the accepted
-plan checkpoint until the user gives combined approval.
+checks for the changed categories, create the next `plan-review/after-<n>`
+scratch ref, and send the revised plan back to the same reviewer with the
+concrete scratch-ref `git diff` command when review approval must be refreshed.
+Do not create the accepted plan checkpoint until the user gives combined
+approval.
 
 After combined approval, the coordinator creates the accepted plan checkpoint
-commit, then immediately invokes `simplepower:subagent-driven-development` in
-the current session with this instruction:
+commit, deletes the successful `plan-review` scratch refs, then immediately invokes `simplepower:subagent-driven-development` in the current session with
+this instruction:
 
 ```text
 Execute `<PLAN_PATH>` with aggregate parallel implementation from the approved Interface Contract. Use the approved FAST/NORMAL/BEST/REVIEW model allocation. Dispatch all non-conflicting `sp-impl` file-edit workers whose coordination needs are satisfied by their Contract inputs, run the quick FAST-tier verifier with lint/build/tests and timeouts after all workers finish, commit the quick-verified implementation, then run one REVIEW-tier review+fix agent, final verification, and final commit.
@@ -388,6 +533,18 @@ usually:
 The final verification section must also say that the coordinator performs the
 final checkpoint only after the REVIEW-tier review+fix agent has completed and
 the final commands pass.
+
+Final reporting must include a cleanup check for any remaining scratch refs from
+the run:
+
+```bash
+git for-each-ref --format='%(refname)' "refs/simplepower/scratch/<run-id>"
+```
+
+If the final checkpoint succeeds, no scratch refs for that run should remain
+after phase cleanup. If the workflow stopped because of user direction, a
+blocker, or a failed checkpoint commit, preserve remaining scratch refs and
+report the manual cleanup command from `Scratch Ref Review Anchors`.
 
 ## No Placeholders
 
@@ -433,6 +590,22 @@ failures:
 - Keep the initial plan reviewer open for issue loops; send revised plans back
   to the same reviewer until approval, unrecoverable interruption, or explicit
   user direction
+- Coordinator-owned scratch refs may live only under
+  `refs/simplepower/scratch/<run-id>/`; use the
+  `YYYYMMDD-HHMMSS-<short-head>` run id format and record the run id in working
+  notes and final reporting
+- Scratch refs are local review diff anchors, not branches, not accepted
+  checkpoint commits, and not worker or task commits
+- Create `plan-review/before` before first plan review; after coordinator plan
+  edits, create `plan-review/after-<n>` and send the same reviewer a concrete
+  `git diff` command
+- Use the same scratch-ref diff shape for quick-verifier tiny fixes and
+  review+fix edits before the next accepted checkpoint
+- Delete phase scratch refs after the accepted checkpoint for that phase
+  succeeds; preserve refs and report the manual cleanup command on blockers,
+  user stops, or failed checkpoint commits
+- Run the final cleanup check for remaining refs under
+  `refs/simplepower/scratch/<run-id>/`
 - Quick verifier uses the FAST tier by default, resolving to
   `gpt-5.3-codex-spark-high` when unset
 - One REVIEW-tier review+fix agent
