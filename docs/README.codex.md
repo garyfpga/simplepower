@@ -12,11 +12,17 @@ Install Simple Power from the Codex plugin marketplace:
 
 ```bash
 codex plugin marketplace add garyfpga/codex-plugins
-codex plugin marketplace upgrade
+codex plugin add simplepower@garyfpga-codex-plugins
 ```
 
-Use `codex plugin marketplace upgrade` again whenever you want to pull
-marketplace updates.
+Use this whenever you want to pull marketplace updates:
+
+```bash
+codex plugin marketplace upgrade garyfpga-codex-plugins
+```
+
+Restart Codex after install or update if you want it to rescan installed skills
+immediately.
 
 ## Subagent Support
 
@@ -108,7 +114,7 @@ Use `simplepower:subagent-driven-development` to execute `<PLAN_PATH>` in the cu
 ## Updating
 
 ```bash
-codex plugin marketplace upgrade
+codex plugin marketplace upgrade garyfpga-codex-plugins
 ```
 
 Restart Codex if you want it to rescan installed skills immediately.

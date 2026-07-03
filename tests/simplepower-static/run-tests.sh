@@ -155,7 +155,8 @@ require_not_contains "README.md" "author =" "README does not include an author l
 require_not_contains "README.md" "Gary Chow" "README does not name a personal author"
 require_contains "README.md" "Thanks to Jesse Vincent / Prime Radiant for the upstream project this fork is" "README credits the upstream project"
 require_contains "README.md" "codex plugin marketplace add garyfpga/codex-plugins" "README documents the marketplace install command"
-require_contains "README.md" "codex plugin marketplace upgrade" "README documents the marketplace update command"
+require_contains "README.md" "codex plugin add simplepower@garyfpga-codex-plugins" "README documents the plugin install command"
+require_contains "README.md" "codex plugin marketplace upgrade garyfpga-codex-plugins" "README documents the named marketplace update command"
 require_contains "README.md" "SIMPLEPOWER_BEST_MODEL=\"gpt-5.5-high\"" "README documents the BEST model env var"
 require_contains "README.md" "SIMPLEPOWER_REVIEW_MODEL=\"gpt-5.5-xhigh\"" "README documents the REVIEW model env var"
 require_contains "README.md" "SIMPLEPOWER_NORMAL_MODEL=\"gpt-5.4-mini-high\"" "README documents the NORMAL model env var"
@@ -186,12 +187,12 @@ require_not_contains "README.md" "both commands" "README does not preserve the d
 require_not_contains "README.md" "55%" "README does not preserve the 55 percent routing threshold"
 require_not_contains "README.md" "current-session-context.md" "README does not preserve the retired context helper reference"
 
-require_contains ".codex-plugin/plugin.json" '"version": "1.0.0"' "plugin manifest version is 1.0.0"
+require_contains ".codex-plugin/plugin.json" '"version": "1.1.0"' "plugin manifest version is 1.1.0"
 require_contains ".codex-plugin/plugin.json" "one REVIEW-tier review+fix pass" "plugin metadata documents REVIEW-tier review+fix"
 require_contains ".codex-plugin/plugin.json" "temporary local scratch refs as diff anchors" "plugin metadata documents scratch refs as diff anchors"
 require_contains ".codex-plugin/plugin.json" "review/fix passes" "plugin metadata scopes scratch refs to revised plans and review/fix passes"
 require_not_contains ".codex-plugin/plugin.json" "one BEST-tier review+fix pass" "plugin metadata no longer documents BEST-tier review+fix"
-require_contains "package.json" '"version": "1.0.0"' "package.json version is 1.0.0"
+require_contains "package.json" '"version": "1.1.0"' "package.json version is 1.1.0"
 
 require_contains "AGENTS.md" "simplepower:*" "AGENTS.md uses the Simple Power namespace"
 require_contains "AGENTS.md" "docs/simplepower" "AGENTS.md points generated docs at docs/simplepower"
@@ -202,6 +203,9 @@ require_contains "AGENTS.md" "not commits in accepted history" "AGENTS.md keeps 
 require_contains "AGENTS.md" "reported for manual cleanup on" "AGENTS.md preserves scratch refs for cleanup reporting on blockers"
 
 require_contains "docs/README.codex.md" "simplepower:*" "Codex install guide uses the Simple Power namespace"
+require_contains "docs/README.codex.md" "codex plugin marketplace add garyfpga/codex-plugins" "Codex install guide documents the marketplace install command"
+require_contains "docs/README.codex.md" "codex plugin add simplepower@garyfpga-codex-plugins" "Codex install guide documents the plugin install command"
+require_contains "docs/README.codex.md" "codex plugin marketplace upgrade garyfpga-codex-plugins" "Codex install guide documents the named marketplace update command"
 require_contains "docs/README.codex.md" "sp-impl" "Codex install guide mentions sp-impl"
 require_contains "docs/README.codex.md" "docs/simplepower" "Codex install guide points generated docs at docs/simplepower"
 require_contains "docs/README.codex.md" "SIMPLEPOWER_BEST_MODEL=\"gpt-5.5-high\"" "Codex install guide documents the BEST model env var"
@@ -231,6 +235,10 @@ require_not_contains "docs/README.codex.md" "implementation handoff to use" "Cod
 require_not_contains "docs/README.codex.md" "both commands" "Codex install guide does not preserve the dual-command handoff flow"
 require_not_contains "docs/README.codex.md" "55%" "Codex install guide does not preserve the 55 percent routing threshold"
 require_not_contains "docs/README.codex.md" "current-session-context.md" "Codex install guide does not preserve the retired context helper reference"
+
+require_contains ".codex/INSTALL.md" "codex plugin marketplace add garyfpga/codex-plugins" "bundled install guide documents the marketplace install command"
+require_contains ".codex/INSTALL.md" "codex plugin add simplepower@garyfpga-codex-plugins" "bundled install guide documents the plugin install command"
+require_contains ".codex/INSTALL.md" "codex plugin marketplace upgrade garyfpga-codex-plugins" "bundled install guide documents the named marketplace update command"
 
 require_contains "docs/testing.md" "bash tests/simplepower-static/run-tests.sh" "testing docs cover the static test harness"
 require_contains "docs/testing.md" "npm --prefix tests/brainstorm-server test" "testing docs cover brainstorm server tests"

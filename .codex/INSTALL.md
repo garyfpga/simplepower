@@ -10,13 +10,17 @@ Install Simple Power from the Codex plugin marketplace:
 
 ```bash
 codex plugin marketplace add garyfpga/codex-plugins
-codex plugin marketplace upgrade
+codex plugin add simplepower@garyfpga-codex-plugins
 ```
 
-Use `codex plugin marketplace upgrade` again whenever you want to pull
-marketplace updates.
+Use this whenever you want to pull marketplace updates:
 
-Restart Codex if you want it to rescan installed skills immediately.
+```bash
+codex plugin marketplace upgrade garyfpga-codex-plugins
+```
+
+Restart Codex after install or update if you want it to rescan installed skills
+immediately.
 
 ## Multi-Agent Support
 

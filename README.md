@@ -43,10 +43,16 @@ SimplePower 是 Jesse Vincent / Prime Radiant 的 [Superpowers](https://github.c
 
 ```bash
 codex plugin marketplace add garyfpga/codex-plugins
-codex plugin marketplace upgrade
+codex plugin add simplepower@garyfpga-codex-plugins
 ```
 
-以后只要想拉取 marketplace 更新，就再次运行 `codex plugin marketplace upgrade`。
+以后只要想拉取 marketplace 更新，就运行：
+
+```bash
+codex plugin marketplace upgrade garyfpga-codex-plugins
+```
+
+更新后如果想让 Codex 立刻重新扫描 installed skills，请重启 Codex。
 
 ## 模型分配
 
@@ -133,11 +139,17 @@ Install Simple Power from the Codex plugin marketplace:
 
 ```bash
 codex plugin marketplace add garyfpga/codex-plugins
-codex plugin marketplace upgrade
+codex plugin add simplepower@garyfpga-codex-plugins
 ```
 
-Use `codex plugin marketplace upgrade` again whenever you want to pull
-marketplace updates.
+Use this whenever you want to pull marketplace updates:
+
+```bash
+codex plugin marketplace upgrade garyfpga-codex-plugins
+```
+
+Restart Codex after install or update if you want it to rescan installed skills
+immediately.
 
 ## Model Allocation
 
