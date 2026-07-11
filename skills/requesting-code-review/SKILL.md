@@ -33,6 +33,13 @@ Include the plan or requirements, tests run and their results, and any known ris
 
 **2. Dispatch the review using the template in `code-reviewer.md`:**
 
+Dispatch with
+`spawn_agent(agent_type="worker", fork_turns="none", message=<self-contained-review-prompt>)`.
+The prompt must contain the exact review task, read-only scope, constraints,
+plan or requirements and working-tree evidence, required output, and review
+verification commands already run with their results, plus any focused checks
+the reviewer must perform. Do not rely on conversation history.
+
 Fill the local review prompt with these inputs:
 - `{WHAT_WAS_IMPLEMENTED}` - What changed
 - `{PLAN_OR_REQUIREMENTS}` - The plan, spec, or task being checked
@@ -57,7 +64,7 @@ You: Let me request code review before proceeding.
 git status --short
 git diff
 
-[Dispatch generic reviewer subagent with `skills/requesting-code-review/code-reviewer.md`]
+[Dispatch with `spawn_agent(agent_type="worker", fork_turns="none", message=<filled-code-reviewer-prompt>)`]
   WHAT_WAS_IMPLEMENTED: Verification and repair functions for conversation index
   PLAN_OR_REQUIREMENTS: Task 2 from docs/simplepower/plans/deployment-plan.md
   STATUS_OUTPUT: M src/index.ts

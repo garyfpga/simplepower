@@ -40,6 +40,14 @@ Skills use the active skill content directly. Do not read skill files as a subst
 
 For Codex tool equivalents, see `references/codex-tools.md`.
 
+For configuration discovery, validation, optional subagent routing, failure
+behavior, and dispatch isolation, follow
+`references/simplepower-config.md`. Every Simple Power agent dispatch must pass
+exactly `fork_turns="none"` and a self-contained task brief. This universal
+rule applies to optional explorers and mandatory tier-routed agents alike;
+`use_subagent` and `subagent_model` never replace mandatory
+FAST/NORMAL/BEST/REVIEW allocation.
+
 # Using Skills
 
 ## The Rule

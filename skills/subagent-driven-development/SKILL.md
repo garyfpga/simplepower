@@ -168,14 +168,19 @@ runtime or migration ordering.
    after its approved condition is satisfied; do not require a commit between
    implementation tasks unless the accepted plan explicitly requires a
    committed checkpoint.
-7. Paste the full task text, exact write scope, Contract inputs,
-   `Serialization required` value and reason if any, model tier, and relevant
-   context into each `sp-impl` prompt.
+7. Make every `sp-impl` prompt self-contained. Paste the full task text, exact
+   read and write scope, constraints, Contract inputs and other evidence,
+   `Serialization required` value and reason if any, model tier, required
+   output, and exact verification commands, timeouts, and expected results.
 8. Do not require a worker to read the plan file to discover its own task.
-9. Use `fork_context=false` by default for all Simple Power subagents.
-10. Record any model escalation, context exception, serialization exception, or
-    lifecycle exception with a written reason.
+9. Pass `fork_turns="none"` to every Simple Power `spawn_agent` dispatch. There
+   are no conversation-history inheritance exceptions.
+10. Record any model escalation, serialization exception, or lifecycle
+    exception with a written reason.
 11. No worker commits or per-task commits. No per-task commits.
+
+Dispatch each implementation worker with
+`spawn_agent(agent_type="worker", model=<approved_FAST_NORMAL_or_BEST_model>, reasoning_effort=<approved_effort>, fork_turns="none", message=<self-contained-sp-impl-prompt>)`.
 
 ## Scratch Refs
 
@@ -263,6 +268,9 @@ validation, create
 `refs/simplepower/scratch/<run-id>/quick-verifier/before` for the approved file
 list, then dispatch the quick verifier from `quick-verifier-prompt.md`.
 
+Use
+`spawn_agent(agent_type="worker", model=<FAST_model>, reasoning_effort=<FAST_effort>, fork_turns="none", message=<self-contained-quick-verifier-prompt>)`.
+
 The quick verifier uses the approved FAST tier by default. Unless
 `SIMPLEPOWER_FAST_MODEL` is overridden, that resolves to
 `model="gpt-5.3-codex-spark"` and `reasoning_effort="high"`.
@@ -334,6 +342,9 @@ Then dispatch one REVIEW-tier review+fix agent from `review-fix-prompt.md` with
 the whole diff, approved plan, task requirements, file ownership, verification
 results, worker reports that matter, and the coordinator-owned scratch diff
 context. The review+fix agent must not create refs or commits.
+
+Use
+`spawn_agent(agent_type="worker", model=<REVIEW_model>, reasoning_effort=<REVIEW_effort>, fork_turns="none", message=<self-contained-review-fix-prompt>)`.
 
 The review+fix agent reviews the actual diff, fixes in-scope correctness,
 quality, and plan-compliance issues, runs focused verification when practical,
@@ -461,11 +472,11 @@ Tier routing:
 Role routing:
 
 - `sp-impl`: use the plan's approved FAST, NORMAL, or BEST tier,
-  `agent_type="worker"`, `fork_context=false`.
+  `agent_type="worker"`, `fork_turns="none"`.
 - Quick verifier: use the approved FAST tier, `agent_type="worker"`,
-  `fork_context=false`.
+  `fork_turns="none"`.
 - Review+fix agent: always use REVIEW, resolved from
-  `SIMPLEPOWER_REVIEW_MODEL`, `agent_type="worker"`, `fork_context=false`.
+  `SIMPLEPOWER_REVIEW_MODEL`, `agent_type="worker"`, `fork_turns="none"`.
 
 If a planned FAST implementation task is less mechanical or obvious than the
 plan predicted, escalate that task to NORMAL or BEST and record the reason
@@ -475,14 +486,12 @@ that task to BEST and record the reason before dispatch.
 
 ## Context Selection
 
-Default all Simple Power subagent dispatches to `fork_context=false`.
-Subagents should receive the exact task text, write scope, relevant context,
-verification instructions, and diff information in their prompt instead of
-inheriting the parent conversation.
-
-Use `fork_context=true` only when the subagent genuinely needs the live
-conversation history and that context cannot be summarized safely in the
-prompt. Record the reason when making that exception.
+Every Simple Power subagent dispatch must use `fork_turns="none"`. Each prompt
+must be self-contained with the exact task, read and write scope, constraints,
+evidence and Contract inputs, required output, and exact verification commands,
+timeouts, and expected results. If that information cannot be supplied, stop
+and obtain it before dispatch; conversation history must never substitute for
+the prompt contract.
 
 ## Prompt Templates
 

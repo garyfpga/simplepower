@@ -13,6 +13,33 @@ description: Use only when the user explicitly requests simplepower:ro or asks t
 - Keep it active for the current task or discussion until the user explicitly disables it or requests implementation outside read-only mode.
 - When RO first needs a temp artifact, announce the active instance id and temp root.
 
+## Initial Analysis
+
+At activation, resolve and validate the shared configuration by following
+`skills/using-simplepower/references/simplepower-config.md`.
+
+- With effective `use_subagent=false`, preserve coordinator-only analysis for
+  the initial inspection.
+- With effective `use_subagent=true`, spawn exactly one read-only initial explorer
+  using the model and reasoning effort parsed from `subagent_model`.
+  Pass exactly `fork_turns="none"` and a self-contained brief describing the
+  question, repository scope, RO constraints, relevant known evidence, required
+  report, and verification. The explorer may inspect files and run read-only
+  commands. It cannot edit tracked files, create any files, or create
+  coordinator-owned artifacts: it cannot create `.codex-ro` artifacts.
+  Require it to report inspected files and commands,
+  findings and relevant architecture or conventions, risks or uncertainties,
+  and explicit confirmation that it made no edits.
+- If enabled dispatch cannot occur because multi-agent support is missing, the
+  configured model is unavailable, or spawning fails, stop and report the
+  blocker as required by the shared contract. Do not continue coordinator-only
+  or use a different model.
+
+The coordinator owns synthesis and all later analysis. Only the coordinator
+may create or manage the temp root, manifest, and session artifacts described
+below. Optional exploration does not alter any RO write, cleanup, confirmation,
+or unexpected-modification rule.
+
 ## Write Rules
 
 - Never edit, overwrite, rename, delete, format, migrate, or code-generate over existing repo files.

@@ -39,6 +39,11 @@ multi_agent = true
 That setting lets Simple Power dispatch the workers required by the approved
 plan and model allocation.
 
+It is also required when the optional explorers described below are enabled.
+If optional subagents are enabled but multi-agent support, the configured
+model, or spawning is unavailable, Simple Power stops instead of silently
+falling back to the coordinator.
+
 ## Model Allocation
 
 Simple Power uses four configurable model tiers:
@@ -68,6 +73,41 @@ work. Use NORMAL for routine low-risk implementation work that used to fit the
 old FAST tier, especially localized edits. Use FAST for obvious repetitive
 work, mechanical edits across many files, large static text sweeps, simple
 fixture/assertion churn, and quick verification.
+
+## Optional Subagent Configuration
+
+Simple Power supports an optional configuration file at
+`<git-root>/simplepower.toml` or `~/.codex/simplepower.toml`. Inside a Git
+repository, an existing repository file completely replaces the home file;
+the two files are never merged. Outside Git, only the home file is considered.
+Explicit current-session user instructions override file configuration.
+
+The exact supported top-level keys and their defaults are:
+
+```toml
+use_subagent = false
+subagent_model = "gpt-5.6-luna-xhigh"
+```
+
+Missing keys take their defaults. The final dash in `subagent_model` separates
+the model from the reasoning effort: `gpt-5.6-luna-xhigh` becomes
+`model="gpt-5.6-luna"` and `reasoning_effort="xhigh"`. Malformed TOML, unknown
+keys, wrong types, and invalid values are fatal configuration errors.
+
+`use_subagent` governs only these optional agents:
+
+- one initial read-only explorer during brainstorming;
+- one initial read-only explorer during `simplepower:ro`;
+- parallel investigation in `simplepower:systematic-debugging` only after its
+  initial Phase 1 investigation stalls.
+
+It does not govern the mandatory plan reviewer, implementation workers, quick
+verifier, or review+fix agent. Those remain assigned through the
+FAST/NORMAL/BEST/REVIEW tiers. Every Simple Power dispatch, optional or
+mandatory, passes `fork_turns="none"` and supplies self-contained context.
+
+No default `simplepower.toml` is tracked in the repository. Create one only to
+opt in or change the optional model.
 
 ## Implementation Flow
 

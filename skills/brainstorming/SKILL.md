@@ -40,6 +40,30 @@ You MUST create a task for each of these items and complete them in order:
 5. **Present design** — in sections scaled to their complexity, get user approval after each section
 6. **Transition to implementation planning** — invoke `simplepower:writing-plans` to create the authoritative implementation plan
 
+## Project Context Exploration
+
+Before checklist item 1, resolve and validate the shared configuration by
+following `skills/using-simplepower/references/simplepower-config.md`.
+
+- With effective `use_subagent=false`, preserve coordinator exploration: the
+  coordinator checks the project files, documentation, and recent commits.
+- With effective `use_subagent=true`, spawn exactly one read-only context explorer
+  using the model and reasoning effort parsed from `subagent_model`.
+  Pass exactly `fork_turns="none"` and a self-contained brief. The explorer may
+  inspect and run read-only commands, but must not edit or create files. Require
+  its report to include inspected files and commands, architecture and
+  conventions, relevant recent changes, risks, and explicit confirmation that
+  it made no edits.
+- If enabled dispatch cannot occur because multi-agent support is missing, the
+  configured model is unavailable, or spawning fails, stop and report the
+  blocker as required by the shared contract. Do not continue with coordinator
+  exploration or a different model.
+
+The coordinator synthesizes the explorer report and retains every clarifying
+question, approach comparison, design section, approval interaction, and the
+`simplepower:writing-plans` handoff. The explorer performs context gathering
+only. This option does not relax the hard gate or alter the checklist order.
+
 ## Process Flow
 
 ```dot
@@ -71,7 +95,8 @@ digraph brainstorming {
 
 **Understanding the idea:**
 
-- Check out the current project state first (files, docs, recent commits)
+- Check out the current project state first (files, docs, recent commits),
+  using the configured context-exploration route above
 - Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
 - If the project is too large for a single implementation plan, help the user decompose into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own plan → implementation cycle.
 - For appropriately-scoped projects, ask questions one at a time to refine the idea

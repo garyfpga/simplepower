@@ -75,6 +75,21 @@ BEST 用于广泛、跨文件、含糊、会改变行为、高风险、难测试
 NORMAL 用于原来会放进旧 FAST 层的常规低风险实现工作，尤其是局部修改。
 FAST 是 Spark 层，用于明显重复的工作、多文件机械性修改、大量静态文本扫改、简单 fixture/assertion 变更，以及快速验证。
 
+## 可选 subagent 配置
+
+Simple Power 可以读取一个可选的 `simplepower.toml`。在 Git 仓库内，配置位置是 `<git-root>/simplepower.toml` 或 `~/.codex/simplepower.toml`；如果项目文件存在，它会完全替代 home 配置，不会合并。在 Git 仓库外只读取 home 配置。当前 session 里用户的显式指示始终优先。
+
+```toml
+use_subagent = false
+subagent_model = "gpt-5.6-luna-xhigh"
+```
+
+缺少的 key 使用以上默认值。`subagent_model` 按最后一个 dash 拆分 model 和 reasoning effort，所以默认值解析为 `model="gpt-5.6-luna"`、`reasoning_effort="xhigh"`。格式错误的 TOML、未知 key、错误类型或无效值都会停止流程。
+
+`use_subagent` 只控制三种可选派发：brainstorming 开始时的一个只读 explorer、`simplepower:ro` 开始时的一个只读 explorer，以及 systematic debugging 在初始 Phase 1 卡住后的并行调查。它不控制强制的 plan reviewer、implementation、quick verifier 或 review+fix agents；这些仍使用 FAST/NORMAL/BEST/REVIEW 分配。启用可选 subagent 后，如果 multi-agent 支持、指定模型或派发不可用，流程会停止，不会静默降级。每一次 Simple Power agent 派发都使用 `fork_turns="none"` 和自包含上下文。
+
+这个仓库不会提供 tracked 默认 `simplepower.toml`；只有需要改变默认行为时才创建个人或项目配置。
+
 ## 实现流程
 
 Simple Power skills 使用 `simplepower:*` namespace。当你想让 Codex 使用某个 skill 时，直接提到它的名字，例如 `simplepower:brainstorming`。
@@ -180,6 +195,39 @@ FAST tier, especially localized edits.
 FAST is the Spark tier for obvious repetitive work, mechanical edits across
 many files, large static text sweeps, simple fixture/assertion churn, and quick
 verification.
+
+## Optional Subagent Configuration
+
+Simple Power can read an optional `simplepower.toml`. Inside a Git repository,
+the locations are `<git-root>/simplepower.toml` and
+`~/.codex/simplepower.toml`; when the repository file exists, it completely
+replaces the home configuration rather than merging with it. Outside Git, only
+the home configuration is read. Explicit instructions from the user in the
+current session always take precedence.
+
+```toml
+use_subagent = false
+subagent_model = "gpt-5.6-luna-xhigh"
+```
+
+Missing keys use the defaults above. `subagent_model` splits at the final dash
+into model and reasoning effort, so the default resolves to
+`model="gpt-5.6-luna"` and `reasoning_effort="xhigh"`. Malformed TOML, unknown
+keys, wrong types, and invalid values stop the workflow.
+
+`use_subagent` controls only three optional dispatches: one initial read-only
+explorer for brainstorming, one initial read-only explorer for
+`simplepower:ro`, and parallel investigation after the initial Phase 1 of
+systematic debugging stalls. It does not control the mandatory plan reviewer,
+implementation, quick verifier, or review+fix agents; those continue to use
+the FAST/NORMAL/BEST/REVIEW allocation. When optional subagents are enabled,
+missing multi-agent support, an unavailable configured model, or a spawn
+failure stops the workflow without silent fallback. Every Simple Power agent
+dispatch uses `fork_turns="none"` with self-contained context.
+
+The repository does not provide a tracked default `simplepower.toml`; create a
+personal or repository configuration only when you need to change the
+defaults.
 
 ## Implementation Flow
 

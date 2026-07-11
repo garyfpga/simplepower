@@ -148,7 +148,9 @@ echo "=== Simple Power Static Checks ==="
 require_executable "tests/simplepower-static/run-tests.sh" "static test runner is executable"
 
 require_file "skills/using-simplepower/SKILL.md" "using-simplepower skill exists"
+require_file "skills/using-simplepower/references/simplepower-config.md" "shared Simple Power config reference exists"
 require_dir_absent "skills/using-superpowers" "using-superpowers skill directory is absent"
+require_path_absent "simplepower.toml" "repository root does not contain a Simple Power config"
 
 require_contains "README.md" "simplepower:*" "README uses the Simple Power namespace"
 require_not_contains "README.md" "author =" "README does not include an author line"
@@ -256,10 +258,40 @@ require_contains "skills/using-simplepower/SKILL.md" "Explicit user request requ
 require_contains "skills/using-simplepower/SKILL.md" "authorized Simple Power chain handoff" "using-simplepower preserves approved chain handoffs"
 require_contains "skills/using-simplepower/SKILL.md" "Do not invoke Simple Power skills from semantic task matching alone" "using-simplepower blocks semantic auto-triggering"
 
+config_reference="skills/using-simplepower/references/simplepower-config.md"
+require_contains "$config_reference" '<git-root>/simplepower.toml' "config reference names the exact repository config filename"
+require_contains "$config_reference" '`use_subagent`' "config reference defines use_subagent"
+require_contains "$config_reference" '`subagent_model`' "config reference defines subagent_model"
+require_contains "$config_reference" 'use_subagent = false' "config reference gives the disabled-by-default Boolean"
+require_contains "$config_reference" 'subagent_model = "gpt-5.6-luna-xhigh"' "config reference gives the optional subagent model default"
+require_contains "$config_reference" 'final dash' "config reference splits model and effort on the final dash"
+require_contains "$config_reference" '`low`, `medium`, `high`, `xhigh`, `max`, and `ultra`' "config reference lists every supported reasoning effort"
+require_contains "$config_reference" 'use it exclusively' "config reference makes the repository config an exclusive replacement"
+require_contains "$config_reference" 'do not read, merge, or fall back' "config reference forbids home merging when repository config exists"
+require_contains "$config_reference" 'or fall back to `~/.codex/simplepower.toml`' "config reference forbids home fallback when repository config exists"
+require_contains "$config_reference" '`~/.codex/simplepower.toml`' "config reference defines home config fallback"
+require_contains "$config_reference" 'Use defaults if neither exists' "config reference defaults when neither config exists"
+require_contains "$config_reference" 'Explicit current-session user instructions override' "config reference gives current-session user instructions precedence"
+require_contains "$config_reference" 'Malformed TOML' "config reference rejects malformed TOML"
+require_contains "$config_reference" 'unknown top-level key' "config reference rejects unknown keys"
+require_contains "$config_reference" 'wrong types' "config reference rejects wrong value types"
+require_contains "$config_reference" 'missing model prefixes' "config reference rejects invalid model syntax"
+require_contains "$config_reference" 'unknown effort suffixes' "config reference rejects unknown effort suffixes"
+require_contains "$config_reference" 'selected configuration path plus the precise problem' "config errors report the selected path and precise problem"
+require_contains "$config_reference" 'missing multi-agent support' "config reference stops when enabled agent support is unavailable"
+require_contains "$config_reference" 'unavailable configured model' "config reference stops when the enabled model is unavailable"
+require_contains "$config_reference" 'spawn failure while `use_subagent=true`' "config reference stops on enabled spawn failure"
+require_contains "$config_reference" 'Do not silently switch to coordinator-only work or a different' "config reference forbids silent enabled-mode fallback"
+require_contains "$config_reference" 'do not govern mandatory plan reviewers' "optional config does not alter mandatory tier roles"
+
 require_not_contains "skills/brainstorming/SKILL.md" "docs/simplepower/specs" "brainstorming no longer writes standalone specs"
 require_not_contains "skills/brainstorming/SKILL.md" "User reviews written spec" "brainstorming no longer has a written spec review gate"
 require_dir_absent "skills/brainstorming/spec-document-reviewer-prompt.md" "old brainstorming spec reviewer prompt is absent"
 require_contains "skills/brainstorming/SKILL.md" "simplepower:writing-plans" "brainstorming still hands off to writing-plans"
+require_contains "skills/brainstorming/SKILL.md" "simplepower-config.md" "brainstorming reads the shared optional-subagent config"
+require_contains "skills/brainstorming/SKILL.md" "spawn exactly one read-only context" "enabled brainstorming dispatches one initial read-only explorer"
+require_contains "skills/brainstorming/SKILL.md" "coordinator exploration" "disabled brainstorming remains coordinator-driven"
+require_contains "skills/brainstorming/SKILL.md" 'fork_turns="none"' "brainstorming explorer receives no inherited turns"
 require_contains "skills/brainstorming/visual-companion.md" ".simplepower/brainstorm" "visual companion uses the Simple Power brainstorming session path"
 require_contains "skills/brainstorming/SKILL.md" "start the localhost server" "brainstorming visual companion starts a localhost server"
 require_contains "skills/brainstorming/SKILL.md" "give the local URL" "brainstorming visual companion gives a local URL"
@@ -269,6 +301,13 @@ require_contains "skills/brainstorming/visual-companion.md" "temporary localhost
 require_contains "skills/brainstorming/visual-companion.md" "distinct from optional inline visuals in saved Markdown implementation plans" "visual companion guide distinguishes saved Markdown plan visuals"
 require_contains "skills/brainstorming/scripts/start-server.sh" ".simplepower/brainstorm" "brainstorm server startup script uses the Simple Power session path"
 require_contains "skills/brainstorming/scripts/frame-template.html" "Simple Power Brainstorming" "brainstorm frame shows Simple Power branding"
+
+require_contains "skills/ro/SKILL.md" "simplepower-config.md" "RO reads the shared optional-subagent config"
+require_contains "skills/ro/SKILL.md" "spawn exactly one read-only initial" "enabled RO dispatches one initial read-only explorer"
+require_contains "skills/ro/SKILL.md" "preserve coordinator-only analysis" "disabled RO remains coordinator-only"
+require_contains "skills/ro/SKILL.md" "cannot edit tracked files" "RO explorer cannot edit tracked files"
+require_contains "skills/ro/SKILL.md" 'cannot create `.codex-ro` artifacts' "RO explorer cannot create coordinator-owned artifacts"
+require_contains "skills/ro/SKILL.md" 'fork_turns="none"' "RO explorer receives no inherited turns"
 
 require_contains "skills/writing-plans/SKILL.md" "File Ownership" "writing-plans requires File Ownership"
 require_contains "skills/writing-plans/SKILL.md" "Implementation Tasks" "writing-plans requires Implementation Tasks"
@@ -460,7 +499,7 @@ require_contains "skills/subagent-driven-development/SKILL.md" "simplepower:test
 require_contains "skills/subagent-driven-development/SKILL.md" "subagent lifecycle checkpoint" "SDD requires subagent lifecycle checkpoints"
 require_contains "skills/subagent-driven-development/SKILL.md" "Default lifecycle decision: close" "SDD defaults finished subagents to close"
 require_contains "skills/subagent-driven-development/SKILL.md" "written reason" "SDD requires written reasons for keeping finished subagents open"
-require_contains "skills/subagent-driven-development/SKILL.md" 'fork_context=false' "SDD defaults subagents to narrow context"
+require_contains "skills/subagent-driven-development/SKILL.md" 'fork_turns="none"' "SDD isolates every mandatory subagent dispatch"
 require_contains "skills/subagent-driven-development/SKILL.md" "one REVIEW-tier review+fix agent" "SDD requires one REVIEW-tier review+fix agent"
 require_contains "skills/subagent-driven-development/SKILL.md" "coordinator checkpoint commit" "SDD requires a coordinator checkpoint commit"
 require_contains "skills/subagent-driven-development/SKILL.md" "final commit only if uncommitted changes remain" "SDD keeps the final commit conditional"
@@ -478,10 +517,10 @@ require_contains "skills/systematic-debugging/SKILL.md" "do not dispatch agents"
 require_contains "skills/systematic-debugging/SKILL.md" "investigation brief" "systematic-debugging requires a brief before agent dispatch"
 require_contains "skills/systematic-debugging/SKILL.md" "initial Phase 1" "systematic-debugging requires initial Phase 1 work before escalation"
 require_contains "skills/systematic-debugging/SKILL.md" "at most six investigation agents" "systematic-debugging caps investigation agents"
-require_contains "skills/systematic-debugging/SKILL.md" 'model="gpt-5.4-mini"' "systematic-debugging routes narrow angles to mini"
-require_contains "skills/systematic-debugging/SKILL.md" 'model="gpt-5.4"' "systematic-debugging routes difficult angles to full model"
-require_contains "skills/systematic-debugging/SKILL.md" 'reasoning_effort="high"' "systematic-debugging requires high effort investigation agents"
-require_contains "skills/systematic-debugging/SKILL.md" "fork_context=false" "systematic-debugging defaults investigation agents to narrow context"
+require_contains "skills/systematic-debugging/SKILL.md" "simplepower-config.md" "systematic-debugging reads the shared optional-subagent config"
+require_contains "skills/systematic-debugging/SKILL.md" 'effective `use_subagent` is `false`' "disabled systematic debugging does not escalate"
+require_contains "skills/systematic-debugging/SKILL.md" 'resolved `subagent_model`' "systematic-debugging uses the configured optional model"
+require_contains "skills/systematic-debugging/SKILL.md" 'fork_turns="none"' "systematic-debugging investigators receive no inherited turns"
 require_contains "skills/systematic-debugging/SKILL.md" ".codex-debug/<instance-id>/" "systematic-debugging defines the temporary diagnostics directory"
 require_contains "skills/systematic-debugging/SKILL.md" "do not implement fixes" "systematic-debugging forbids fixes by investigation agents"
 require_contains "skills/systematic-debugging/SKILL.md" "Assigned angle" "systematic-debugging requires structured investigation-agent output"
@@ -557,8 +596,11 @@ active_paths=(
     scripts/bump-version.sh
     scripts/sync-to-codex-plugin.sh
     skills/brainstorming
+    skills/dispatching-parallel-agents
     skills/requesting-code-review
+    skills/ro
     skills/subagent-driven-development
+    skills/systematic-debugging
     skills/using-simplepower
     skills/writing-plans
     tests/brainstorm-server
@@ -601,6 +643,7 @@ old_plan_flow_language='wave-by-wave|wave-based|inline reviewer|separate reviewe
 shortcut_language='too[[:space:]]+hard|easier[[:space:]]+alternate|optional[[:space:]]+shortcut|stub[[:space:]]+for[[:space:]]+now|document[[:space:]]+instead'
 html_plan_language='(?i)Save plans to:.*[.]html|new plans?.*[.]html|saved as `[.]html`|saved as [.]html|writes? plans?.*[.]html|generated implementation plans .*HTML files'
 historical_plan_conversion_language='(?i)historical plans? (must|should|need to|needs to) be converted|must convert historical plans?|should convert historical plans?|convert historical plans? to'
+obsolete_fork_parameter='fork_''context'
 
 require_no_active_match "$legacy_skill_namespace" "active files do not use the legacy skill namespace" "${active_paths[@]}"
 require_no_active_match "$legacy_docs_path" "active files do not point at legacy generated doc paths" "${active_paths[@]}"
@@ -633,6 +676,11 @@ require_no_active_match "$old_plan_flow_language" "active plan-first files do no
 require_no_active_match "$shortcut_language" "active plan-first files do not contain shortcut language" "${active_plan_first_paths[@]}"
 require_no_active_match "$html_plan_language" "active workflow docs do not say new plans are saved as html files" "${active_plan_visual_paths[@]}"
 require_no_active_match "$historical_plan_conversion_language" "active workflow docs do not require historical plan conversion" "${active_plan_visual_paths[@]}"
+require_no_active_match "$obsolete_fork_parameter" "active sources do not use the obsolete fork context parameter" "${active_paths[@]}"
+require_contains "skills/using-simplepower/references/codex-tools.md" 'fork_turns="none"' "Codex tool mappings isolate every Simple Power spawn"
+require_contains "skills/dispatching-parallel-agents/SKILL.md" 'fork_turns="none"' "parallel dispatch isolates every spawned agent"
+require_contains "skills/requesting-code-review/SKILL.md" 'fork_turns="none"' "code review dispatch isolates the reviewer"
+require_contains "skills/writing-plans/SKILL.md" 'fork_turns="none"' "plan review dispatch isolates the reviewer"
 require_no_active_match "1% chance|Might any skill apply|task matches a skill|Ask for work that matches a skill description" "active docs no longer allow broad semantic skill triggering" skills README.md docs/README.codex.md docs/testing.md
 require_no_active_match "^description: Use when|MUST use this before any creative work|Use when implementing any feature or bugfix" "active skill frontmatter avoids broad trigger descriptions" skills/*/SKILL.md
 require_contains "skills/writing-plans/SKILL.md" "No per-task commits" "writing-plans still forbids per-task commits"

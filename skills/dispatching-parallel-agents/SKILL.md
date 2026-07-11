@@ -61,16 +61,50 @@ Each agent gets:
 - **Specific scope:** One test file or subsystem
 - **Clear goal:** Make these tests pass
 - **Constraints:** Don't change other code
+- **Evidence or contracts:** Failures, requirements, and behavior guarantees
 - **Expected output:** Summary of what you found and fixed
+- **Verification:** Exact commands, timeouts, and expected results
 
 ### 3. Dispatch in Parallel
 
-```typescript
-// In Claude Code / AI environment
-Task("Fix agent-tool-abort.test.ts failures")
-Task("Fix batch-completion-behavior.test.ts failures")
-Task("Fix tool-approval-race-conditions.test.ts failures")
-// All three run concurrently
+```python
+spawn_agent(
+    agent_type="worker",
+    model="<approved_model>",
+    reasoning_effort="<approved_effort>",
+    fork_turns="none",
+    message="""Task: Fix the three failing tests in src/agents/agent-tool-abort.test.ts.
+Scope: Write only src/agents/agent-tool-abort.test.ts.
+Constraints: Do not edit other domains or commit.
+Evidence/contracts: The partial-output test expects 'interrupted at'; the mixed-result test aborts the fast tool; pendingToolCount expects 3 results but gets 0. Preserve event-based abort behavior and do not increase arbitrary timeouts.
+Output: Report root cause, changed files, commands, results, and risks.
+Verification: Run `timeout 120s npm test -- src/agents/agent-tool-abort.test.ts`; expect all tests to pass.""",
+)
+spawn_agent(
+    agent_type="worker",
+    model="<approved_model>",
+    reasoning_effort="<approved_effort>",
+    fork_turns="none",
+    message="""Task: Fix the two failing tests in src/agents/batch-completion-behavior.test.ts.
+Scope: Write only src/agents/batch-completion-behavior.test.ts.
+Constraints: Do not edit other domains or commit.
+Evidence/contracts: Both failures report that tools never execute. Preserve the batch completion event contract and use event-based waiting.
+Output: Report root cause, changed files, commands, results, and risks.
+Verification: Run `timeout 120s npm test -- src/agents/batch-completion-behavior.test.ts`; expect all tests to pass.""",
+)
+spawn_agent(
+    agent_type="worker",
+    model="<approved_model>",
+    reasoning_effort="<approved_effort>",
+    fork_turns="none",
+    message="""Task: Fix the failing test in src/agents/tool-approval-race-conditions.test.ts.
+Scope: Write only src/agents/tool-approval-race-conditions.test.ts.
+Constraints: Do not edit other domains or commit.
+Evidence/contracts: Actual execution count is 0. Preserve the approval-before-execution contract and replace timing guesses with event-based waiting.
+Output: Report root cause, changed files, commands, results, and risks.
+Verification: Run `timeout 120s npm test -- src/agents/tool-approval-race-conditions.test.ts`; expect all tests to pass.""",
+)
+# Issue all three calls before waiting so they run concurrently.
 ```
 
 ### 4. Review and Integrate

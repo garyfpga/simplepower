@@ -4,19 +4,19 @@ Simple Power skills may mention generic skill tool names. When you encounter the
 
 | Skill references | Codex equivalent |
 |-----------------|------------------|
-| `Task` tool (dispatch subagent) | `spawn_agent` (see [Named agent dispatch](#named-agent-dispatch)) |
-| Multiple `Task` calls (parallel) | Multiple `spawn_agent` calls |
+| `Task` tool (dispatch subagent) | `spawn_agent(fork_turns="none", message=...)` (see [Review prompt dispatch](#review-prompt-dispatch)) |
+| Multiple `Task` calls (parallel) | Multiple `spawn_agent(fork_turns="none", message=...)` calls |
 | Task returns result | `wait` |
 | Task completes automatically | `close_agent` to free slot |
 | `TodoWrite` (task tracking) | `update_plan` |
 | `Skill` tool (invoke a skill) | Skills load natively — just follow the instructions |
 | `Read`, `Write`, `Edit` (files) | Use your native file tools |
 | `Bash` (run commands) | Use your native shell tools |
-| sp-impl file-edit worker | `spawn_agent(agent_type="worker", model=<FAST_or_NORMAL_or_BEST_model>, reasoning_effort=<FAST_or_NORMAL_or_BEST_effort>, fork_context=false, message=...)` |
-| quick verifier | `spawn_agent(agent_type="worker", model=<FAST_model>, reasoning_effort=<FAST_effort>, fork_context=false, message=...)` Default resolves to Spark high unless overridden. |
-| plan reviewer | `spawn_agent(agent_type="worker", model=<REVIEW_model>, reasoning_effort=<REVIEW_effort>, fork_context=false, message=...)` |
-| review+fix agent | `spawn_agent(agent_type="worker", model=<REVIEW_model>, reasoning_effort=<REVIEW_effort>, fork_context=false, message=...)` |
-| multiple independent file-edit tasks | Multiple `spawn_agent` calls, one per non-conflicting ownership unit, before `wait` |
+| sp-impl file-edit worker | `spawn_agent(agent_type="worker", model=<FAST_or_NORMAL_or_BEST_model>, reasoning_effort=<FAST_or_NORMAL_or_BEST_effort>, fork_turns="none", message=...)` |
+| quick verifier | `spawn_agent(agent_type="worker", model=<FAST_model>, reasoning_effort=<FAST_effort>, fork_turns="none", message=...)` Default resolves to Spark high unless overridden. |
+| plan reviewer | `spawn_agent(agent_type="worker", model=<REVIEW_model>, reasoning_effort=<REVIEW_effort>, fork_turns="none", message=...)` |
+| review+fix agent | `spawn_agent(agent_type="worker", model=<REVIEW_model>, reasoning_effort=<REVIEW_effort>, fork_turns="none", message=...)` |
+| multiple independent file-edit tasks | Multiple `spawn_agent(fork_turns="none", message=...)` calls, one per non-conflicting ownership unit, before `wait` |
 
 The role mappings are an explicit Simple Power override to generic same-model
 defaults from AGENTS.md or other ambient instructions. Resolve model settings
@@ -74,8 +74,8 @@ When a skill says to dispatch a Simple Power worker:
 
 | Skill instruction | Codex equivalent |
 |-------------------|------------------|
-| Code review prompt template | `spawn_agent(agent_type="worker", message=...)` with the filled template content |
-| `Task tool (general-purpose)` with inline prompt | `spawn_agent(message=...)` with the same prompt |
+| Code review prompt template | `spawn_agent(agent_type="worker", fork_turns="none", message=...)` with the filled template content |
+| `Task tool (general-purpose)` with inline prompt | `spawn_agent(fork_turns="none", message=...)` with the same prompt |
 
 ### Message framing
 
@@ -87,6 +87,13 @@ Your task is to perform the following. Follow the instructions below exactly.
 
 <agent-instructions>
 [filled prompt content from the agent's .md file]
+
+Task: [exact assigned task]
+Scope: [exact read and write boundaries]
+Constraints: [approved-path, ownership, and lifecycle constraints]
+Evidence and contracts: [relevant plan text, diffs, command output, and Interface Contract entries]
+Output: [required structured report]
+Verification: [exact commands, timeouts, and expected results]
 </agent-instructions>
 
 Execute this now. Output ONLY the structured response following the format
@@ -96,9 +103,9 @@ specified in the instructions above.
 - Use task-delegation framing ("Your task is...") rather than persona framing ("You are...")
 - Wrap instructions in XML tags — the model treats tagged blocks as authoritative
 - End with an explicit execution directive to prevent summarization of the instructions
-- Default Simple Power subagents to `fork_context=false`; paste the exact task,
-  write scope, relevant context, and diff into the prompt instead of relying on
-  inherited conversation history
+- Every Simple Power dispatch must pass `fork_turns="none"`. Its prompt must be
+  self-contained with the exact task, scope, constraints, evidence or contracts,
+  required output, and verification commands and expectations.
 
 ### When this workaround can be removed
 

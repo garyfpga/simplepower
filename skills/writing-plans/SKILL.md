@@ -361,7 +361,11 @@ using the temporary-index pattern in `Scratch Ref Review Anchors`.
 Then dispatch a REVIEW-tier plan reviewer using
 `skills/writing-plans/plan-document-reviewer-prompt.md`. Provide the saved plan
 path, the approved brainstorming design context, the scratch run id when one was
-created, and the `plan-review/before` ref. Keep the initial reviewer subagent
+created, and the `plan-review/before` ref. Dispatch with
+`spawn_agent(agent_type="worker", model=<REVIEW_model>, reasoning_effort=<REVIEW_effort>, fork_turns="none", message=<self-contained-review-prompt>)`.
+The prompt must contain the exact review task, read-only scope and constraints,
+approved design and plan evidence, required review output, and verification
+criteria. Keep the initial reviewer subagent
 open while it reports recoverable issues. If the reviewer reports issues, fix
 the plan, rerun the focused self-review checks for the changed categories,
 create `refs/simplepower/scratch/<run-id>/plan-review/after-<n>`, and send the
@@ -395,7 +399,11 @@ Workers and reviewers must not create this commit.
 After the user gives combined approval, the coordinator creates the accepted
 plan checkpoint commit and immediately invokes
 `simplepower:subagent-driven-development` to execute the accepted plan with the
-approved model allocation in the current session. After the accepted plan
+approved model allocation in the current session. Every future implementation,
+quick-verifier, and review+fix `spawn_agent` dispatch must pass
+`fork_turns="none"` and a self-contained prompt containing the exact task,
+scope, constraints, evidence or Contract inputs, required output, and exact
+verification commands and expectations. After the accepted plan
 checkpoint succeeds, delete that run's `plan-review` scratch refs. If the
 checkpoint fails or the workflow stops before the checkpoint, preserve the refs
 and report the manual cleanup command.
@@ -420,6 +428,8 @@ git diff refs/simplepower/scratch/<run-id>/quick-verifier/before refs/simplepowe
 The quick verifier must use the FAST tier by default. With the default
 `SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"`, this resolves to
 `model="gpt-5.3-codex-spark"` and `reasoning_effort="high"`.
+Dispatch it with
+`spawn_agent(agent_type="worker", model=<FAST_model>, reasoning_effort=<FAST_effort>, fork_turns="none", message=<self-contained-verification-prompt>)`.
 
 The plan must list exact quick verification commands with timeouts, usually:
 - `timeout 30s <lint command>`
@@ -445,6 +455,9 @@ one REVIEW-tier review+fix agent. That agent reviews and fixes the whole
 implementation against the accepted plan, file ownership, approved path
 enforcement, aggregate parallel dispatch semantics, and verification
 requirements.
+
+Dispatch it with
+`spawn_agent(agent_type="worker", model=<REVIEW_model>, reasoning_effort=<REVIEW_effort>, fork_turns="none", message=<self-contained-review-fix-prompt>)`.
 
 Before dispatching the review+fix agent, the coordinator creates
 `refs/simplepower/scratch/<run-id>/review-fix/before` for the approved

@@ -47,6 +47,30 @@ Use for ANY technical issue:
 
 You MUST complete each phase before proceeding to the next.
 
+### Activation Configuration
+
+At activation, resolve
+`skills/using-simplepower/references/simplepower-config.md` and use its shared
+configuration resolution contract to obtain the effective `use_subagent` and
+`subagent_model` values. Configuration resolution is mandatory: if the file
+cannot be resolved, a value is invalid, or resolution otherwise fails, stop
+and report an explicit blocker. Do not silently fall back to built-in values.
+
+When effective `use_subagent` is `false`, the coordinator continues the
+systematic Phase 1 investigation itself, but investigation-agent escalation is
+disabled. When it is `true`, investigation-agent escalation is available only
+after the initial Phase 1 steps below stall.
+
+For enabled escalation, parse the resolved `subagent_model` at its final dash:
+the portion before that dash is the investigator `model`, and the portion after
+it is the investigator `reasoning_effort`. If the value cannot be parsed into
+both parts, or the requested capability, model, reasoning effort, or spawn is
+unavailable or fails, stop and report an explicit blocker. Do not substitute a
+different model, effort, or execution path.
+
+This switch governs only optional investigation-agent escalation. Mandatory
+plan, implementation, and review tiers remain outside it.
+
 ### Phase 1: Root Cause Investigation
 
 **BEFORE attempting ANY fix:**
@@ -121,7 +145,11 @@ You MUST complete each phase before proceeding to the next.
 
 ### Phase 1 Escalation: Parallel Investigation
 
-Use parallel investigation escalation only after initial Phase 1 investigation stalls. This is an evidence-gathering escalation inside Phase 1, not permission to skip root-cause investigation.
+When effective `use_subagent` is `true`, use parallel investigation escalation
+only after initial Phase 1 investigation stalls. When it is `false`, do not
+dispatch investigation agents; the coordinator continues Phase 1. This is an
+evidence-gathering escalation inside Phase 1, not permission to skip root-cause
+investigation.
 
 Before dispatching investigation agents, the main agent must have attempted the
 relevant initial Phase 1 steps:
@@ -157,14 +185,13 @@ Choose distinct investigation angles and dispatch at most six investigation agen
 - Configuration, environment, dependency, or boundary propagation analysis
 - Architecture-level coupling or invariant analysis
 
-Route each angle by predicted difficulty:
-
-- Localized, concrete, narrow angles with clear files or commands:
-  `model="gpt-5.4-mini"`, `reasoning_effort="high"`,
-  `fork_context=false`
-- Ambiguous, cross-cutting, architecture-level, async/timing, deep data-flow,
-  or multi-component boundary angles: `model="gpt-5.4"`,
-  `reasoning_effort="high"`, `fork_context=false`
+Every investigator spawn must use the model and reasoning effort parsed from
+the resolved `subagent_model`, pass exact `fork_turns="none"`, and include the
+complete, self-contained investigation brief so the agent has all required
+context without inheriting the coordinator's conversation. There are no model
+exceptions based on predicted difficulty and no inherited-context exceptions.
+A capability, model, reasoning-effort, or spawn failure is an explicit blocker;
+stop rather than silently falling back.
 
 Investigation agents may read files, search, run existing tests or scripts,
 inspect read-only git history, and create temporary diagnostic scripts,
