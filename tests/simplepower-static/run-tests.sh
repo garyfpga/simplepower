@@ -63,6 +63,22 @@ require_path_absent() {
     fi
 }
 
+require_path_untracked() {
+    local path="$1"
+    local description="$2"
+    local tracked
+
+    if ! tracked="$(git -C "$REPO_ROOT" ls-files -- "$path")"; then
+        fail "$description"
+        echo "    unable to inspect tracked paths"
+    elif [[ -n "$tracked" ]]; then
+        fail "$description"
+        echo "    tracked path: $path"
+    else
+        pass "$description"
+    fi
+}
+
 require_contains() {
     local path="$1"
     local needle="$2"
@@ -150,7 +166,7 @@ require_executable "tests/simplepower-static/run-tests.sh" "static test runner i
 require_file "skills/using-simplepower/SKILL.md" "using-simplepower skill exists"
 require_file "skills/using-simplepower/references/simplepower-config.md" "shared Simple Power config reference exists"
 require_dir_absent "skills/using-superpowers" "using-superpowers skill directory is absent"
-require_path_absent "simplepower.toml" "repository root does not contain a Simple Power config"
+require_path_untracked "simplepower.toml" "repository does not track a default Simple Power config"
 
 require_contains "README.md" "simplepower:*" "README uses the Simple Power namespace"
 require_not_contains "README.md" "author =" "README does not include an author line"
@@ -518,6 +534,7 @@ require_contains "skills/systematic-debugging/SKILL.md" "investigation brief" "s
 require_contains "skills/systematic-debugging/SKILL.md" "initial Phase 1" "systematic-debugging requires initial Phase 1 work before escalation"
 require_contains "skills/systematic-debugging/SKILL.md" "at most six investigation agents" "systematic-debugging caps investigation agents"
 require_contains "skills/systematic-debugging/SKILL.md" "simplepower-config.md" "systematic-debugging reads the shared optional-subagent config"
+require_contains "skills/systematic-debugging/SKILL.md" "If neither candidate" "systematic-debugging uses shared defaults when both config files are absent"
 require_contains "skills/systematic-debugging/SKILL.md" 'effective `use_subagent` is `false`' "disabled systematic debugging does not escalate"
 require_contains "skills/systematic-debugging/SKILL.md" 'resolved `subagent_model`' "systematic-debugging uses the configured optional model"
 require_contains "skills/systematic-debugging/SKILL.md" 'fork_turns="none"' "systematic-debugging investigators receive no inherited turns"
@@ -557,7 +574,7 @@ require_contains "skills/using-simplepower/references/codex-tools.md" "nested AG
 require_contains "skills/using-simplepower/references/codex-tools.md" "repo-wide grep are not part of this feature" "Codex tool mapping blocks repo-wide AGENTS grep"
 require_contains "skills/using-simplepower/references/codex-tools.md" "refs/simplepower/scratch/<run-id>/" "Codex tool mapping documents the scratch namespace"
 require_contains "skills/using-simplepower/references/codex-tools.md" "coordinator-owned" "Codex tool mapping keeps scratch refs coordinator-owned"
-require_contains "skills/using-simplepower/references/codex-tools.md" "concrete `git diff` commands to reviewers" "Codex tool mapping frames scratch refs as reviewer diff anchors"
+require_contains "skills/using-simplepower/references/codex-tools.md" 'concrete `git diff` commands to reviewers' "Codex tool mapping frames scratch refs as reviewer diff anchors"
 require_contains "skills/using-simplepower/references/codex-tools.md" "not branches, accepted checkpoints, pushed refs, or subagent commits" "Codex tool mapping excludes branch/checkpoint/pushed/subagent semantics"
 require_contains "skills/using-simplepower/references/codex-tools.md" "must not create, update, delete, or commit them" "Codex tool mapping forbids worker and review agent scratch ref ownership"
 require_contains "skills/using-simplepower/references/codex-tools.md" "Use the plan's approved FAST/NORMAL/BEST allocation for \`sp-impl\` file-edit" "Codex tool mapping keeps sp-impl dispatch on the three implementation tiers"
@@ -644,6 +661,7 @@ shortcut_language='too[[:space:]]+hard|easier[[:space:]]+alternate|optional[[:sp
 html_plan_language='(?i)Save plans to:.*[.]html|new plans?.*[.]html|saved as `[.]html`|saved as [.]html|writes? plans?.*[.]html|generated implementation plans .*HTML files'
 historical_plan_conversion_language='(?i)historical plans? (must|should|need to|needs to) be converted|must convert historical plans?|should convert historical plans?|convert historical plans? to'
 obsolete_fork_parameter='fork_''context'
+nonisolated_fork_turns='fork_turns="(all|[1-9][0-9]*)"'
 
 require_no_active_match "$legacy_skill_namespace" "active files do not use the legacy skill namespace" "${active_paths[@]}"
 require_no_active_match "$legacy_docs_path" "active files do not point at legacy generated doc paths" "${active_paths[@]}"
@@ -677,6 +695,7 @@ require_no_active_match "$shortcut_language" "active plan-first files do not con
 require_no_active_match "$html_plan_language" "active workflow docs do not say new plans are saved as html files" "${active_plan_visual_paths[@]}"
 require_no_active_match "$historical_plan_conversion_language" "active workflow docs do not require historical plan conversion" "${active_plan_visual_paths[@]}"
 require_no_active_match "$obsolete_fork_parameter" "active sources do not use the obsolete fork context parameter" "${active_paths[@]}"
+require_no_active_match "$nonisolated_fork_turns" "active sources do not request inherited conversation turns" "${active_paths[@]}"
 require_contains "skills/using-simplepower/references/codex-tools.md" 'fork_turns="none"' "Codex tool mappings isolate every Simple Power spawn"
 require_contains "skills/dispatching-parallel-agents/SKILL.md" 'fork_turns="none"' "parallel dispatch isolates every spawned agent"
 require_contains "skills/requesting-code-review/SKILL.md" 'fork_turns="none"' "code review dispatch isolates the reviewer"

@@ -53,8 +53,10 @@ At activation, resolve
 `skills/using-simplepower/references/simplepower-config.md` and use its shared
 configuration resolution contract to obtain the effective `use_subagent` and
 `subagent_model` values. Configuration resolution is mandatory: if the file
-cannot be resolved, a value is invalid, or resolution otherwise fails, stop
-and report an explicit blocker. Do not silently fall back to built-in values.
+selected by that contract cannot be read, a value is invalid, or resolution
+otherwise fails, stop and report an explicit blocker. If neither candidate
+file exists, use the shared defaults as required by the contract. Do not
+replace an invalid or unreadable selected file with defaults.
 
 When effective `use_subagent` is `false`, the coordinator continues the
 systematic Phase 1 investigation itself, but investigation-agent escalation is
