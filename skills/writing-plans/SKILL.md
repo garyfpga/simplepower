@@ -27,40 +27,39 @@ not change the three-checkpoint commit policy.
 ## Model Tiers
 
 Simple Power uses four configurable model tiers when planning implementation,
-review, and verification work:
+review, and verification work. These mandatory tiers are independent of
+`use_subagent`.
 
-```bash
-SIMPLEPOWER_REVIEW_MODEL="gpt-5.5-xhigh"
-SIMPLEPOWER_BEST_MODEL="gpt-5.5-high"
-SIMPLEPOWER_NORMAL_MODEL="gpt-5.4-mini-high"
-SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"
-```
+| Tier | TOML key | Environment value | Built-in default |
+|------|----------|-------------------|------------------|
+| REVIEW | `review_model` | `SIMPLEPOWER_REVIEW_MODEL` | `gpt-5.6-sol-high` |
+| BEST | `best_model` | `SIMPLEPOWER_BEST_MODEL` | `gpt-5.6-sol-high` |
+| NORMAL | `normal_model` | `SIMPLEPOWER_NORMAL_MODEL` | `gpt-5.6-luna-max` |
+| FAST | `fast_model` | `SIMPLEPOWER_FAST_MODEL` | `gpt-5.3-codex-spark-xhigh` |
 
-Resolve each tier setting in this order:
-1. Explicit user override in the current request or session.
-2. Quoted assignment in project root AGENTS.md if it exists, such as
-   `SIMPLEPOWER_REVIEW_MODEL="gpt-5.5-xhigh"`.
-3. Process environment variable.
-4. Built-in default shown above.
-
-The project root AGENTS.md lookup reads only `<repo>/AGENTS.md`. Do not scan
-nested AGENTS.md files, and do not run repo-wide grep to discover model
-assignments.
+Resolve all tier settings by starting with the built-in defaults, then
+overlaying `/home/gary/.codex/simplepower.toml`, repository
+`<git-root>/simplepower.toml`, the four `SIMPLEPOWER_*_MODEL` process
+environment values, and explicit current-session instructions last. Each later
+layer replaces only the tier values it supplies. Do not read model assignments
+from any `AGENTS.md` file.
 
 Interpret the final dash-delimited segment of the resolved value as
-`reasoning_effort` and the preceding string as `model`. For example,
-`gpt-5.5-xhigh` resolves to `model="gpt-5.5"` and
-`reasoning_effort="xhigh"`, while `gpt-5.3-codex-spark-high` resolves to
-`model="gpt-5.3-codex-spark"` and `reasoning_effort="high"`.
+`reasoning_effort` and the preceding string as `model`. Valid effort suffixes
+are `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`; stop and report an
+invalid resolved value rather than guessing. The built-in defaults resolve
+FAST to model `gpt-5.3-codex-spark` with `xhigh`, NORMAL to model
+`gpt-5.6-luna` with `max`, and BEST and REVIEW to model `gpt-5.6-sol` with
+`high`.
 
 Use REVIEW for the REVIEW-tier plan reviewer and REVIEW-tier review+fix agent.
 Use BEST for broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or
 hard-to-test implementation work. Use NORMAL for routine low-risk
-implementation work, especially localized edits where `gpt-5.4-mini-high` is
+implementation work, especially localized edits where the NORMAL tier is
 appropriate. Use FAST for obvious repetitive work, mechanical edits across many
 files, large static text sweeps, simple fixture/assertion churn, and quick
 verification. The quick verifier uses the FAST tier by default, resolving to
-`model="gpt-5.3-codex-spark"` and `reasoning_effort="high"` unless
+`model="gpt-5.3-codex-spark"` and `reasoning_effort="xhigh"` unless
 `SIMPLEPOWER_FAST_MODEL` is overridden by the resolution rules above. Escalate
 FAST to NORMAL or BEST if the work is less mechanical or obvious, and escalate
 NORMAL to BEST if the work is broad, ambiguous, behavior-shaping, or hard to
@@ -178,7 +177,7 @@ git for-each-ref --format='%(refname)' "refs/simplepower/scratch/<run-id>" | whi
 
 **Tech Stack:** [Key technologies/libraries]
 
-**Model Allocation:** FAST/NORMAL/BEST/REVIEW tiers are assigned below. Resolve each tier by explicit user override, quoted assignment in project root AGENTS.md, process environment variable, then built-in default. The project root AGENTS.md lookup reads only `<repo>/AGENTS.md`, not nested AGENTS.md files or repo-wide grep. FAST defaults to `SIMPLEPOWER_FAST_MODEL` (`gpt-5.3-codex-spark-high` when unset), NORMAL defaults to `SIMPLEPOWER_NORMAL_MODEL` (`gpt-5.4-mini-high` when unset), BEST defaults to `SIMPLEPOWER_BEST_MODEL` (`gpt-5.5-high` when unset), and REVIEW defaults to `SIMPLEPOWER_REVIEW_MODEL` (`gpt-5.5-xhigh` when unset). The plan reviewer is a REVIEW-tier plan reviewer, and the final review+fix agent is a REVIEW-tier review+fix agent. The quick verifier uses the FAST tier by default, resolving to `model="gpt-5.3-codex-spark"` and `reasoning_effort="high"` unless `SIMPLEPOWER_FAST_MODEL` is overridden.
+**Model Allocation:** FAST/NORMAL/BEST/REVIEW tiers are assigned below and are independent of `use_subagent`. Resolve all tiers by starting with the built-in defaults, then overlaying `/home/gary/.codex/simplepower.toml`, repository `<git-root>/simplepower.toml`, the four `SIMPLEPOWER_*_MODEL` environment values, and explicit current-session instructions last; do not read model assignments from `AGENTS.md`. FAST defaults to `gpt-5.3-codex-spark-xhigh`, NORMAL defaults to `gpt-5.6-luna-max`, and BEST and REVIEW default to `gpt-5.6-sol-high`. Parse the final dash as reasoning effort; valid suffixes are `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`. The plan reviewer is a REVIEW-tier plan reviewer, the final review+fix agent is a REVIEW-tier review+fix agent, and the quick verifier uses FAST. With built-in defaults, FAST resolves to model `gpt-5.3-codex-spark` with `xhigh`, NORMAL to model `gpt-5.6-luna` with `max`, and BEST/REVIEW to model `gpt-5.6-sol` with `high`.
 
 **Commit Policy:** The coordinator commits after the reviewed plan, allocation, and immediate current-session execution receive combined approval, after all file edits and quick verification complete before final review, and after final review/fix plus final verification. Workers, plan reviewers, quick verifiers, and review+fix agents must not commit. No per-task commits. Coordinator-owned temporary scratch refs under `refs/simplepower/scratch/<run-id>/...` may be created only as local review diff anchors; they are not accepted history commits, not pushed, not merged, not rebased, and must be cleaned up after successful checkpoints or reported for manual cleanup on blockers or failed checkpoints.
 
@@ -295,18 +294,27 @@ Required columns:
 - Reason
 
 Rules:
-- FAST defaults to `SIMPLEPOWER_FAST_MODEL` (`gpt-5.3-codex-spark-high` when unset).
-- NORMAL defaults to `SIMPLEPOWER_NORMAL_MODEL` (`gpt-5.4-mini-high` when unset).
-- BEST defaults to `SIMPLEPOWER_BEST_MODEL` (`gpt-5.5-high` when unset).
-- REVIEW defaults to `SIMPLEPOWER_REVIEW_MODEL` (`gpt-5.5-xhigh` when unset).
-- Resolve each tier by explicit user override, quoted assignment in project root
-  AGENTS.md if it exists, process environment variable, then built-in default.
-- The project root AGENTS.md lookup reads only `<repo>/AGENTS.md`, not nested
-  AGENTS.md files and not repo-wide grep.
+- FAST defaults to `gpt-5.3-codex-spark-xhigh` (`fast_model` or
+  `SIMPLEPOWER_FAST_MODEL` overrides it at the corresponding layer).
+- NORMAL defaults to `gpt-5.6-luna-max` (`normal_model` or
+  `SIMPLEPOWER_NORMAL_MODEL` overrides it at the corresponding layer).
+- BEST defaults to `gpt-5.6-sol-high` (`best_model` or
+  `SIMPLEPOWER_BEST_MODEL` overrides it at the corresponding layer).
+- REVIEW defaults to `gpt-5.6-sol-high` (`review_model` or
+  `SIMPLEPOWER_REVIEW_MODEL` overrides it at the corresponding layer).
+- Resolve all tiers from built-in defaults, then overlay
+  `/home/gary/.codex/simplepower.toml`, repository
+  `<git-root>/simplepower.toml`, the four `SIMPLEPOWER_*_MODEL` process
+  environment values, and explicit current-session instructions last.
+- Do not read model assignments from any `AGENTS.md` file.
+- Mandatory FAST/NORMAL/BEST/REVIEW dispatches are independent of
+  `use_subagent`.
+- Parse the final dash-delimited segment as reasoning effort. Accept only
+  `low`, `medium`, `high`, `xhigh`, `max`, or `ultra`.
 - Implementation tasks may use FAST only when the work is obvious, repetitive,
   mechanical, or simple fixture/assertion churn.
 - Implementation tasks use NORMAL for routine low-risk implementation work,
-  especially localized edits where `gpt-5.4-mini-high` is appropriate.
+  especially localized edits.
 - Broad, ambiguous, cross-cutting, behavior-shaping, high-risk, or hard-to-test
   implementation tasks use BEST.
 - Escalate FAST to NORMAL or BEST if the work is less mechanical or obvious.
@@ -315,7 +323,7 @@ Rules:
 - The plan reviewer uses REVIEW.
 - The final review+fix agent uses REVIEW.
 - The quick verifier uses the FAST tier by default, resolving to
-  `model="gpt-5.3-codex-spark"` and `reasoning_effort="high"` unless
+  `model="gpt-5.3-codex-spark"` and `reasoning_effort="xhigh"` unless
   `SIMPLEPOWER_FAST_MODEL` is overridden.
 
 ## Plan Review
@@ -338,10 +346,10 @@ Self-review checklist:
 - Visual aids: if present, they are consistent with authoritative written
   sections; if absent, that is acceptable and not a review issue.
 - Model allocation: FAST/NORMAL/BEST/REVIEW choices match risk and mechanics,
-  all four configurable defaults are documented, model resolution precedence is
-  explicit, the project root AGENTS.md lookup is limited to `<repo>/AGENTS.md`,
-  the plan reviewer and final review+fix agent use REVIEW, and the quick
-  verifier uses the FAST tier by default.
+  all four configurable defaults and overlay layers are documented, no model
+  assignments are read from `AGENTS.md`, mandatory tiers are independent of
+  `use_subagent`, the plan reviewer and final review+fix agent use REVIEW, and
+  the quick verifier uses the FAST tier by default.
 - Review allocation: the plan has one REVIEW-tier review+fix agent after quick
   verification.
 - Commit policy: exactly three coordinator checkpoints are present and no
@@ -425,9 +433,9 @@ inspects or hands off this diff command:
 git diff refs/simplepower/scratch/<run-id>/quick-verifier/before refs/simplepower/scratch/<run-id>/quick-verifier/after -- <approved-files>
 ```
 
-The quick verifier must use the FAST tier by default. With the default
-`SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"`, this resolves to
-`model="gpt-5.3-codex-spark"` and `reasoning_effort="high"`.
+The quick verifier must use the FAST tier by default. The built-in FAST value
+`gpt-5.3-codex-spark-xhigh` resolves to `model="gpt-5.3-codex-spark"` and
+`reasoning_effort="xhigh"`.
 Dispatch it with
 `spawn_agent(agent_type="worker", model=<FAST_model>, reasoning_effort=<FAST_effort>, fork_turns="none", message=<self-contained-verification-prompt>)`.
 
@@ -591,10 +599,12 @@ failures:
 - Concrete commands with `timeout` and expected results
 - FAST/NORMAL/BEST/REVIEW allocation across implementation tasks, review, and
   verification
-- Model resolution precedence is explicit: user override, quoted assignment in
-  project root AGENTS.md, process environment variable, built-in default
-- The project root AGENTS.md lookup reads only `<repo>/AGENTS.md`; never scan
-  nested AGENTS.md files or use repo-wide grep for model assignments
+- Model resolution order is explicit: built-in defaults, home
+  `/home/gary/.codex/simplepower.toml`, repository
+  `<git-root>/simplepower.toml`, the four `SIMPLEPOWER_*_MODEL` environment
+  values, then explicit current-session instructions
+- Model assignments are never read from `AGENTS.md`
+- Mandatory tier dispatches are independent of `use_subagent`
 - FAST for obvious repetitive work, mechanical edits, static text sweeps, simple
   fixture/assertion churn, and quick verification
 - NORMAL for routine low-risk localized implementation work
@@ -620,7 +630,7 @@ failures:
 - Run the final cleanup check for remaining refs under
   `refs/simplepower/scratch/<run-id>/`
 - Quick verifier uses the FAST tier by default, resolving to
-  `gpt-5.3-codex-spark-high` when unset
+  `gpt-5.3-codex-spark-xhigh` when unset
 - One REVIEW-tier review+fix agent
 - No worker commits or per-task commits
 - Exactly three coordinator checkpoints

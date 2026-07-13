@@ -45,19 +45,25 @@ You MUST create a task for each of these items and complete them in order:
 Before checklist item 1, resolve and validate the shared configuration by
 following `skills/using-simplepower/references/simplepower-config.md`.
 
-- With effective `use_subagent=false`, preserve coordinator exploration: the
-  coordinator checks the project files, documentation, and recent commits.
-- With effective `use_subagent=true`, spawn exactly one read-only context explorer
-  using the model and reasoning effort parsed from `subagent_model`.
-  Pass exactly `fork_turns="none"` and a self-contained brief. The explorer may
+- With effective `use_subagent=false`, explorer dispatch is prohibited. The
+  coordinator performs all needed read-only inspection of project files,
+  documentation, and recent commits itself.
+- With effective `use_subagent=true`, the coordinator judges whether repository
+  context or task complexity makes a context explorer necessary. Permission to
+  dispatch does not require dispatch. If an explorer is not necessary, do not
+  spawn one; the coordinator performs any needed read-only inspection itself.
+- If the coordinator judges an explorer necessary, spawn exactly one read-only
+  context explorer using the model and reasoning effort parsed from
+  `subagent_model`; model tiers remain separate from that parsed selection. Pass
+  exactly `fork_turns="none"` and a self-contained brief. The explorer may
   inspect and run read-only commands, but must not edit or create files. Require
   its report to include inspected files and commands, architecture and
   conventions, relevant recent changes, risks, and explicit confirmation that
   it made no edits.
-- If enabled dispatch cannot occur because multi-agent support is missing, the
-  configured model is unavailable, or spawning fails, stop and report the
-  blocker as required by the shared contract. Do not continue with coordinator
-  exploration or a different model.
+- If a necessary enabled dispatch cannot occur because multi-agent support is
+  missing, the configured model is unavailable, or spawning fails, stop and
+  report the exact blocker as required by the shared contract. Do not continue
+  with coordinator exploration, a different model, or an alternate route.
 
 The coordinator synthesizes the explorer report and retains every clarifying
 question, approach comparison, design section, approval interaction, and the

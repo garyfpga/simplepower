@@ -20,7 +20,9 @@ skill handoffs focused on Codex.
   anchors. Scratch refs are not commits in accepted history, and they must be
   deleted after successful checkpoints or reported for manual cleanup on
   blockers or failed checkpoints.
-- Active model docs must preserve root `AGENTS.md` precedence and must not set
-  local model override values unless intentionally changing this repo's
-  defaults.
+- Active configuration docs must use the per-key Simple Power resolution
+  order: built-in defaults, `~/.codex/simplepower.toml`,
+  `<git-root>/simplepower.toml`, non-empty model-tier environment overrides,
+  then explicit current-session instructions. Root or nested `AGENTS.md` files
+  do not provide model assignments.
 - Preserve fork attribution in user-facing docs.

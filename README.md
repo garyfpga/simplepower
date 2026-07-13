@@ -56,39 +56,44 @@ codex plugin marketplace upgrade garyfpga-codex-plugins
 
 ## 模型分配
 
-Simple Power 使用四个可配置的模型层级：
+Simple Power 使用四个强制模型层级。它们的内建默认值也是当前 session 已批准的值：
 
-```bash
-SIMPLEPOWER_REVIEW_MODEL="gpt-5.5-xhigh"
-SIMPLEPOWER_BEST_MODEL="gpt-5.5-high"
-SIMPLEPOWER_NORMAL_MODEL="gpt-5.4-mini-high"
-SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"
+```toml
+review_model = "gpt-5.6-sol-high"
+best_model = "gpt-5.6-sol-high"
+normal_model = "gpt-5.6-luna-max"
+fast_model = "gpt-5.3-codex-spark-xhigh"
 ```
 
-先按这个顺序解析模型设置：显式用户 override、项目根目录 `AGENTS.md` 里的 quoted assignment、进程环境变量、内建默认值。模型赋值只读取 `<repo>/AGENTS.md`；不会扫描嵌套 AGENTS 文件，也不会对整个仓库做 grep。
+最终分配为 REVIEW = `gpt-5.6-sol`/`high`、BEST = `gpt-5.6-sol`/`high`、NORMAL = `gpt-5.6-luna`/`max`、FAST = `gpt-5.3-codex-spark`/`xhigh`。
 
-把每个值按 `<model>-<reasoning_effort>` 解析：最后一个以 dash 分隔的片段作为 `reasoning_effort`，前面的字符串作为 `model`。
-例如，`gpt-5.4-mini-high` 会解析为 `model="gpt-5.4-mini"` 和 `reasoning_effort="high"`。
+环境变量只能覆盖这四个层级，并且只使用非空的 `SIMPLEPOWER_REVIEW_MODEL`、`SIMPLEPOWER_BEST_MODEL`、`SIMPLEPOWER_NORMAL_MODEL` 和 `SIMPLEPOWER_FAST_MODEL`。根目录或嵌套的 `AGENTS.md` 都不再提供模型赋值。
 
 REVIEW 用于 plan reviewer 和 final review+fix。
 BEST 用于广泛、跨文件、含糊、会改变行为、高风险、难测试的工作。
 NORMAL 用于原来会放进旧 FAST 层的常规低风险实现工作，尤其是局部修改。
 FAST 是 Spark 层，用于明显重复的工作、多文件机械性修改、大量静态文本扫改、简单 fixture/assertion 变更，以及快速验证。
 
-## 可选 subagent 配置
+## 配置
 
-Simple Power 可以读取一个可选的 `simplepower.toml`。在 Git 仓库内，配置位置是 `<git-root>/simplepower.toml` 或 `~/.codex/simplepower.toml`；如果项目文件存在，它会完全替代 home 配置，不会合并。在 Git 仓库外只读取 home 配置。当前 session 里用户的显式指示始终优先。
+Simple Power 按 key 独立解析配置：先使用内建默认值，再 overlay `~/.codex/simplepower.toml` 中出现的 key；在 Git 仓库内，再 overlay `<git-root>/simplepower.toml` 中出现的 key；然后 overlay 上述四个非空模型环境变量；最后应用当前 session 的显式指示。较高层缺失的 key 会继承较低层的值，因此 repository 文件不会整体替代 home 文件。在 Git 仓库外跳过 repository 文件这一层。
+
+支持的 TOML 顶层 key 及其精确默认值只有以下六个：
 
 ```toml
 use_subagent = false
 subagent_model = "gpt-5.6-luna-xhigh"
+review_model = "gpt-5.6-sol-high"
+best_model = "gpt-5.6-sol-high"
+normal_model = "gpt-5.6-luna-max"
+fast_model = "gpt-5.3-codex-spark-xhigh"
 ```
 
-缺少的 key 使用以上默认值。`subagent_model` 按最后一个 dash 拆分 model 和 reasoning effort，所以默认值解析为 `model="gpt-5.6-luna"`、`reasoning_effort="xhigh"`。格式错误的 TOML、未知 key、错误类型或无效值都会停止流程。
+`use_subagent` 必须是 TOML Boolean。每个模型 key 都必须是非空 TOML string，并按最后一个 dash 拆成非空 model prefix 与 reasoning-effort suffix；合法 suffix 只有 `low`、`medium`、`high`、`xhigh`、`max` 和 `ultra`。格式错误的 TOML、未知 key、错误类型、空模型字符串、缺失 model prefix 或非法 effort 都是 fatal error。每个存在的文件、每个显式 current-session 配置值，以及每个非空环境 override 都必须验证，即使更高层随后会覆盖同一 key；缺失文件或 key 则继承。只有空的模型环境变量会被忽略。环境变量不会配置 `use_subagent` 或 `subagent_model`。
 
-`use_subagent` 只控制三种可选派发：brainstorming 开始时的一个只读 explorer、`simplepower:ro` 开始时的一个只读 explorer，以及 systematic debugging 在初始 Phase 1 卡住后的并行调查。它不控制强制的 plan reviewer、implementation、quick verifier 或 review+fix agents；这些仍使用 FAST/NORMAL/BEST/REVIEW 分配。启用可选 subagent 后，如果 multi-agent 支持、指定模型或派发不可用，流程会停止，不会静默降级。每一次 Simple Power agent 派发都使用 `fork_turns="none"` 和自包含上下文。
+`use_subagent` 是 brainstorming 和 `simplepower:ro` 的硬 gate：`false` 禁止可选 explorer；`true` 允许但不要求 coordinator 根据判断为相应 workflow 选择一个只读 explorer。它与四个强制模型层级相互独立，也不控制强制的 plan reviewer、implementation、quick verifier 或 review+fix agents；这些仍使用 FAST/NORMAL/BEST/REVIEW 分配。如果 coordinator 已选择 explorer，但 multi-agent 支持、指定模型或派发不可用，流程会停止，不会静默降级。每一次 Simple Power agent 派发都使用 `fork_turns="none"` 和自包含上下文。
 
-这个仓库不会提供 tracked 默认 `simplepower.toml`；只有需要改变默认行为时才创建个人或项目配置。
+这次变更不会创建或 track repository-level `simplepower.toml`；如果该文件存在，系统会支持它并按 key overlay home 文件。
 
 ## 实现流程
 
@@ -168,24 +173,24 @@ immediately.
 
 ## Model Allocation
 
-Simple Power uses four configurable model tiers:
+Simple Power uses four mandatory model tiers. Their built-in defaults are also
+the approved current-session values:
 
-```bash
-SIMPLEPOWER_REVIEW_MODEL="gpt-5.5-xhigh"
-SIMPLEPOWER_BEST_MODEL="gpt-5.5-high"
-SIMPLEPOWER_NORMAL_MODEL="gpt-5.4-mini-high"
-SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"
+```toml
+review_model = "gpt-5.6-sol-high"
+best_model = "gpt-5.6-sol-high"
+normal_model = "gpt-5.6-luna-max"
+fast_model = "gpt-5.3-codex-spark-xhigh"
 ```
 
-Resolve model settings in this order: explicit user override, quoted
-assignment in project root `AGENTS.md`, process environment variable, built-in
-default. Model assignment lookup only reads `<repo>/AGENTS.md`; nested AGENTS
-files and repo-wide grep are not part of this feature.
+The resulting assignments are REVIEW = `gpt-5.6-sol`/`high`, BEST =
+`gpt-5.6-sol`/`high`, NORMAL = `gpt-5.6-luna`/`max`, and FAST =
+`gpt-5.3-codex-spark`/`xhigh`.
 
-Parse each value as `<model>-<reasoning_effort>` by taking the final
-dash-delimited segment as `reasoning_effort` and the preceding string as
-`model`. For example, `gpt-5.4-mini-high` resolves to
-`model="gpt-5.4-mini"` and `reasoning_effort="high"`.
+The environment can override only these tiers, with non-empty
+`SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_BEST_MODEL`,
+`SIMPLEPOWER_NORMAL_MODEL`, and `SIMPLEPOWER_FAST_MODEL` values. Root and
+nested `AGENTS.md` files do not provide model assignments.
 
 REVIEW is for the plan reviewer and final review+fix agent.
 BEST is for broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or
@@ -196,38 +201,51 @@ FAST is the Spark tier for obvious repetitive work, mechanical edits across
 many files, large static text sweeps, simple fixture/assertion churn, and quick
 verification.
 
-## Optional Subagent Configuration
+## Configuration
 
-Simple Power can read an optional `simplepower.toml`. Inside a Git repository,
-the locations are `<git-root>/simplepower.toml` and
-`~/.codex/simplepower.toml`; when the repository file exists, it completely
-replaces the home configuration rather than merging with it. Outside Git, only
-the home configuration is read. Explicit instructions from the user in the
-current session always take precedence.
+Simple Power resolves every configuration key independently. Start with the
+built-in defaults, overlay keys from `~/.codex/simplepower.toml`, overlay keys
+from `<git-root>/simplepower.toml` when inside a Git repository, overlay the
+four non-empty model-tier environment variables named above, then apply
+explicit current-session instructions last. Missing higher-layer keys inherit
+the lower-layer value. In particular, a repository file overlays the home file
+per key; it does not replace it as a whole. Outside Git, the repository layer
+is skipped.
+
+The only supported TOML top-level keys and their exact defaults are:
 
 ```toml
 use_subagent = false
 subagent_model = "gpt-5.6-luna-xhigh"
+review_model = "gpt-5.6-sol-high"
+best_model = "gpt-5.6-sol-high"
+normal_model = "gpt-5.6-luna-max"
+fast_model = "gpt-5.3-codex-spark-xhigh"
 ```
 
-Missing keys use the defaults above. `subagent_model` splits at the final dash
-into model and reasoning effort, so the default resolves to
-`model="gpt-5.6-luna"` and `reasoning_effort="xhigh"`. Malformed TOML, unknown
-keys, wrong types, and invalid values stop the workflow.
+`use_subagent` must be a TOML Boolean. Every model key must be a nonempty TOML
+string and is parsed at its final dash into a nonempty model prefix and a
+reasoning-effort suffix. Valid suffixes are `low`, `medium`, `high`, `xhigh`,
+`max`, and `ultra`. Malformed TOML, unknown keys, wrong types, empty model
+strings, missing model prefixes, and invalid effort suffixes are fatal. Every
+present file, every explicit current-session configuration value, and every
+non-empty environment override is validated even if a higher layer would
+replace its value; missing files and keys inherit instead of failing. Only
+empty model-tier environment variables are ignored. The environment does not
+configure `use_subagent` or `subagent_model`.
 
-`use_subagent` controls only three optional dispatches: one initial read-only
-explorer for brainstorming, one initial read-only explorer for
-`simplepower:ro`, and parallel investigation after the initial Phase 1 of
-systematic debugging stalls. It does not control the mandatory plan reviewer,
-implementation, quick verifier, or review+fix agents; those continue to use
-the FAST/NORMAL/BEST/REVIEW allocation. When optional subagents are enabled,
-missing multi-agent support, an unavailable configured model, or a spawn
-failure stops the workflow without silent fallback. Every Simple Power agent
-dispatch uses `fork_turns="none"` with self-contained context.
+`use_subagent` is a hard gate for brainstorming and `simplepower:ro`: `false`
+prohibits an optional explorer; `true` permits, but does not require, the
+coordinator to select one read-only explorer for the relevant workflow. It is
+separate from the four mandatory model tiers and does not control the mandatory
+plan reviewer, implementation, quick verifier, or review+fix agents; those
+continue to use the FAST/NORMAL/BEST/REVIEW allocation. If the coordinator
+selects an explorer but multi-agent support, the configured model, or spawning
+is unavailable, the workflow stops without silent fallback. Every Simple Power
+agent dispatch uses `fork_turns="none"` with self-contained context.
 
-The repository does not provide a tracked default `simplepower.toml`; create a
-personal or repository configuration only when you need to change the
-defaults.
+This change does not create or track a repository-level `simplepower.toml`.
+When one is present, it is supported and overlays the home file per key.
 
 ## Implementation Flow
 

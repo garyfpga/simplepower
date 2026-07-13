@@ -3,9 +3,16 @@
 Use this template when dispatching the quick verifier after all implementation
 workers finish and before the pre-review implementation commit.
 
-The quick verifier uses the approved FAST tier. With built-in defaults and no
-override, `SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"` resolves to
-`model="gpt-5.3-codex-spark"` and `reasoning_effort="high"`.
+The quick verifier is a mandatory FAST-tier dispatch independent of
+`use_subagent`. Resolve FAST from the `gpt-5.3-codex-spark-xhigh` built-in,
+then overlay `/home/gary/.codex/simplepower.toml` key `fast_model`, repository
+`<git-root>/simplepower.toml` key `fast_model`, the
+`SIMPLEPOWER_FAST_MODEL` environment value, and explicit current-session
+instructions last. Do not read model assignments from `AGENTS.md`. Parse the
+final dash as reasoning effort; valid suffixes are `low`, `medium`, `high`,
+`xhigh`, `max`, and `ultra`. With the approved built-in value, use model
+`gpt-5.3-codex-spark` with effort `xhigh`. Dispatch with
+`fork_turns="none"`.
 
 ## Rules
 
@@ -17,6 +24,10 @@ override, `SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"` resolves to
   or unclear issues as non-trivial.
 - Do not make broad behavioral, architectural, or scope-changing fixes.
 - Do not skip commands.
+- Do not run Codex CLI.
+- Do not spawn subagents.
+- Do not invoke Simple Power skills.
+- Do not restart execution or reroute the workflow.
 - Do not create, update, or delete scratch refs. The coordinator owns scratch
   refs and will create `quick-verifier/after` if your tiny fixes changed files.
 - Do not commit.

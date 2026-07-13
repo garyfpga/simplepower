@@ -3,6 +3,16 @@
 Use this template when dispatching the one REVIEW-tier review+fix agent after the
 quick-verified implementation checkpoint.
 
+The review+fix agent is a mandatory REVIEW-tier dispatch independent of
+`use_subagent`. Resolve REVIEW from the `gpt-5.6-sol-high` built-in, then
+overlay `/home/gary/.codex/simplepower.toml` key `review_model`, repository
+`<git-root>/simplepower.toml` key `review_model`, the
+`SIMPLEPOWER_REVIEW_MODEL` environment value, and explicit current-session
+instructions last. Do not read model assignments from `AGENTS.md`. Parse the
+final dash as reasoning effort; valid suffixes are `low`, `medium`, `high`,
+`xhigh`, `max`, and `ultra`. With the approved built-in value, use model
+`gpt-5.6-sol` with effort `high`. Dispatch with `fork_turns="none"`.
+
 ## Rules
 
 - Review the whole implementation against the approved plan.

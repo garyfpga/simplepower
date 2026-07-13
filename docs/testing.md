@@ -15,17 +15,19 @@ bash tests/codex-plugin-sync/test-sync-to-codex-plugin.sh
 Run those in that order when you want a quick signal on the active Codex
 workflow.
 
-For focused optional-subagent documentation and configuration coverage, run:
+For focused configuration-contract documentation coverage, run:
 
 ```bash
-timeout 30s rg -n "simplepower.toml|use_subagent|subagent_model|gpt-5.6-luna-xhigh|fork_turns" README.md docs/README.codex.md docs/testing.md
-git diff --check -- README.md docs/README.codex.md docs/testing.md
+timeout 30s rg -n 'review_model|best_model|normal_model|fast_model|SIMPLEPOWER_REVIEW_MODEL|SIMPLEPOWER_FAST_MODEL|home.*repository|per-key|environment' README.md docs/README.codex.md docs/testing.md skills/using-simplepower/references/simplepower-config.md
+timeout 30s git diff --check -- AGENTS.md README.md docs/README.codex.md docs/testing.md skills/using-simplepower/references/simplepower-config.md
 ```
 
-The first command should find the documented keys, default, and dispatch
-isolation rule. Separate negative searches for retired configuration names and
-wording should produce no matches. The final command should report no
-whitespace errors.
+The first command should find all four mandatory tier keys, environment
+overrides, and per-key home/repository layering. Also confirm the six-key schema
+includes `use_subagent` and `subagent_model`, exact defaults, final-dash parsing,
+and fatal validation. Separate negative searches for retired `AGENTS.md` model
+assignments and whole-file repository replacement wording should produce no
+matches. The final command should report no whitespace errors.
 
 ## Manual Codex smoke test
 
@@ -44,25 +46,42 @@ Expected behavior:
 - After the design is approved, Codex should move on to planning and
   implementation instead of jumping straight into code.
 
-Optional configuration smoke expectations:
+Configuration smoke expectations:
 
-- With no `simplepower.toml`, `use_subagent` defaults to `false` and
-  `subagent_model` defaults to `gpt-5.6-luna-xhigh`.
-- In a Git repository, `<git-root>/simplepower.toml` completely replaces
-  `~/.codex/simplepower.toml`; outside Git, only the home file applies.
-- Missing keys take defaults. Malformed TOML, unknown keys, wrong types, or
-  invalid values stop processing.
-- With `use_subagent = true`, verify only the initial read-only brainstorming
-  and `simplepower:ro` explorers, plus stalled systematic-debugging Phase 1
-  parallel investigation, are enabled. Mandatory plan review,
-  implementation, quick verification, and review+fix keep their
+- With no overrides, verify all six defaults: `use_subagent = false`,
+  `subagent_model = "gpt-5.6-luna-xhigh"`,
+  `review_model = "gpt-5.6-sol-high"`,
+  `best_model = "gpt-5.6-sol-high"`,
+  `normal_model = "gpt-5.6-luna-max"`, and
+  `fast_model = "gpt-5.3-codex-spark-xhigh"`.
+- Resolve per key in this order: defaults, `~/.codex/simplepower.toml`,
+  `<git-root>/simplepower.toml` inside Git, non-empty
+  `SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_BEST_MODEL`,
+  `SIMPLEPOWER_NORMAL_MODEL`, and `SIMPLEPOWER_FAST_MODEL`, then explicit
+  current-session instructions. Missing higher-layer keys inherit; the
+  repository file does not replace the home file as a whole.
+- Verify environment values configure only the four mandatory tiers. Root and
+  nested `AGENTS.md` model assignments have no effect.
+- Parse every model at its final dash. Accept only `low`, `medium`, `high`,
+  `xhigh`, `max`, and `ultra` as effort suffixes.
+- Malformed TOML, unknown keys, wrong types, empty model strings, missing model
+  prefixes, invalid effort suffixes, invalid explicit current-session values,
+  and invalid non-empty environment overrides are fatal, even if a higher
+  layer would replace the value. Missing files/keys inherit, and only empty
+  model environment values are ignored.
+- With `use_subagent = false`, verify brainstorming and `simplepower:ro` do not
+  dispatch an optional explorer. With `true`, verify the coordinator may, but
+  need not, select one read-only explorer for the relevant workflow. Mandatory
+  plan review, implementation, quick verification, and review+fix keep their
   FAST/NORMAL/BEST/REVIEW allocations.
-- Missing multi-agent support, an unavailable `subagent_model`, or a spawn
-  failure must stop an enabled optional dispatch without silent fallback.
+- If an optional explorer is selected, missing multi-agent support, an
+  unavailable `subagent_model`, or a spawn failure must stop that dispatch
+  without silent fallback.
 - Every optional and mandatory Simple Power dispatch passes
   `fork_turns="none"` with self-contained context. Explicit current-session
   user instructions override file configuration.
-- The repository must not track a default `simplepower.toml`.
+- This change must not create or track a repository-level `simplepower.toml`,
+  but a present repository file must be supported as a per-key overlay.
 
 ## What each check covers
 

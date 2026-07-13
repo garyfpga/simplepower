@@ -4,23 +4,31 @@ This reference is the operational configuration contract for active Simple
 Power workflows. Resolve and validate it when an affected skill starts, before
 making any configuration-controlled dispatch.
 
-## Select One Configuration Source
+## Resolve Configuration Per Key
 
 The exact filename is `simplepower.toml`.
 
-1. Determine whether the current working context is inside a Git repository.
-   When it is, determine the repository root and check exactly
-   `<git-root>/simplepower.toml`.
-2. If the repository file exists, use it exclusively. In that case, do not read, merge, or fall back to `~/.codex/simplepower.toml`, even when the repository file is invalid or omits a supported key.
-3. If there is no repository file, select `~/.codex/simplepower.toml` when it
-   exists. Use defaults if neither exists.
-4. Outside Git, there is no repository candidate: select the home file when it
-   exists, otherwise use the defaults.
-5. Explicit current-session user instructions override the effective supported
-   keys after file/default resolution.
+Resolve every supported key independently in this order:
+
+1. Start with the built-in defaults.
+2. If `~/.codex/simplepower.toml` exists, overlay the keys present there.
+3. When inside a Git repository, if `<git-root>/simplepower.toml` exists,
+   overlay the keys present there. It does not replace the home file as a
+   whole; missing repository keys retain home or default values.
+4. Overlay each non-empty model-tier environment variable onto its matching
+   key: `SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_BEST_MODEL`,
+   `SIMPLEPOWER_NORMAL_MODEL`, and `SIMPLEPOWER_FAST_MODEL`.
+5. Apply explicit current-session instructions last.
+
+Outside Git, skip the repository-file layer. Root and nested `AGENTS.md` files
+are not configuration sources for model assignments. The environment configures
+only the four mandatory model tiers; it does not configure `use_subagent` or
+`subagent_model`.
 
 Do not create a default configuration file. Configuration is instruction-driven
-and requires no runtime parser dependency.
+and requires no runtime parser dependency. This change does not create a
+repository-level TOML file, but a file supplied at the repository path is fully
+supported as the per-key overlay described above.
 
 ## Schema, Defaults, And Validation
 
@@ -29,40 +37,52 @@ Only these top-level keys are supported:
 ```toml
 use_subagent = false
 subagent_model = "gpt-5.6-luna-xhigh"
+review_model = "gpt-5.6-sol-high"
+best_model = "gpt-5.6-sol-high"
+normal_model = "gpt-5.6-luna-max"
+fast_model = "gpt-5.3-codex-spark-xhigh"
 ```
 
 `use_subagent` must be a TOML Boolean and defaults to `false` when missing.
-`subagent_model` must be a nonempty TOML string and defaults to
-`gpt-5.6-luna-xhigh` when missing.
+Each model key must be a nonempty TOML string and defaults to the exact value
+shown above when missing from all higher-priority layers.
 
-Parse `subagent_model` by splitting on its final dash. The nonempty prefix is
+Parse every model value by splitting on its final dash. The nonempty prefix is
 the `model`, and the suffix is the `reasoning_effort`. The only valid effort
-suffixes are `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`. For example,
-the default resolves to model `gpt-5.6-luna` and reasoning effort `xhigh`.
+suffixes are `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`. The defaults
+therefore resolve to `subagent_model` = `gpt-5.6-luna`/`xhigh`, REVIEW =
+`gpt-5.6-sol`/`high`, BEST = `gpt-5.6-sol`/`high`, NORMAL =
+`gpt-5.6-luna`/`max`, and FAST = `gpt-5.3-codex-spark`/`xhigh`.
 
 Malformed TOML, unknown top-level keys, wrong types, empty model strings,
 missing model prefixes, and unknown effort suffixes are errors. This includes
 any value without a nonempty model prefix and final supported effort suffix.
-On any configuration error, stop the affected skill before dispatch and name
-the selected configuration path plus the precise problem. An invalid selected
-repository file never falls back to the home file. A missing file or missing
-supported key is not an error and uses its default.
+Every present file, every explicit current-session configuration value, and
+every non-empty environment override must be validated even if a higher layer
+would override the same key. On any configuration error, stop the affected
+skill before dispatch and name the source plus the precise problem. A missing
+file or key is not an error; it inherits the value already resolved from
+lower-priority layers. Only empty model environment variables are ignored
+rather than treated as overrides.
 
 ## Optional Dispatch Behavior
 
-When effective `use_subagent=false`, each affected workflow follows its
-documented coordinator-only behavior. When effective `use_subagent=true`, use
-the parsed `subagent_model` model and reasoning effort only for the optional
-explorer or investigator roles explicitly governed by this switch.
+When effective `use_subagent=false`, brainstorming and `simplepower:ro` must
+not dispatch an optional explorer. When effective `use_subagent=true`, the
+coordinator may, but is not required to, select one read-only explorer for
+brainstorming or one read-only explorer for `simplepower:ro`, using the parsed
+`subagent_model` model and reasoning effort. Coordinator judgment determines
+whether that single explorer is useful for the current workflow.
 
 The switch and `subagent_model` do not govern mandatory plan reviewers,
 `sp-impl` workers, quick verifiers, review+fix agents, or their
 FAST/NORMAL/BEST/REVIEW allocation. They also do not govern explicitly invoked
 general delegation skills.
 
-If there is missing multi-agent support, an unavailable configured model, or a
-spawn failure while `use_subagent=true`, stop the affected workflow and report
-the blocker. Do not silently switch to coordinator-only work or a different model, and do not authorize substitute behavior.
+If the coordinator selects an optional explorer but multi-agent support or the
+configured model is unavailable, or spawning fails, stop the affected workflow
+and report the blocker. Do not silently switch to coordinator-only work or a
+different model, and do not authorize substitute behavior.
 
 ## Universal Dispatch Isolation
 

@@ -16,7 +16,7 @@ explicitly serialized implementation tasks only when their approved concrete
 reason is satisfied. After all implementation workers finish, run the quick
 verifier using the approved FAST tier with lint/build/tests and timeouts. By
 default that resolves to `model="gpt-5.3-codex-spark"` and
-`reasoning_effort="high"`. Commit the quick-verified implementation, then
+`reasoning_effort="xhigh"`. Commit the quick-verified implementation, then
 dispatch one REVIEW-tier review+fix agent before final verification and final
 commit.
 
@@ -112,9 +112,9 @@ runtime or migration ordering.
    `refs/simplepower/scratch/<run-id>/quick-verifier/before` for the approved
    file list before quick verifier dispatch. If this fails, stop before
    relying on the missing anchor.
-10. Dispatch the quick verifier using the approved FAST tier. By default,
-   `SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"` resolves to
-   `model="gpt-5.3-codex-spark"` and `reasoning_effort="high"`.
+10. Dispatch the quick verifier using the approved FAST tier. The built-in
+    FAST value `gpt-5.3-codex-spark-xhigh` resolves to
+    `model="gpt-5.3-codex-spark"` and `reasoning_effort="xhigh"`.
 11. Let the quick verifier fix only tiny typo-level issues.
 12. If quick verifier tiny fixes changed files, validate those files, create
     `refs/simplepower/scratch/<run-id>/quick-verifier/after`, and inspect the
@@ -271,9 +271,9 @@ list, then dispatch the quick verifier from `quick-verifier-prompt.md`.
 Use
 `spawn_agent(agent_type="worker", model=<FAST_model>, reasoning_effort=<FAST_effort>, fork_turns="none", message=<self-contained-quick-verifier-prompt>)`.
 
-The quick verifier uses the approved FAST tier by default. Unless
-`SIMPLEPOWER_FAST_MODEL` is overridden, that resolves to
-`model="gpt-5.3-codex-spark"` and `reasoning_effort="high"`.
+The quick verifier uses the approved FAST tier by default. Unless a later
+configuration layer overrides FAST, that resolves to
+`model="gpt-5.3-codex-spark"` and `reasoning_effort="xhigh"`.
 
 The quick verifier must run the linting checks, build or compile checks, and
 tests named in the plan with proper timeouts. It may fix only tiny typo-level
@@ -423,40 +423,32 @@ active written reason.
 
 ## Model Selection
 
-Use the plan's approved FAST, NORMAL, BEST, or REVIEW allocation unless the
-user explicitly overrides it. `sp-impl` implementation tasks use only FAST,
-NORMAL, or BEST unless a future approved design explicitly adds REVIEW for
-implementation work.
+Use the plan's approved FAST, NORMAL, BEST, or REVIEW allocation unless
+explicit current-session instructions override it. `sp-impl` implementation
+tasks use only FAST, NORMAL, or BEST unless a future approved design explicitly
+adds REVIEW for implementation work. Mandatory tier dispatch is independent of
+`use_subagent`.
 
-Defaults:
+| Tier | TOML key | Environment value | Built-in default |
+|------|----------|-------------------|------------------|
+| REVIEW | `review_model` | `SIMPLEPOWER_REVIEW_MODEL` | `gpt-5.6-sol-high` |
+| BEST | `best_model` | `SIMPLEPOWER_BEST_MODEL` | `gpt-5.6-sol-high` |
+| NORMAL | `normal_model` | `SIMPLEPOWER_NORMAL_MODEL` | `gpt-5.6-luna-max` |
+| FAST | `fast_model` | `SIMPLEPOWER_FAST_MODEL` | `gpt-5.3-codex-spark-xhigh` |
 
-```bash
-SIMPLEPOWER_REVIEW_MODEL="gpt-5.5-xhigh"
-SIMPLEPOWER_BEST_MODEL="gpt-5.5-high"
-SIMPLEPOWER_NORMAL_MODEL="gpt-5.4-mini-high"
-SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"
-```
+Resolve all four values by starting with the built-in defaults, then
+overlaying `/home/gary/.codex/simplepower.toml`, repository
+`<git-root>/simplepower.toml`, the four `SIMPLEPOWER_*_MODEL` process
+environment values, and explicit current-session instructions last. Each later
+layer replaces only values it supplies. Do not read model assignments from any
+`AGENTS.md` file.
 
-Resolve each `SIMPLEPOWER_*_MODEL` value in this order:
-
-1. Explicit user override in the current request or approved plan.
-2. Quoted assignment in project root AGENTS.md, if `<repo>/AGENTS.md` exists.
-3. Process environment variable.
-4. Built-in default above.
-
-The AGENTS lookup reads only the project root AGENTS.md. It must not scan
-nested `AGENTS.md` files, inherited parent directories, or the whole repo.
-Accepted AGENTS assignment forms are:
-
-```bash
-SIMPLEPOWER_REVIEW_MODEL="gpt-5.5-xhigh"
-SIMPLEPOWER_REVIEW_MODEL = "gpt-5.5-xhigh"
-```
-
-The same quoted-assignment rule applies to `SIMPLEPOWER_BEST_MODEL`,
-`SIMPLEPOWER_NORMAL_MODEL`, and `SIMPLEPOWER_FAST_MODEL`. Resolve each value
-by taking the final dash-delimited segment as `reasoning_effort` and the
-preceding string as `model`.
+Resolve each final value by taking the final dash-delimited segment as
+`reasoning_effort` and the preceding string as `model`. Valid effort suffixes
+are `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`. Stop and report an
+invalid value rather than guessing. With the built-in defaults, FAST resolves
+to model `gpt-5.3-codex-spark` with `xhigh`, NORMAL to model `gpt-5.6-luna`
+with `max`, and BEST and REVIEW to model `gpt-5.6-sol` with `high`.
 
 Tier routing:
 
@@ -464,7 +456,7 @@ Tier routing:
 - BEST: broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or
   hard-to-test implementation work.
 - NORMAL: routine low-risk implementation work that used the old FAST tier,
-  especially localized edits where `gpt-5.4-mini-high` is appropriate.
+  especially localized edits.
 - FAST: obvious repetitive work, mechanical edits across many files, large
   static text sweeps, simple fixture or assertion churn, and quick
   verification.

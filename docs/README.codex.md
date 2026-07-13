@@ -39,33 +39,31 @@ multi_agent = true
 That setting lets Simple Power dispatch the workers required by the approved
 plan and model allocation.
 
-It is also required when the optional explorers described below are enabled.
-If optional subagents are enabled but multi-agent support, the configured
-model, or spawning is unavailable, Simple Power stops instead of silently
+It is also required when the coordinator selects one of the optional explorers
+described below. If a selected explorer cannot use multi-agent support or its
+configured model, or spawning fails, Simple Power stops instead of silently
 falling back to the coordinator.
 
 ## Model Allocation
 
-Simple Power uses four configurable model tiers:
+Simple Power uses four mandatory model tiers. Their built-in defaults are also
+the approved current-session values:
 
-```bash
-SIMPLEPOWER_REVIEW_MODEL="gpt-5.5-xhigh"
-SIMPLEPOWER_BEST_MODEL="gpt-5.5-high"
-SIMPLEPOWER_NORMAL_MODEL="gpt-5.4-mini-high"
-SIMPLEPOWER_FAST_MODEL="gpt-5.3-codex-spark-high"
+```toml
+review_model = "gpt-5.6-sol-high"
+best_model = "gpt-5.6-sol-high"
+normal_model = "gpt-5.6-luna-max"
+fast_model = "gpt-5.3-codex-spark-xhigh"
 ```
 
-Resolve model settings in this order: explicit user override, quoted
-assignment in project root `AGENTS.md`, process environment variable, built-in
-default. Model assignment lookup only reads `<repo>/AGENTS.md`; nested AGENTS
-files and repo-wide grep are not part of this feature.
+The resulting assignments are REVIEW = `gpt-5.6-sol`/`high`, BEST =
+`gpt-5.6-sol`/`high`, NORMAL = `gpt-5.6-luna`/`max`, and FAST =
+`gpt-5.3-codex-spark`/`xhigh`.
 
-If no override, root `AGENTS.md` assignment, or environment variable provides a
-value, use the default shown above. Parse the value as
-`<model>-<reasoning_effort>` by taking the final dash-delimited segment as
-`reasoning_effort` and the preceding string as `model`. For example,
-`gpt-5.4-mini-high` resolves to `model="gpt-5.4-mini"` and
-`reasoning_effort="high"`.
+The environment can override only these tiers, with non-empty
+`SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_BEST_MODEL`,
+`SIMPLEPOWER_NORMAL_MODEL`, and `SIMPLEPOWER_FAST_MODEL` values. Root and
+nested `AGENTS.md` files do not provide model assignments.
 
 Use REVIEW for the plan reviewer and final review+fix agent. Use BEST for
 broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or hard-to-test
@@ -74,40 +72,56 @@ old FAST tier, especially localized edits. Use FAST for obvious repetitive
 work, mechanical edits across many files, large static text sweeps, simple
 fixture/assertion churn, and quick verification.
 
-## Optional Subagent Configuration
+## Configuration
 
-Simple Power supports an optional configuration file at
-`<git-root>/simplepower.toml` or `~/.codex/simplepower.toml`. Inside a Git
-repository, an existing repository file completely replaces the home file;
-the two files are never merged. Outside Git, only the home file is considered.
-Explicit current-session user instructions override file configuration.
+Simple Power resolves every configuration key independently. Start with the
+built-in defaults, overlay keys from `~/.codex/simplepower.toml`, overlay keys
+from `<git-root>/simplepower.toml` when inside a Git repository, overlay the
+four non-empty model-tier environment variables named above, then apply
+explicit current-session instructions last. Missing higher-layer keys inherit
+the lower-layer value. In particular, a repository file overlays the home file
+per key; it does not replace it as a whole. Outside Git, the repository layer
+is skipped.
 
 The exact supported top-level keys and their defaults are:
 
 ```toml
 use_subagent = false
 subagent_model = "gpt-5.6-luna-xhigh"
+review_model = "gpt-5.6-sol-high"
+best_model = "gpt-5.6-sol-high"
+normal_model = "gpt-5.6-luna-max"
+fast_model = "gpt-5.3-codex-spark-xhigh"
 ```
 
-Missing keys take their defaults. The final dash in `subagent_model` separates
-the model from the reasoning effort: `gpt-5.6-luna-xhigh` becomes
-`model="gpt-5.6-luna"` and `reasoning_effort="xhigh"`. Malformed TOML, unknown
-keys, wrong types, and invalid values are fatal configuration errors.
+`use_subagent` must be a TOML Boolean. Every model key must be a nonempty TOML
+string and is parsed at its final dash into a nonempty model prefix and a
+reasoning-effort suffix. Valid suffixes are `low`, `medium`, `high`, `xhigh`,
+`max`, and `ultra`. Malformed TOML, unknown keys, wrong types, empty model
+strings, missing model prefixes, and invalid effort suffixes are fatal. Every
+present file, every explicit current-session configuration value, and every
+non-empty environment override is validated even if a higher layer would
+replace its value; missing files and keys inherit instead of failing. Only
+empty model-tier environment variables are ignored. The environment does not
+configure `use_subagent` or `subagent_model`.
 
-`use_subagent` governs only these optional agents:
+`use_subagent` is a hard gate for optional read-only exploration:
 
-- one initial read-only explorer during brainstorming;
-- one initial read-only explorer during `simplepower:ro`;
-- parallel investigation in `simplepower:systematic-debugging` only after its
-  initial Phase 1 investigation stalls.
+- `false` prohibits an optional explorer in brainstorming and
+  `simplepower:ro`;
+- `true` permits, but does not require, the coordinator to select one read-only
+  explorer for either workflow when useful.
 
 It does not govern the mandatory plan reviewer, implementation workers, quick
 verifier, or review+fix agent. Those remain assigned through the
 FAST/NORMAL/BEST/REVIEW tiers. Every Simple Power dispatch, optional or
 mandatory, passes `fork_turns="none"` and supplies self-contained context.
+If the coordinator selects an explorer and multi-agent support, the configured
+model, or spawning is unavailable, the workflow stops without silent fallback.
 
-No default `simplepower.toml` is tracked in the repository. Create one only to
-opt in or change the optional model.
+This change does not create or track a repository-level `simplepower.toml`.
+When a repository file is present, it is supported and overlays the home file
+per key.
 
 ## Implementation Flow
 

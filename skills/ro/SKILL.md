@@ -18,22 +18,28 @@ description: Use only when the user explicitly requests simplepower:ro or asks t
 At activation, resolve and validate the shared configuration by following
 `skills/using-simplepower/references/simplepower-config.md`.
 
-- With effective `use_subagent=false`, preserve coordinator-only analysis for
-  the initial inspection.
-- With effective `use_subagent=true`, spawn exactly one read-only initial explorer
-  using the model and reasoning effort parsed from `subagent_model`.
-  Pass exactly `fork_turns="none"` and a self-contained brief describing the
-  question, repository scope, RO constraints, relevant known evidence, required
-  report, and verification. The explorer may inspect files and run read-only
-  commands. It cannot edit tracked files, create any files, or create
-  coordinator-owned artifacts: it cannot create `.codex-ro` artifacts.
-  Require it to report inspected files and commands,
-  findings and relevant architecture or conventions, risks or uncertainties,
-  and explicit confirmation that it made no edits.
-- If enabled dispatch cannot occur because multi-agent support is missing, the
-  configured model is unavailable, or spawning fails, stop and report the
-  blocker as required by the shared contract. Do not continue coordinator-only
-  or use a different model.
+- With effective `use_subagent=false`, explorer dispatch is prohibited. The
+  coordinator performs all needed read-only initial inspection and analysis
+  itself.
+- With effective `use_subagent=true`, the coordinator judges whether repository
+  context or task complexity makes an initial explorer necessary. Permission to
+  dispatch does not require dispatch. If an explorer is not necessary, do not
+  spawn one; the coordinator performs any needed read-only inspection itself.
+- If the coordinator judges an explorer necessary, spawn exactly one read-only
+  initial explorer using the model and reasoning effort parsed from
+  `subagent_model`; model tiers remain separate from that parsed selection. Pass
+  exactly `fork_turns="none"` and a self-contained brief describing the question,
+  repository scope, RO constraints, relevant known evidence, required report,
+  and verification. The explorer may inspect files and run read-only commands.
+  It cannot edit tracked files, create any files, or create coordinator-owned
+  artifacts: it cannot create `.codex-ro` artifacts. Require it to report
+  inspected files and commands, findings and relevant architecture or
+  conventions, risks or uncertainties, and explicit confirmation that it made
+  no edits.
+- If a necessary enabled dispatch cannot occur because multi-agent support is
+  missing, the configured model is unavailable, or spawning fails, stop and
+  report the exact blocker as required by the shared contract. Do not continue
+  coordinator-only, use a different model, or use an alternate route.
 
 The coordinator owns synthesis and all later analysis. Only the coordinator
 may create or manage the temp root, manifest, and session artifacts described
