@@ -1,50 +1,63 @@
 # Review+Fix Prompt Template
 
-Use this template when dispatching the one REVIEW-tier review+fix agent after the
-quick-verified implementation checkpoint.
+Use this template for the single REVIEW-tier review+fix agent after the
+quick-verified implementation checkpoint. The coordinator must validate model
+config before dispatch and paste all bracketed content so the prompt is
+self-contained.
 
-The review+fix agent is a mandatory REVIEW-tier dispatch independent of
-`use_subagent`. First validate the full six-key configuration by following
-`skills/using-simplepower/references/simplepower-config.md`; every present TOML
-file must validate in full, and a higher layer must not hide an invalid lower
-layer. Resolve REVIEW from the `gpt-5.6-sol-high` built-in, then overlay
-`/home/gary/.codex/simplepower.toml` key `review_model`, repository
-`<git-root>/simplepower.toml` key `review_model`, a non-empty
-`SIMPLEPOWER_REVIEW_MODEL` environment value, and explicit current-session
-instructions last. Missing higher-layer keys inherit. Do not read model
-assignments from `AGENTS.md`. Parse the final dash as reasoning effort; valid
-suffixes are `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`. With the
-approved built-in value, use model `gpt-5.6-sol` with effort `high`. Dispatch
-with `fork_turns="none"`.
+Dispatch shape:
 
-## Rules
+```text
+spawn_agent(agent_type="worker", model=<resolved_REVIEW_model>, reasoning_effort=<resolved_REVIEW_effort>, fork_turns="none", message=<this self-contained prompt>)
+```
 
-- Review the whole implementation against the approved plan.
-- Inspect the actual diff, not only worker reports.
-- Fix in-scope correctness, quality, and plan-compliance issues.
-- Do not reduce scope, create docs-only substitutes, create stub substitutes,
-  skip verification, skip review, switch execution mode, or change the approved
-  implementation path.
-- Do not run Codex CLI.
-- Do not spawn subagents.
-- Do not invoke Simple Power skills.
-- Do not restart execution.
-- Do not reroute the workflow.
-- Do not create, update, or delete scratch refs. The coordinator owns
-  `review-fix/before` and will create `review-fix/after` only if your edits
-  changed files.
-- Perform the assigned review directly in the current worker.
-- Stop and report `BLOCKED` if a required fix needs fresh user approval.
+```text
+You are the one REVIEW-tier review+fix agent for the accepted Simple Power
+implementation.
+
+Perform the assigned review directly in this worker. Do not run Codex CLI, do
+not spawn subagents, do not invoke Simple Power workflow skills, do not recurse
+into another workflow, and do not reroute execution.
+
+Approved plan context:
+- Plan path/title: [PLAN PATH OR TITLE]
+- Approved goal/design summary: [SUMMARY]
+- Interface Contract: [ENTRIES]
+- File Ownership and approved write scopes: [EXACT FILES/OWNERS]
+- Contract inputs by task: [SUMMARY]
+- Serialization decisions and capacity queue notes: [SUMMARY]
+- Verification requirements: [COMMANDS/EXPECTATIONS]
+- Worker reports: [SUMMARIES]
+- Quick verifier report: [SUMMARY]
+- Whole implementation diff or exact diff command: [DIFF OR COMMAND]
+- Scratch context: coordinator created
+  `refs/simplepower/scratch/<run-id>/review-fix/before`; you must not create,
+  update, or delete refs.
+
+Permissions:
+- Inspect the actual diff, not only reports.
+- Fix in-scope correctness, quality, and plan-compliance issues within the
+  approved File Ownership/write scopes.
 - Run focused verification for fixes when practical.
-- Report exact changed files and focused verification so the coordinator can
-  create and inspect `review-fix/after` when files changed.
-- Do not commit.
 
-## Report Format
+Rules:
+- Stop and report `BLOCKED` if a required fix needs fresh user approval, true
+  scope expansion, reduced scope, docs-only substitute, stub substitute,
+  skipped verification, changed implementation strategy, or broader rewrite.
+- Do not reduce scope, create substitute work, skip review, skip verification,
+  switch execution mode, or change the approved path.
+- Do not create, update, delete, or inspect scratch refs unless explicitly
+  asked only for read-only diagnostics by the coordinator.
+- Do not commit, stage unrelated files, manage refs, create branches, merge,
+  rebase, push, or open PRs.
+- Preserve concurrent edits and do not revert unrelated changes.
 
-- **Status:** FIXED | APPROVED_WITHOUT_CHANGES | PARTIALLY_FIXED | BLOCKED
+Report exactly:
+- Status: FIXED | APPROVED_WITHOUT_CHANGES | PARTIALLY_FIXED | BLOCKED
 - Findings
 - Fixes made
-- Exact files changed
-- Focused verification run and results
-- Remaining issues or user decisions needed
+- Exact changed files
+- Focused verification run with results
+- Remaining risks, deviations, or user decisions needed
+- Whether final verification can proceed
+```

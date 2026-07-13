@@ -5,13 +5,9 @@ description: Use only when the user explicitly requests simplepower:systematic-d
 
 # Systematic Debugging
 
-## Overview
-
-Random fixes waste time and create new bugs. Quick patches mask underlying issues.
-
-**Core principle:** ALWAYS find root cause before attempting fixes. Symptom fixes are failure.
-
-**Violating the letter of this process is violating the spirit of debugging.**
+Use this skill for technical failures: test, build, production, integration,
+performance, and unexpected-behavior bugs. It is most important under pressure,
+after a failed fix, or when a quick patch seems obvious.
 
 ## The Iron Law
 
@@ -19,395 +15,120 @@ Random fixes waste time and create new bugs. Quick patches mask underlying issue
 NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
 ```
 
-If you haven't completed Phase 1, you cannot propose fixes.
-
-## When to Use
-
-Use for ANY technical issue:
-- Test failures
-- Bugs in production
-- Unexpected behavior
-- Performance problems
-- Build failures
-- Integration issues
-
-**Use this ESPECIALLY when:**
-- Under time pressure (emergencies make guessing tempting)
-- "Just one quick fix" seems obvious
-- You've already tried multiple fixes
-- Previous fix didn't work
-- You don't fully understand the issue
-
-**Don't skip when:**
-- Issue seems simple (simple bugs have root causes too)
-- You're in a hurry (rushing guarantees rework)
-- Manager wants it fixed NOW (systematic is faster than thrashing)
-
-## The Four Phases
-
-You MUST complete each phase before proceeding to the next.
-
-### Activation Configuration
-
-At activation, resolve
-`skills/using-simplepower/references/simplepower-config.md` and use its shared
-configuration resolution contract to obtain the effective `use_subagent` and
-`subagent_model` values. Configuration resolution is mandatory: if the file
-selected by that contract cannot be read, a value is invalid, or resolution
-otherwise fails, stop and report an explicit blocker. If neither candidate
-file exists, use the shared defaults as required by the contract. Do not
-replace an invalid or unreadable selected file with defaults.
-
-When effective `use_subagent` is `false`, the coordinator continues the
-systematic Phase 1 investigation itself, but investigation-agent escalation is
-disabled. When it is `true`, investigation-agent escalation is available only
-after the initial Phase 1 steps below stall.
-
-For enabled escalation, parse the resolved `subagent_model` at its final dash:
-the portion before that dash is the investigator `model`, and the portion after
-it is the investigator `reasoning_effort`. If the value cannot be parsed into
-both parts, or the requested capability, model, reasoning effort, or spawn is
-unavailable or fails, stop and report an explicit blocker. Do not substitute a
-different model, effort, or execution path.
-
-This switch governs only optional investigation-agent escalation. Mandatory
-plan, implementation, and review tiers remain outside it.
-
-### Phase 1: Root Cause Investigation
-
-**BEFORE attempting ANY fix:**
-
-1. **Read Error Messages Carefully**
-   - Don't skip past errors or warnings
-   - They often contain the exact solution
-   - Read stack traces completely
-   - Note line numbers, file paths, error codes
-
-2. **Reproduce Consistently**
-   - Can you trigger it reliably?
-   - What are the exact steps?
-   - Does it happen every time?
-   - If not reproducible → gather more data, don't guess
-
-3. **Check Recent Changes**
-   - What changed that could cause this?
-   - Git diff, recent commits
-   - New dependencies, config changes
-   - Environmental differences
-
-4. **Gather Evidence in Multi-Component Systems**
-
-   **WHEN system has multiple components (CI → build → signing, API → service → database):**
-
-   **BEFORE proposing fixes, add diagnostic instrumentation:**
-   ```
-   For EACH component boundary:
-     - Log what data enters component
-     - Log what data exits component
-     - Verify environment/config propagation
-     - Check state at each layer
-
-   Run once to gather evidence showing WHERE it breaks
-   THEN analyze evidence to identify failing component
-   THEN investigate that specific component
-   ```
-
-   **Example (multi-layer system):**
-   ```bash
-   # Layer 1: Workflow
-   echo "=== Secrets available in workflow: ==="
-   echo "IDENTITY: ${IDENTITY:+SET}${IDENTITY:-UNSET}"
-
-   # Layer 2: Build script
-   echo "=== Env vars in build script: ==="
-   env | grep IDENTITY || echo "IDENTITY not in environment"
-
-   # Layer 3: Signing script
-   echo "=== Keychain state: ==="
-   security list-keychains
-   security find-identity -v
-
-   # Layer 4: Actual signing
-   codesign --sign "$IDENTITY" --verbose=4 "$APP"
-   ```
-
-   **This reveals:** Which layer fails (secrets → workflow ✓, workflow → build ✗)
-
-5. **Trace Data Flow**
-
-   **WHEN error is deep in call stack:**
-
-   See `root-cause-tracing.md` in this directory for the complete backward tracing technique.
-
-   **Quick version:**
-   - Where does bad value originate?
-   - What called this with bad value?
-   - Keep tracing up until you find the source
-   - Fix at source, not at symptom
-
-### Phase 1 Escalation: Parallel Investigation
-
-When effective `use_subagent` is `true`, use parallel investigation escalation
-only after initial Phase 1 investigation stalls. When it is `false`, do not
-dispatch investigation agents; the coordinator continues Phase 1. This is an
-evidence-gathering escalation inside Phase 1, not permission to skip root-cause
-investigation.
-
-Before dispatching investigation agents, the main agent must have attempted the
-relevant initial Phase 1 steps:
-
-- Read the full error output or stack trace
-- Reproduced the failure, or documented why reproduction is not reliable yet
-- Checked recent changes or relevant diffs
-- Identified relevant files, commands, components, or system boundaries
-- Traced obvious data flow when the failure appears deep in the call stack
-
-If those steps reveal a plausible root cause, do not dispatch agents. Continue
-with Phase 2 and Phase 3.
-
-If root cause is still unknown, write an investigation brief before spawning
-agents. Include:
-
-- Symptom and observed behavior
-- Reproduction command or steps
-- Relevant error output, stack trace, or failing assertions
-- Known facts
-- Causes already ruled out
-- Relevant files, modules, components, or recent changes
-- Constraints: do not implement fixes and do not edit existing repo files
-- Expected output format
-
-Choose distinct investigation angles and dispatch at most six investigation agents, one per angle. Do not duplicate angles. Common angles:
-
-- Error-message and stack-trace interpretation
-- Recent-change regression analysis
-- Similar working pattern comparison
-- Data-flow or backward-tracing origin search
-- Async, timing, race, or flaky-test investigation
-- Configuration, environment, dependency, or boundary propagation analysis
-- Architecture-level coupling or invariant analysis
-
-Every investigator spawn must use the model and reasoning effort parsed from
-the resolved `subagent_model`, pass exact `fork_turns="none"`, and include the
-complete, self-contained investigation brief so the agent has all required
-context without inheriting the coordinator's conversation. There are no model
-exceptions based on predicted difficulty and no inherited-context exceptions.
-A capability, model, reasoning-effort, or spawn failure is an explicit blocker;
-stop rather than silently falling back.
-
-Investigation agents may read files, search, run existing tests or scripts,
-inspect read-only git history, and create temporary diagnostic scripts,
-fixtures, notes, logs, or outputs under `.codex-debug/<instance-id>/` by
-default. If a different temp location is necessary, the agent must explain why
-in its final report.
-
-Investigation agents must not edit, overwrite, format, rename, or delete
-existing repo files. They must not apply fixes, prepare patches as their
-primary output, or make broad refactors. If a diagnostic command unexpectedly
-modifies existing repo files, the agent must stop and report what changed.
-
-Each investigation agent returns:
-
-- Assigned angle
-- Files, commands, and artifacts inspected
-- Evidence found
-- Root-cause hypothesis, if any
-- Confidence level and why
-- Causes ruled out
-- Recommended next minimal diagnostic test
-- Temporary artifacts created
-- Confirmation that no existing repo files were intentionally modified
-
-After agents return, consume each report and close the agent unless there is a
-written reason to keep it open. Then synthesize agent reports into one of:
-
-- A supported root-cause hypothesis, followed by Phase 3 minimal testing
-- A next diagnostic test needed before forming the hypothesis
-- A documented "still unknown" state with what has been ruled out and whether
-  to gather more evidence or discuss architecture-level concerns with the user
-
-Do not choose a root cause by vote count alone. If reports disagree, run the
-smallest diagnostic test that distinguishes between competing hypotheses.
-Do not proceed to implementation until synthesis supports a root-cause
-hypothesis.
-
-### Phase 2: Pattern Analysis
-
-**Find the pattern before fixing:**
-
-1. **Find Working Examples**
-   - Locate similar working code in same codebase
-   - What works that's similar to what's broken?
-
-2. **Compare Against References**
-   - If implementing pattern, read reference implementation COMPLETELY
-   - Don't skim - read every line
-   - Understand the pattern fully before applying
-
-3. **Identify Differences**
-   - What's different between working and broken?
-   - List every difference, however small
-   - Don't assume "that can't matter"
-
-4. **Understand Dependencies**
-   - What other components does this need?
-   - What settings, config, environment?
-   - What assumptions does it make?
-
-### Phase 3: Hypothesis and Testing
-
-**Scientific method:**
-
-1. **Form Single Hypothesis**
-   - State clearly: "I think X is the root cause because Y"
-   - Write it down
-   - Be specific, not vague
-
-2. **Test Minimally**
-   - Make the SMALLEST possible change to test hypothesis
-   - One variable at a time
-   - Don't fix multiple things at once
-
-3. **Verify Before Continuing**
-   - Did it work? Yes → Phase 4
-   - Didn't work? Form NEW hypothesis
-   - DON'T add more fixes on top
-
-4. **When You Don't Know**
-   - Say "I don't understand X"
-   - Don't pretend to know
-   - Ask for help
-   - Research more
-
-### Phase 4: Implementation
-
-**Fix the root cause, not the symptom:**
-
-1. **Create Failing Test Case**
-   - Simplest possible reproduction
-   - Automated test if possible
-   - One-off test script if no framework
-   - MUST have before fixing
-   - Use the `simplepower:test-driven-development` skill for writing proper failing tests
-
-2. **Implement Single Fix**
-   - Address the root cause identified
-   - ONE change at a time
-   - No "while I'm here" improvements
-   - No bundled refactoring
-
-3. **Verify Fix**
-   - Test passes now?
-   - No other tests broken?
-   - Issue actually resolved?
-
-4. **If Fix Doesn't Work**
-   - STOP
-   - Count: How many fixes have you tried?
-   - If < 3: Return to Phase 1, re-analyze with new information
-   - **If ≥ 3: STOP and question the architecture (step 5 below)**
-   - DON'T attempt Fix #4 without architectural discussion
-
-5. **If 3+ Fixes Failed: Question Architecture**
-
-   **Pattern indicating architectural problem:**
-   - Each fix reveals new shared state/coupling/problem in different place
-   - Fixes require "massive refactoring" to implement
-   - Each fix creates new symptoms elsewhere
-
-   **STOP and question fundamentals:**
-   - Is this pattern fundamentally sound?
-   - Are we "sticking with it through sheer inertia"?
-   - Should we refactor architecture vs. continue fixing symptoms?
-
-   **Discuss with your human partner before attempting more fixes**
-
-   This is NOT a failed hypothesis - this is a wrong architecture.
-
-## Red Flags - STOP and Follow Process
-
-If you catch yourself thinking:
-- "Quick fix for now, investigate later"
-- "Just try changing X and see if it works"
-- "Add multiple changes, run tests"
-- "Skip the test, I'll manually verify"
-- "It's probably X, let me fix that"
-- "I don't fully understand but this might work"
-- "Pattern says X but I'll adapt it differently"
-- "Here are the main problems: [lists fixes without investigation]"
-- Proposing solutions before tracing data flow
-- Dispatching investigation agents before initial Phase 1 work
-- Dispatching more than six investigation agents
-- Giving multiple agents the same investigation angle
-- Asking investigation agents to implement fixes
-- Proceeding to fixes before you synthesize agent reports
-- **"One more fix attempt" (when already tried 2+)**
-- **Each fix reveals new problem in different place**
-
-**ALL of these mean: STOP. Return to Phase 1.**
-
-**If 3+ fixes failed:** Question the architecture (see Phase 4.5)
-
-## your human partner's Signals You're Doing It Wrong
-
-**Watch for these redirections:**
-- "Is that not happening?" - You assumed without verifying
-- "Will it show us...?" - You should have added evidence gathering
-- "Stop guessing" - You're proposing fixes without understanding
-- "Ultrathink this" - Question fundamentals, not just symptoms
-- "We're stuck?" (frustrated) - Your approach isn't working
-
-**When you see these:** STOP. Return to Phase 1.
-
-## Common Rationalizations
-
-| Excuse | Reality |
-|--------|---------|
-| "Issue is simple, don't need process" | Simple issues have root causes too. Process is fast for simple bugs. |
-| "Emergency, no time for process" | Systematic debugging is FASTER than guess-and-check thrashing. |
-| "Just try this first, then investigate" | First fix sets the pattern. Do it right from the start. |
-| "I'll write test after confirming fix works" | Untested fixes don't stick. Test first proves it. |
-| "Multiple fixes at once saves time" | Can't isolate what worked. Causes new bugs. |
-| "Reference too long, I'll adapt the pattern" | Partial understanding guarantees bugs. Read it completely. |
-| "I see the problem, let me fix it" | Seeing symptoms ≠ understanding root cause. |
-| "One more fix attempt" (after 2+ failures) | 3+ failures = architectural problem. Question pattern, don't fix again. |
-
-## Quick Reference
-
-| Phase | Key Activities | Success Criteria |
-|-------|---------------|------------------|
-| **1. Root Cause** | Read errors, reproduce, check changes, gather evidence, escalate to bounded parallel investigation only if initial Phase 1 stalls | Understand WHAT and WHY |
-| **2. Pattern** | Find working examples, compare | Identify differences |
-| **3. Hypothesis** | Form theory, test minimally | Confirmed or new hypothesis |
-| **4. Implementation** | Create test, fix, verify | Bug resolved, tests pass |
-
-## When Process Reveals "No Root Cause"
-
-If systematic investigation reveals issue is truly environmental, timing-dependent, or external:
-
-1. You've completed the process
-2. Document what you investigated
-3. Implement appropriate handling (retry, timeout, error message)
-4. Add monitoring/logging for future investigation
-
-**But:** 95% of "no root cause" cases are incomplete investigation.
+If Phase 1 has not produced a supported root-cause hypothesis, do not propose
+or implement fixes. Guessing, piling on changes, or "one quick try" violates
+the process.
+
+## Activation Gate
+
+Follow the four phases in order. Optional parallel investigation is a Phase 1
+escalation only; it never replaces coordinator-owned Root Cause investigation.
+
+Before any investigation-agent dispatch:
+
+- The coordinator must have attempted the initial Phase 1 evidence work and
+  stalled without a plausible root cause.
+- Read and validate
+  `skills/using-simplepower/references/simplepower-config.md`, resolving the
+  effective `use_subagent` and `subagent_model` values by that contract. If the
+  selected config is invalid or unreadable, stop and report the blocker.
+  Missing candidate config files or keys inherit defaults only as that contract
+  allows; do not replace invalid selected config with defaults.
+- If `use_subagent=false`, do not dispatch. Continue Phase 1 directly.
+- If `use_subagent=true`, read
+  [`parallel-investigation.md`](parallel-investigation.md) before dispatch.
+  Use the resolved model and reasoning effort, pass exact
+  `fork_turns="none"`, assign at most six distinct read-only angles, forbid
+  investigator fixes, allow temporary output only under
+  `.codex-debug/<instance-id>/`, and synthesize all reports before fixes.
+
+## Phase 1: Root Cause Investigation
+
+Start with evidence, not solutions:
+
+1. Read errors, warnings, stack traces, failing assertions, line numbers, file
+   paths, and error codes completely.
+2. Reproduce the failure consistently, or document exactly why reproduction is
+   not reliable yet and gather more data.
+3. Check recent changes: diffs, commits, dependencies, config, environment, and
+   deployment/build differences.
+4. Inspect component boundaries. For each boundary, verify inputs, outputs,
+   environment/config propagation, and state at that layer before blaming a
+   downstream symptom.
+5. Trace data flow backward from the bad value or deep stack-frame symptom to
+   its origin. For the full technique, read
+   [`root-cause-tracing.md`](root-cause-tracing.md).
+
+Phase-local stop signs: proposing solutions before tracing data flow, ignoring
+error text, assuming a component boundary is fine without evidence, dispatching
+agents before the stall/config/reference gates, dispatching more than six
+agents, duplicating angles, asking investigators to fix code, or proceeding
+before synthesis. If the human partner says "stop guessing," "is that
+happening?", or "will it show us?", treat it as missing evidence. Stop and
+resume Phase 1.
+
+## Phase 2: Pattern Comparison
+
+Find the working pattern before changing code:
+
+1. Locate similar working code, tests, configs, workflows, or scripts in the
+   same codebase.
+2. Read relevant reference implementations completely before adapting them.
+3. List differences between working and broken paths, however small.
+4. Identify dependencies, assumptions, environment, and configuration required
+   by the working pattern.
+
+Phase-local stop signs: skimming references, dismissing a difference without
+evidence, or adapting a pattern you do not fully understand. Return to the
+pattern comparison until the differences are explicit.
+
+## Phase 3: Hypothesis Testing
+
+Use the scientific method:
+
+1. State one specific hypothesis: "I think X is the root cause because Y."
+2. Create or preserve the smallest failing test, reproduction, diagnostic
+   command, or fixture that exposes the issue.
+3. Test one hypothesis with one minimal change or diagnostic at a time. Do not
+   bundle variables.
+4. Verify the result. If confirmed, proceed to Phase 4. If rejected, record what
+   it ruled out and return to Phase 1 or Phase 2 with the new evidence.
+
+Phase-local stop signs: multiple simultaneous fixes, vague theories, manual
+verification when an automated or scripted reproduction is feasible, or
+pretending to understand an unknown. Say what is unknown and gather more
+evidence.
+
+## Phase 4: Implementation and Verification
+
+Fix the confirmed root cause, not the symptom:
+
+1. Keep the failing test or minimal reproduction from Phase 3. Use
+   `simplepower:test-driven-development` when writing proper failing tests.
+2. Implement one minimal root-cause fix. No bundled refactors, formatting, or
+   "while here" improvements.
+3. Verify the targeted reproduction/test passes and run appropriate regression
+   checks. Use `simplepower:verification-before-completion` before claiming
+   success.
+4. If the fix fails, do not stack another change on top. Record the failed
+   attempt and return to Phase 1 with the new evidence.
+5. After three failed fixes, stop. The three-failure stop means question the
+   architecture with the human partner before attempting another fix. Repeated
+   failures across shared state, coupling, or unrelated symptoms usually mean
+   the pattern itself is wrong.
+
+If investigation shows the issue is truly environmental, timing-dependent, or
+external, document what was ruled out, implement handling such as retry,
+timeout, clearer error reporting, or monitoring, and verify that behavior. Most
+"no root cause" conclusions are incomplete investigations.
 
 ## Supporting Techniques
 
-These techniques are part of systematic debugging and available in this directory:
-
-- **`root-cause-tracing.md`** - Trace bugs backward through call stack to find original trigger
-- **`defense-in-depth.md`** - Add validation at multiple layers after finding root cause
-- **`condition-based-waiting.md`** - Replace arbitrary timeouts with condition polling
-
-**Related skills:**
-- **simplepower:test-driven-development** - For creating failing test case (Phase 4, Step 1)
-- **simplepower:verification-before-completion** - Verify fix worked before claiming success
-
-## Real-World Impact
-
-From debugging sessions:
-- Systematic approach: 15-30 minutes to fix
-- Random fixes approach: 2-3 hours of thrashing
-- First-time fix rate: 95% vs 40%
-- New bugs introduced: Near zero vs common
+- [`root-cause-tracing.md`](root-cause-tracing.md) — trace bugs backward to the
+  original trigger.
+- [`parallel-investigation.md`](parallel-investigation.md) — optional bounded
+  Phase 1 investigator escalation after coordinator stall.
+- [`defense-in-depth.md`](defense-in-depth.md) — add layered validation after
+  finding root cause.
+- [`condition-based-waiting.md`](condition-based-waiting.md) — replace arbitrary
+  sleeps with condition polling.

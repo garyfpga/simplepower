@@ -7,7 +7,9 @@ description: Use only when the user explicitly requests simplepower:brainstormin
 
 Help turn ideas into fully formed designs through natural collaborative dialogue.
 
-Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
+Start by understanding the current project context, then ask questions one at a
+time to refine the idea. Once you understand what you are building, present the
+design and get user approval.
 
 <HARD-GATE>
 Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
@@ -25,156 +27,77 @@ mismatched with the codebase, describe the blocker or decision point. Do not
 authorize alternate implementation work. Any alternate path requires fresh explicit approval
 from the user at the moment the deviation is needed.
 
-## Anti-Pattern: "This Is Too Simple To Need A Design"
+## Authoritative Procedure
 
-Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
+Create a task for each numbered item and complete them in order. Every project
+uses this flow, including a todo list, a single-function utility, or a config
+change. The design may be only a few sentences for simple work, but approval is
+still mandatory before implementation.
 
-## Checklist
+1. **Resolve configuration, then explore context.** Before inspecting project
+   context, resolve and validate the shared configuration by following
+   `skills/using-simplepower/references/simplepower-config.md`. Then inspect
+   relevant files, docs, and recent commits.
+   - With effective `use_subagent=false`, explorer dispatch is prohibited; do
+     all read-only inspection yourself.
+   - With effective `use_subagent=true`, optionally dispatch one read-only
+     context explorer only if repository context or task complexity makes it
+     necessary. If not necessary, do not spawn one.
+   - If you dispatch, use the model and reasoning effort parsed from
+     `subagent_model`, not a model tier; pass exactly `fork_turns="none"`; give
+     a self-contained read-only brief; forbid edits and file creation; and
+     require a report with inspected files and commands, architecture and
+     conventions, relevant recent changes, risks, and explicit no-edit
+     confirmation.
+   - If selected dispatch fails because multi-agent support is missing, the
+     configured model is unavailable, or spawning fails, stop and report that
+     blocker. Do not continue through coordinator-only work, another model, or
+     an alternate route.
+   - Synthesize any explorer report yourself. The explorer gathers context
+     only; you retain every question, approach comparison, design approval, and
+     handoff responsibility.
+2. **Offer the visual companion only when visual questions are likely.** The
+   companion is a temporary browser aid, not a mode and not an implementation
+   artifact. If upcoming questions would benefit from mockups, wireframes,
+   layout comparisons, diagrams, or other visual treatment, send exactly this
+   offer as its own message with no other content:
 
-You MUST create a task for each of these items and complete them in order:
+   > "Some of what we're working on might be easier to explain if I can show it to you in a web browser. I can put together mockups, diagrams, comparisons, and other visuals as we go. This feature is still new and can be token-intensive. Want to try it? (Requires opening a local URL)"
 
-1. **Explore project context** — check files, docs, recent commits
-2. **Offer visual companion** (if topic will involve visual questions) — this is its own message, not combined with a clarifying question. See the Visual Companion section below.
-3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
-4. **Propose 2-3 approaches** — with trade-offs and your recommendation
-5. **Present design** — in sections scaled to their complexity, get user approval after each section
-6. **Transition to implementation planning** — invoke `simplepower:writing-plans` to create the authoritative implementation plan
+   Wait for the response. If the user accepts, read
+   `skills/brainstorming/visual-companion.md` before using the companion. Decide
+   per question whether the browser helps: use it for genuinely visual choices;
+   use the terminal for requirements, scope, tradeoffs, conceptual options, and
+   text decisions. Optional inline visuals in saved Markdown plans belong to
+   `simplepower:writing-plans`, not brainstorming.
+3. **Assess scope before detailed questions.** If the request spans multiple
+   independent subsystems, flag that immediately instead of refining details for
+   an oversized plan. Help decompose the project into sub-projects, explain how
+   they relate and what order to build them, then brainstorm the first
+   sub-project through this same procedure. Each sub-project gets its own plan
+   and implementation cycle.
+4. **Ask clarifying questions one at a time.** Understand purpose, constraints,
+   success criteria, and user priorities. Prefer multiple-choice questions when
+   useful, but use open-ended questions when the answer needs room. If a topic
+   needs more exploration, split it across messages.
+5. **Compare approaches before designing.** Propose 2-3 approaches with
+   tradeoffs, lead with the recommended option, and explain why. Apply YAGNI:
+   remove unnecessary features from every option.
+6. **Present the design for approval, scaled to complexity.** Use short sections
+   for simple work and up to 200-300 words for nuanced sections. Ask after each
+   section whether it looks right so far, revise when needed, and do not move to
+   implementation until the user approves the complete design. Cover the
+   relevant architecture, components, data flow, error handling, and testing.
+   In existing codebases, follow current patterns; include targeted cleanup only
+   when it serves the approved goal; avoid unrelated refactors. Design units
+   with clear purposes, interfaces, dependencies, and testable boundaries.
+7. **Hand off only to implementation planning.** After approval, invoke
+   `simplepower:writing-plans` and pass the approved design summary,
+   constraints, decisions, and success criteria forward in the current
+   conversation. The plan file is the authoritative implementation artifact.
 
-## Project Context Exploration
-
-Before checklist item 1, resolve and validate the shared configuration by
-following `skills/using-simplepower/references/simplepower-config.md`.
-
-- With effective `use_subagent=false`, explorer dispatch is prohibited. The
-  coordinator performs all needed read-only inspection of project files,
-  documentation, and recent commits itself.
-- With effective `use_subagent=true`, the coordinator judges whether repository
-  context or task complexity makes a context explorer necessary. Permission to
-  dispatch does not require dispatch. If an explorer is not necessary, do not
-  spawn one; the coordinator performs any needed read-only inspection itself.
-- If the coordinator judges an explorer necessary, spawn exactly one read-only
-  context explorer using the model and reasoning effort parsed from
-  `subagent_model`; model tiers remain separate from that parsed selection. Pass
-  exactly `fork_turns="none"` and a self-contained brief. The explorer may
-  inspect and run read-only commands, but must not edit or create files. Require
-  its report to include inspected files and commands, architecture and
-  conventions, relevant recent changes, risks, and explicit confirmation that
-  it made no edits.
-- If a necessary enabled dispatch cannot occur because multi-agent support is
-  missing, the configured model is unavailable, or spawning fails, stop and
-  report the exact blocker as required by the shared contract. Do not continue
-  with coordinator exploration, a different model, or an alternate route.
-
-The coordinator synthesizes the explorer report and retains every clarifying
-question, approach comparison, design section, approval interaction, and the
-`simplepower:writing-plans` handoff. The explorer performs context gathering
-only. This option does not relax the hard gate or alter the checklist order.
-
-## Process Flow
-
-```dot
-digraph brainstorming {
-    "Explore project context" [shape=box];
-    "Visual questions ahead?" [shape=diamond];
-    "Offer Visual Companion\n(own message, no other content)" [shape=box];
-    "Ask clarifying questions" [shape=box];
-    "Propose 2-3 approaches" [shape=box];
-    "Present design sections" [shape=box];
-    "User approves design?" [shape=diamond];
-    "Invoke simplepower:writing-plans" [shape=doublecircle];
-
-    "Explore project context" -> "Visual questions ahead?";
-    "Visual questions ahead?" -> "Offer Visual Companion\n(own message, no other content)" [label="yes"];
-    "Visual questions ahead?" -> "Ask clarifying questions" [label="no"];
-    "Offer Visual Companion\n(own message, no other content)" -> "Ask clarifying questions";
-    "Ask clarifying questions" -> "Propose 2-3 approaches";
-    "Propose 2-3 approaches" -> "Present design sections";
-    "Present design sections" -> "User approves design?";
-    "User approves design?" -> "Present design sections" [label="no, revise"];
-    "User approves design?" -> "Invoke simplepower:writing-plans" [label="yes"];
-}
-```
-
-**The terminal state is invoking `simplepower:writing-plans`.** Do NOT write a standalone spec document, invoke frontend-design, invoke mcp-builder, or take implementation action from brainstorming. The ONLY skill you invoke after brainstorming is `simplepower:writing-plans`.
-
-## The Process
-
-**Understanding the idea:**
-
-- Check out the current project state first (files, docs, recent commits),
-  using the configured context-exploration route above
-- Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
-- If the project is too large for a single implementation plan, help the user decompose into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own plan → implementation cycle.
-- For appropriately-scoped projects, ask questions one at a time to refine the idea
-- Prefer multiple choice questions when possible, but open-ended is fine too
-- Only one question per message - if a topic needs more exploration, break it into multiple questions
-- Focus on understanding: purpose, constraints, success criteria
-
-**Exploring approaches:**
-
-- Propose 2-3 different approaches with trade-offs
-- Present options conversationally with your recommendation and reasoning
-- Lead with your recommended option and explain why
-
-**Presenting the design:**
-
-- Once you believe you understand what you're building, present the design
-- Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
-- Ask after each section whether it looks right so far
-- Cover: architecture, components, data flow, error handling, testing
-- Be ready to go back and clarify if something doesn't make sense
-
-**Design for isolation and clarity:**
-
-- Break the system into smaller units that each have one clear purpose, communicate through well-defined interfaces, and can be understood and tested independently
-- For each unit, you should be able to answer: what does it do, how do you use it, and what does it depend on?
-- Can someone understand what a unit does without reading its internals? Can you change the internals without breaking consumers? If not, the boundaries need work.
-- Smaller, well-bounded units are also easier for you to work with - you reason better about code you can hold in context at once, and your edits are more reliable when files are focused. When a file grows large, that's often a signal that it's doing too much.
-
-**Working in existing codebases:**
-
-- Explore the current structure before proposing changes. Follow existing patterns.
-- Where existing code has problems that affect the work (e.g., a file that's grown too large, unclear boundaries, tangled responsibilities), include targeted improvements as part of the design - the way a good developer improves code they're working in.
-- Don't propose unrelated refactoring. Stay focused on what serves the current goal.
-
-## After the Design
-
-After the user approves the conversational design, invoke
-`simplepower:writing-plans`. Pass the approved design summary, constraints,
-decisions, and success criteria forward in the current conversation. The plan
-file is the authoritative artifact for implementation.
-
-Do not write a standalone spec document. Do not ask the user to review a
-written spec. Do not create a spec-review loop. If the approved design is
-blocked, unsafe, underspecified, or mismatched with the codebase, describe the
-blocker and ask the user before changing the approved path.
-
-## Key Principles
-
-- **One question at a time** - Don't overwhelm with multiple questions
-- **Multiple choice preferred** - Easier to answer than open-ended when possible
-- **YAGNI ruthlessly** - Remove unnecessary features from all designs
-- **Explore alternatives** - Always propose 2-3 approaches before settling
-- **Incremental validation** - Present design, get approval before moving on
-- **Be flexible** - Go back and clarify when something doesn't make sense
-
-## Visual Companion
-
-A browser-based companion for showing mockups, diagrams, and visual options during brainstorming. Available as a tool — not a mode. Accepting the companion means it's available for questions that benefit from visual treatment; it does NOT mean every question goes through the browser.
-
-If they agree, read `skills/brainstorming/visual-companion.md`, start the localhost server, give the local URL, and use that browser companion only for questions that benefit from seeing the idea. The browser pages are temporary brainstorming aids, not generated implementation plan artifacts. Optional inline visuals in saved Markdown plans belong to `simplepower:writing-plans`, not to brainstorming.
-
-**Offering the companion:** When you anticipate that upcoming questions will involve visual content (mockups, layouts, diagrams), offer it once for consent:
-> "Some of what we're working on might be easier to explain if I can show it to you in a web browser. I can put together mockups, diagrams, comparisons, and other visuals as we go. This feature is still new and can be token-intensive. Want to try it? (Requires opening a local URL)"
-
-**This offer MUST be its own message.** Do not combine it with clarifying questions, context summaries, or any other content. The message should contain ONLY the offer above and nothing else. Wait for the user's response before continuing. If they decline, proceed with text-only brainstorming.
-
-**Per-question decision:** Even after the user accepts, decide FOR EACH QUESTION whether to use the browser or the terminal. The test: **would the user understand this better by seeing it than reading it?**
-
-- **Use the browser** for content that IS visual — mockups, wireframes, layout comparisons, architecture diagrams, side-by-side visual designs
-- **Use the terminal** for content that is text — requirements questions, conceptual choices, tradeoff lists, A/B/C/D text options, scope decisions
-
-A question about a UI topic is not automatically a visual question. "What does personality mean in this context?" is a conceptual question — use the terminal. "Which wizard layout works better?" is a visual question — use the browser.
-
-If they agree to the companion, read the detailed guide before proceeding:
-`skills/brainstorming/visual-companion.md`
+The terminal state is invoking `simplepower:writing-plans`. Do not write a
+standalone spec document, ask the user to review a written spec, create a
+spec-review loop, invoke frontend-design, invoke mcp-builder, or take any
+implementation action from brainstorming. The only skill you invoke after
+brainstorming is `simplepower:writing-plans`.

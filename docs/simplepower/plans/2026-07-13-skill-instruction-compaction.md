@@ -4,7 +4,7 @@
 
 **Goal:** Create and push `optimize/skill-compaction`, a behavior-preserving compaction of the brainstorming, systematic-debugging, and subagent-driven-development instructions.
 
-**Design Summary:** Branch A starts at `feature/simplepower-config` and changes wording and information placement only. It removes repeated explanations, uses progressive disclosure for operational detail, and loosens brittle sentence-level static assertions while preserving every gate, workflow decision, dispatch rule, safety rule, and verification stage. Acceptance is behavioral; there is no word-count or percentage target. Branch C is a separate reviewed plan built on the final Branch A commit.
+**Design Summary:** Branch A starts at `feature/simplepower-config` and primarily compacts wording and information placement. It removes repeated explanations, uses progressive disclosure for operational detail, and loosens brittle sentence-level static assertions while preserving every gate, safety rule, and verification stage. One user-approved behavior addition makes aggregate dispatch capacity-aware: launch as many ready workers as the runtime permits, then launch queued ready workers immediately as slots free instead of treating a session cap as plan serialization. Acceptance is behavioral; there is no word-count or percentage target. Branch C is a separate reviewed plan built on the final Branch A commit.
 
 **Architecture:** Each main `SKILL.md` remains the authoritative entry point and retains its mandatory decision procedure. Repeated operational detail may move to one focused reference per complex skill, with explicit read conditions in the main skill; shared configuration and Codex dispatch rules continue to use their existing canonical references. The Interface Contract below fixes the observable behavior and stable test anchors so four non-overlapping workers can compact the three skill areas and their static tests in aggregate parallel.
 
@@ -22,7 +22,7 @@
 
 - Source is `/home/gary/git/simplepower` at the approved `feature/simplepower-config` tip.
 - The coordinator creates `optimize/skill-compaction` from that tip immediately before the accepted-plan checkpoint.
-- Branch A may change instruction wording, ordering, headings, and reference placement, but must not change a workflow decision, permission, prohibition, dispatch condition, review stage, or success criterion.
+- Branch A may change instruction wording, ordering, headings, and reference placement without changing workflow decisions, permissions, prohibitions, review stages, or success criteria, except for the explicitly approved capacity-aware dispatch behavior in A-IC-4.
 - No test may impose a word count, line count, percentage reduction, or exact prose reproduction.
 - Historical plans, creation logs, pressure fixtures, public README summaries, and unrelated skills are outside scope.
 
@@ -55,7 +55,7 @@ Stable anchors are `Root Cause`, the four numbered phases, `simplepower-config.m
 The SDD skill and its three prompt templates must continue to guarantee:
 
 1. Execute only an accepted `simplepower:writing-plans` artifact with an Interface Contract, exact File Ownership, `Contract inputs`, and `Serialization required` decisions.
-2. Aggregate-dispatch every non-conflicting `sp-impl` task whose contract is sufficient; serialize only for a concrete overlap or missing dependency.
+2. Build the full aggregate set of non-conflicting `sp-impl` tasks whose contracts are sufficient. Dispatch up to the runtime's available child-agent capacity, then dispatch the next queued ready task immediately whenever a worker finishes. Capacity queuing is not `Serialization required: Yes`; never leave a slot idle while a contract-ready task remains. Serialize only for an approved overlap, missing dependency, generated-artifact condition, or intentional runtime ordering.
 3. Every dispatch uses `fork_turns="none"` and a self-contained brief. Workers do not commit, create scratch refs, expand scope, invent substitute paths, or overwrite another worker's edits.
 4. Run the FAST quick verifier after all workers, allow it only typo-level fixes, create the coordinator quick-verified checkpoint, then run exactly one REVIEW-tier review+fix agent and final verification.
 5. Preserve approved-path enforcement, implied-scope correction rules, coordinator-only accepted checkpoints, conditional final commit, agent lifecycle closure, and scratch-ref creation/diff/cleanup/preservation behavior.
@@ -93,7 +93,7 @@ No `*.c`, `*.cc`, `*.cpp`, `*.h`, `*.hpp`, `*.cu`, or `*.cuh` file is in scope, 
 | `skills/brainstorming/SKILL.md` | A1 | modify | Compact brainstorming without behavioral change | A1 only |
 | `skills/systematic-debugging/SKILL.md` | A2 | modify | Compact core four-phase procedure | A2 only |
 | `skills/systematic-debugging/parallel-investigation.md` | A2 | create | Detailed optional-investigator contract | A2 only |
-| `skills/subagent-driven-development/SKILL.md` | A3 | modify | Compact SDD lifecycle and canonical references | A3 only |
+| `skills/subagent-driven-development/SKILL.md` | A3 | modify | Compact SDD lifecycle, canonical references, and capacity-aware rolling dispatch | A3 only |
 | `skills/subagent-driven-development/implementer-prompt.md` | A3 | modify | Concise self-contained worker prompt | A3 only |
 | `skills/subagent-driven-development/quick-verifier-prompt.md` | A3 | modify | Concise verifier prompt with unchanged limits | A3 only |
 | `skills/subagent-driven-development/review-fix-prompt.md` | A3 | modify | Concise REVIEW prompt with unchanged authority | A3 only |
@@ -174,7 +174,7 @@ Expected: main and reference together satisfy A-IC-3 without duplicated full pro
 
 ### A3: Compact subagent-driven development and prompts
 
-**Goal:** Define the SDD lifecycle once and retain self-contained, concise worker/verifier/reviewer templates.
+**Goal:** Define the SDD lifecycle once, add capacity-aware rolling dispatch, and retain self-contained, concise worker/verifier/reviewer templates.
 
 **Contract inputs:** A-IC-1, A-IC-4, A-IC-5, A-IC-6.
 
@@ -196,7 +196,8 @@ Expected: main and reference together satisfy A-IC-3 without duplicated full pro
 2. Consolidate model/config text to the canonical config reference while keeping resolved-tier validation and routing decisions explicit.
 3. Create `scratch-ref-workflow.md` with the exact temporary-index, ref naming, diff, phase cleanup, and blocker-preservation mechanics; require its use at the relevant phases.
 4. Rewrite the three prompts to state each required input, permission, prohibition, output, and direct-review rule once. They remain self-contained and must not rely on inherited turns.
-5. Preserve A-IC-4 stable anchors and do not introduce Branch C's delta-reporting or minimum-test guidance.
+5. Add the A-IC-4 rolling scheduler: compute the full ready set, fill available child-agent slots, close finished workers by default, and immediately launch queued ready work as each slot frees. State explicitly that runtime capacity is queuing, not task serialization, and that a ready task must not wait while a slot is free.
+6. Preserve A-IC-4 stable anchors and do not introduce Branch C's delta-reporting or minimum-test guidance.
 
 **Verification commands:**
 
@@ -230,8 +231,9 @@ Expected: all lifecycle and role anchors remain and the prompt inputs/outputs ar
 1. Replace assertions that require full incidental sentences with checks for stable headings, references, limits, role names, and prohibited behavior from the Interface Contract.
 2. Add file-existence and main-skill-reference checks for the two new progressive-disclosure files.
 3. Retain negative checks for forbidden standalone specs, worker commits, unapproved fallbacks, agent fixes, and recursive reviewer behavior.
-4. Do not add line-count, word-count, percentage, snapshot, or exhaustive synonym assertions.
-5. Keep unrelated static tests unchanged.
+4. Add stable assertions for filling available capacity, immediate queued dispatch after completion, and the rule that capacity queuing does not change `Serialization required`.
+5. Do not add line-count, word-count, percentage, snapshot, or exhaustive synonym assertions.
+6. Keep unrelated static tests unchanged.
 
 **Verification commands:**
 
@@ -313,7 +315,7 @@ After the final checkpoint, push `optimize/skill-compaction` to `origin`. A push
 
 ## Current-Session Auto-Dispatch
 
-After both plans receive REVIEW approval, ask once for combined approval of both reviewed plans, both allocations, and immediate sequential execution. On approval, perform Branch A's accepted-plan checkpoint and immediately invoke `simplepower:subagent-driven-development` for this file. Do not offer another execution route. After Branch A is final-verified and pushed, proceed to the separately reviewed Branch C plan and its own accepted-plan checkpoint under the same combined approval.
+After both plans receive REVIEW approval, ask once for combined approval of both reviewed plans, both allocations, and immediate sequential execution. On approval, perform Branch A's accepted-plan checkpoint and immediately invoke `simplepower:subagent-driven-development` for this file. In the current four-slot session, keep the coordinator slot and launch A1, A2, and A3 first; as soon as any finishes and its lifecycle checkpoint frees a slot, launch A4 without waiting for the other two. This runtime queue does not change A4's `Serialization required: No` contract. Do not offer another execution route. After Branch A is final-verified and pushed, proceed to the separately reviewed Branch C plan and its own accepted-plan checkpoint under the same combined approval.
 
 ## Final Verification
 

@@ -121,6 +121,31 @@ require_regex_contains() {
     fi
 }
 
+require_contains_all() {
+    local path="$1"
+    local description="$2"
+    shift 2
+
+    local missing=()
+    local needle
+
+    for needle in "$@"; do
+        if ! grep -Fq -- "$needle" "$REPO_ROOT/$path"; then
+            missing+=("$needle")
+        fi
+    done
+
+    if [[ "${#missing[@]}" -eq 0 ]]; then
+        pass "$description"
+    else
+        fail "$description"
+        for needle in "${missing[@]}"; do
+            echo "    missing: $needle"
+        done
+        echo "    in: $path"
+    fi
+}
+
 require_no_active_match() {
     local pattern="$1"
     local description="$2"
@@ -319,19 +344,22 @@ require_contains "$config_reference" 'do not govern mandatory plan reviewers' "o
 require_not_contains "skills/brainstorming/SKILL.md" "docs/simplepower/specs" "brainstorming no longer writes standalone specs"
 require_not_contains "skills/brainstorming/SKILL.md" "User reviews written spec" "brainstorming no longer has a written spec review gate"
 require_dir_absent "skills/brainstorming/spec-document-reviewer-prompt.md" "old brainstorming spec reviewer prompt is absent"
-require_contains "skills/brainstorming/SKILL.md" "simplepower:writing-plans" "brainstorming still hands off to writing-plans"
-require_contains "skills/brainstorming/SKILL.md" "simplepower-config.md" "brainstorming reads the shared optional-subagent config"
-require_contains 'skills/brainstorming/SKILL.md' 'With effective `use_subagent=false`, explorer dispatch is prohibited.' "use_subagent false hard-gates optional brainstorming explorer"
-require_contains "skills/brainstorming/SKILL.md" "coordinator judges whether repository" "brainstorming explorer is deployed only when coordinator sees necessity"
-require_contains "skills/brainstorming/SKILL.md" "context or task complexity makes a context explorer necessary" "brainstorming explorer is deployed only when coordinator sees necessity"
-require_contains "skills/brainstorming/SKILL.md" "If the coordinator judges an explorer necessary, spawn exactly one read-only" "brainstorming can dispatch exactly one optional explorer when needed"
-require_contains "skills/brainstorming/SKILL.md" "context explorer using the model and reasoning effort parsed from" "brainstorming can dispatch exactly one optional explorer when needed"
-require_contains "skills/brainstorming/SKILL.md" 'fork_turns="none"' "brainstorming explorer receives no inherited turns"
+require_file "skills/brainstorming/visual-companion.md" "brainstorming visual companion guide exists"
+require_contains_all "skills/brainstorming/SKILL.md" "brainstorming keeps the hard gate, approved path, and planning handoff contract" \
+    "<HARD-GATE>" \
+    "Approved Path Enforcement" \
+    "fresh explicit approval" \
+    "simplepower-config.md" \
+    'fork_turns="none"' \
+    "visual-companion.md" \
+    "simplepower:writing-plans"
+require_contains_all "skills/brainstorming/SKILL.md" "brainstorming keeps optional explorer and browser-aid boundaries" \
+    "use_subagent=false" \
+    "optionally dispatch one read-only" \
+    "repository context or task complexity" \
+    "temporary browser aid" \
+    "not brainstorming"
 require_contains "skills/brainstorming/visual-companion.md" ".simplepower/brainstorm" "visual companion uses the Simple Power brainstorming session path"
-require_contains "skills/brainstorming/SKILL.md" "start the localhost server" "brainstorming visual companion starts a localhost server"
-require_contains "skills/brainstorming/SKILL.md" "give the local URL" "brainstorming visual companion gives a local URL"
-require_contains "skills/brainstorming/SKILL.md" "temporary brainstorming aids, not generated implementation plan artifacts" "brainstorming distinguishes temporary companion pages from plan artifacts"
-require_contains "skills/brainstorming/SKILL.md" 'Optional inline visuals in saved Markdown plans belong to `simplepower:writing-plans`, not to brainstorming' "brainstorming distinguishes saved Markdown plan visuals"
 require_contains "skills/brainstorming/visual-companion.md" "temporary localhost aid for brainstorming" "visual companion guide documents localhost behavior"
 require_contains "skills/brainstorming/visual-companion.md" "distinct from optional inline visuals in saved Markdown implementation plans" "visual companion guide distinguishes saved Markdown plan visuals"
 require_contains "skills/brainstorming/scripts/start-server.sh" ".simplepower/brainstorm" "brainstorm server startup script uses the Simple Power session path"
@@ -499,99 +527,115 @@ require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Approv
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "blocking issue" "plan reviewer treats approved path violations as blocking"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "docs-only substitute" "plan reviewer rejects docs-only substitutes"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "stub substitute" "plan reviewer rejects stub substitutes"
-require_contains "skills/subagent-driven-development/SKILL.md" "Approved Path Enforcement" "SDD documents approved path enforcement"
-require_contains "skills/subagent-driven-development/SKILL.md" "fresh explicit approval" "SDD requires fresh approval for alternate paths"
-require_contains "skills/subagent-driven-development/SKILL.md" "backup plan" "SDD blocks backup plans"
-require_contains "skills/subagent-driven-development/SKILL.md" "escape plan" "SDD blocks escape plans"
-require_contains "skills/subagent-driven-development/SKILL.md" "execution-mode switch" "SDD blocks unapproved execution-mode switches"
-require_contains "skills/subagent-driven-development/SKILL.md" "Implied Write-Scope Corrections" "SDD documents implied write-scope corrections"
-require_contains "skills/subagent-driven-development/SKILL.md" "implied-scope omission" "SDD classifies implied-scope omissions"
-require_contains "skills/subagent-driven-development/SKILL.md" "true scope expansion" "SDD classifies true scope expansions"
-require_contains "skills/subagent-driven-development/SKILL.md" "update the plan's File Ownership entry for that task" "SDD lets coordinator correct implied omissions"
-require_contains "skills/subagent-driven-development/SKILL.md" "If the missing file or strategy is not already implied" "SDD stops for true scope expansion approval"
-require_contains "skills/subagent-driven-development/SKILL.md" "Interface Contract" "SDD requires Interface Contract"
-require_contains "skills/subagent-driven-development/SKILL.md" "Contract inputs" "SDD requires Contract inputs"
-require_contains "skills/subagent-driven-development/SKILL.md" "Serialization required" "SDD requires Serialization required"
-require_contains "skills/subagent-driven-development/SKILL.md" "aggregate parallel dispatch" "SDD requires aggregate parallel dispatch"
-
-require_contains "skills/subagent-driven-development/implementer-prompt.md" "Approved Path Enforcement" "implementer prompt documents approved path enforcement"
-require_contains "skills/subagent-driven-development/implementer-prompt.md" "BLOCKED" "implementer prompt reports blocked substitutions"
-require_contains "skills/subagent-driven-development/implementer-prompt.md" "docs-only substitute" "implementer prompt blocks docs-only substitutes"
-require_contains "skills/subagent-driven-development/implementer-prompt.md" "stub substitute" "implementer prompt blocks stub substitutes"
-require_contains "skills/subagent-driven-development/implementer-prompt.md" "suspected implied-scope omission" "implementer prompt reports suspected implied omissions"
-require_contains "skills/subagent-driven-development/implementer-prompt.md" "Do not edit the out-of-scope file yourself" "implementer prompt forbids self-expanding scope"
-require_contains "skills/subagent-driven-development/implementer-prompt.md" "Interface Contract" "implementer prompt references the Interface Contract"
-require_contains "skills/subagent-driven-development/implementer-prompt.md" "Contract inputs" "implementer prompt references Contract inputs"
-require_contains "skills/subagent-driven-development/implementer-prompt.md" "contract mismatches" "implementer prompt reports contract mismatches"
-
-require_contains "skills/subagent-driven-development/SKILL.md" "sp-impl" "SDD references the sp-impl worker"
-require_contains "skills/subagent-driven-development/SKILL.md" "aggregate parallel implementation" "SDD documents aggregate parallel implementation"
-require_contains "skills/subagent-driven-development/SKILL.md" "quick-verifier-prompt.md" "SDD references quick-verifier-prompt.md"
-require_contains "skills/subagent-driven-development/SKILL.md" "review-fix-prompt.md" "SDD references review-fix-prompt.md"
-require_contains "skills/subagent-driven-development/SKILL.md" "FAST, NORMAL, BEST, or REVIEW" "SDD documents four-tier model allocation"
-require_contains "skills/subagent-driven-development/SKILL.md" "SIMPLEPOWER_REVIEW_MODEL" "SDD documents the REVIEW model env var"
-require_contains "skills/subagent-driven-development/SKILL.md" "SIMPLEPOWER_NORMAL_MODEL" "SDD documents the NORMAL model env var"
-require_contains "skills/subagent-driven-development/SKILL.md" "present TOML file must validate in full" "SDD rejects invalid lower-precedence TOML files"
-require_contains "skills/subagent-driven-development/SKILL.md" "hide malformed TOML" "SDD prevents higher layers from hiding invalid config"
-require_contains "skills/subagent-driven-development/SKILL.md" "four non-empty" "SDD ignores empty model environment values"
-require_contains "skills/subagent-driven-development/SKILL.md" '| FAST | `fast_model` | `SIMPLEPOWER_FAST_MODEL` | `gpt-5.3-codex-spark-xhigh` |' "SDD defaults FAST to Spark xhigh"
-require_contains "skills/subagent-driven-development/SKILL.md" "The quick verifier uses the approved FAST tier by default" "SDD routes quick verifier through FAST"
-require_contains "skills/subagent-driven-development/SKILL.md" "gpt-5.3-codex-spark" "SDD documents the default FAST Spark model"
-require_contains "skills/subagent-driven-development/SKILL.md" "Do not read model assignments from any" "SDD documents AGENTS model assignment retirement"
-require_contains "skills/subagent-driven-development/SKILL.md" 'Do not read model assignments from any' "SDD blocks nested AGENTS scanning"
-require_contains "skills/subagent-driven-development/SKILL.md" '`AGENTS.md` file.' "SDD blocks nested AGENTS scanning"
-require_contains "skills/subagent-driven-development/SKILL.md" "REVIEW: plan reviewer and final review+fix." "SDD routes the review roles to REVIEW"
-require_contains "skills/subagent-driven-development/SKILL.md" "Review+fix agent: always use REVIEW" "SDD routes review+fix through REVIEW"
+require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD keeps approved-path, contract, and model-routing anchors" \
+    "## Approved Path" \
+    "fresh explicit approval" \
+    "backup plan" \
+    "escape plan" \
+    "execution-mode switch" \
+    "Implied Write-Scope Corrections" \
+    "implied-scope omission" \
+    "true scope expansion" \
+    "Interface Contract" \
+    "File Ownership" \
+    "Contract inputs" \
+    "Serialization required" \
+    "sp-impl" \
+    "simplepower-config.md" \
+    "four non-empty" \
+    "Quick verifier: use FAST" \
+    "Review+fix: use REVIEW" \
+    "gpt-5.3-codex-spark" \
+    "Do not read model assignments" \
+    'fork_turns="none"'
+require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD keeps lifecycle, commit, and scratch-ref guardrails" \
+    "Default lifecycle decision: close." \
+    "written reason" \
+    "No worker commits." \
+    "No per-task commits." \
+    "quick-verified implementation checkpoint" \
+    "Create a final commit only if uncommitted" \
+    "refs/simplepower/scratch/<run-id>/" \
+    "quick-verifier/before" \
+    "quick-verifier/after" \
+    "review-fix/before" \
+    "review-fix/after" \
+    "scratch-ref cleanup status or cleanup commands"
+require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD keeps capacity-aware rolling dispatch separate from true serialization" \
+    "capacity-aware rolling" \
+    "build the complete ready set" \
+    "queued ready task" \
+    "queued ready tasks" \
+    "do not mark them serialized merely because capacity is full" \
+    "available slot idle" \
+    "dispatch the next queued ready task into the freed slot" \
+    "Do not treat capacity limits as serialization" \
+    "as soon as a slot opens" \
+    "overlapping write scopes" \
+    "missing or ambiguous contract" \
+    "required generated artifact" \
+    "sequential runtime/migration"
+require_file "skills/subagent-driven-development/scratch-ref-workflow.md" "scratch-ref workflow reference file exists"
+require_contains "skills/subagent-driven-development/SKILL.md" "scratch-ref-workflow.md" "SDD references the scratch-ref workflow guide"
 require_contains "skills/subagent-driven-development/SKILL.md" "simplepower:writing-plans" "SDD points at the Simple Power planning skill"
 require_contains "skills/subagent-driven-development/SKILL.md" "simplepower:test-driven-development" "SDD points at the Simple Power TDD skill"
-require_contains "skills/subagent-driven-development/SKILL.md" "subagent lifecycle checkpoint" "SDD requires subagent lifecycle checkpoints"
-require_contains "skills/subagent-driven-development/SKILL.md" "Default lifecycle decision: close" "SDD defaults finished subagents to close"
-require_contains "skills/subagent-driven-development/SKILL.md" "written reason" "SDD requires written reasons for keeping finished subagents open"
-require_contains "skills/subagent-driven-development/SKILL.md" 'fork_turns="none"' "SDD isolates every mandatory subagent dispatch"
-require_contains "skills/subagent-driven-development/SKILL.md" "one REVIEW-tier review+fix agent" "SDD requires one REVIEW-tier review+fix agent"
-require_contains "skills/subagent-driven-development/SKILL.md" "coordinator checkpoint commit" "SDD requires a coordinator checkpoint commit"
-require_contains "skills/subagent-driven-development/SKILL.md" "final commit only if uncommitted changes remain" "SDD keeps the final commit conditional"
-require_contains "skills/subagent-driven-development/SKILL.md" "refs/simplepower/scratch/<run-id>/quick-verifier/before" "SDD names the quick-verifier before ref"
-require_contains "skills/subagent-driven-development/SKILL.md" "refs/simplepower/scratch/<run-id>/quick-verifier/after" "SDD names the quick-verifier after ref"
-require_contains "skills/subagent-driven-development/SKILL.md" "refs/simplepower/scratch/<run-id>/review-fix/before" "SDD names the review-fix before ref"
-require_contains "skills/subagent-driven-development/SKILL.md" "refs/simplepower/scratch/<run-id>/review-fix/after" "SDD names the review-fix after ref"
-require_contains "skills/subagent-driven-development/SKILL.md" 'git diff refs/simplepower/scratch/<run-id>/<phase>/<before-label> refs/simplepower/scratch/<run-id>/<phase>/<after-label> -- $APPROVED_CHANGED_FILES' "SDD documents the scratch diff command"
-require_contains "skills/subagent-driven-development/SKILL.md" "git update-ref -d" "SDD documents scratch cleanup with git update-ref -d"
-require_contains "skills/subagent-driven-development/SKILL.md" "cleanup command instead of deleting evidence" "SDD preserves scratch refs on blockers"
-require_contains "skills/subagent-driven-development/SKILL.md" "accepted coordinator checkpoints: accepted plan, quick-verified" "SDD preserves the accepted checkpoint count"
-require_contains "skills/systematic-debugging/SKILL.md" "parallel investigation escalation" "systematic-debugging documents parallel investigation escalation"
-require_contains "skills/systematic-debugging/SKILL.md" "only after initial Phase 1 investigation stalls" "systematic-debugging prevents immediate agent dispatch"
-require_contains "skills/systematic-debugging/SKILL.md" "do not dispatch agents" "systematic-debugging skips escalation when root cause is plausible"
-require_contains "skills/systematic-debugging/SKILL.md" "investigation brief" "systematic-debugging requires a brief before agent dispatch"
-require_contains "skills/systematic-debugging/SKILL.md" "initial Phase 1" "systematic-debugging requires initial Phase 1 work before escalation"
-require_contains "skills/systematic-debugging/SKILL.md" "at most six investigation agents" "systematic-debugging caps investigation agents"
-require_contains "skills/systematic-debugging/SKILL.md" "simplepower-config.md" "systematic-debugging reads the shared optional-subagent config"
-require_contains "skills/systematic-debugging/SKILL.md" "If neither candidate" "systematic-debugging uses shared defaults when both config files are absent"
-require_contains "skills/systematic-debugging/SKILL.md" 'effective `use_subagent` is `false`' "disabled systematic debugging does not escalate"
-require_contains "skills/systematic-debugging/SKILL.md" 'resolved `subagent_model`' "systematic-debugging uses the configured optional model"
-require_contains "skills/systematic-debugging/SKILL.md" 'fork_turns="none"' "systematic-debugging investigators receive no inherited turns"
-require_contains "skills/systematic-debugging/SKILL.md" ".codex-debug/<instance-id>/" "systematic-debugging defines the temporary diagnostics directory"
-require_contains "skills/systematic-debugging/SKILL.md" "do not implement fixes" "systematic-debugging forbids fixes by investigation agents"
-require_contains "skills/systematic-debugging/SKILL.md" "Assigned angle" "systematic-debugging requires structured investigation-agent output"
-require_contains "skills/systematic-debugging/SKILL.md" "synthesize agent reports" "systematic-debugging requires synthesis before implementation"
-require_contains "skills/subagent-driven-development/implementer-prompt.md" "sp-impl" "implementer prompt names the sp-impl worker"
+require_contains_all "skills/subagent-driven-development/implementer-prompt.md" "implementer prompt keeps self-contained sp-impl boundaries" \
+    "sp-impl" \
+    "Interface Contract" \
+    "Contract inputs" \
+    "BLOCKED" \
+    "implied-scope omission" \
+    "do not edit the out-of-scope file" \
+    "make docs-only" \
+    "create stubs" \
+    "spawn subagents" \
+    "workflow skills"
 require_file "skills/subagent-driven-development/quick-verifier-prompt.md" "quick verifier prompt file exists"
 require_file "skills/subagent-driven-development/review-fix-prompt.md" "review+fix prompt file exists"
-require_contains "skills/subagent-driven-development/review-fix-prompt.md" "REVIEW-tier review+fix agent" "review+fix prompt is REVIEW-tier"
-require_contains "skills/subagent-driven-development/review-fix-prompt.md" "Do not run Codex CLI" "review+fix prompt forbids Codex CLI"
-require_contains "skills/subagent-driven-development/review-fix-prompt.md" "Do not spawn subagents" "review+fix prompt forbids subagents"
-require_contains "skills/subagent-driven-development/review-fix-prompt.md" "Do not invoke Simple Power skills" "review+fix prompt forbids skill recursion"
-require_contains "skills/subagent-driven-development/review-fix-prompt.md" "Do not restart execution" "review+fix prompt forbids restart routing"
-require_contains "skills/subagent-driven-development/review-fix-prompt.md" "Do not reroute the workflow" "review+fix prompt forbids rerouting"
-require_contains "skills/subagent-driven-development/review-fix-prompt.md" "Perform the assigned review directly in the current worker" "review+fix prompt requires direct review"
-require_contains "skills/subagent-driven-development/quick-verifier-prompt.md" "every present TOML" "quick verifier resolution rejects invalid lower-precedence TOML files"
-require_contains "skills/subagent-driven-development/quick-verifier-prompt.md" "non-empty" "quick verifier ignores an empty FAST environment value"
-require_contains "skills/subagent-driven-development/review-fix-prompt.md" "every present TOML" "review+fix resolution rejects invalid lower-precedence TOML files"
-require_contains "skills/subagent-driven-development/review-fix-prompt.md" "non-empty" "review+fix ignores an empty REVIEW environment value"
-require_contains "skills/subagent-driven-development/quick-verifier-prompt.md" "Do not create, update, or delete scratch refs." "quick verifier prompt keeps scratch refs coordinator-owned"
-require_contains "skills/subagent-driven-development/quick-verifier-prompt.md" "quick-verifier/after" "quick verifier prompt names the after scratch ref"
-require_contains "skills/subagent-driven-development/review-fix-prompt.md" "Do not create, update, or delete scratch refs." "review+fix prompt keeps scratch refs coordinator-owned"
-require_contains "skills/subagent-driven-development/review-fix-prompt.md" "review-fix/before" "review+fix prompt names the before scratch ref"
+require_contains_all "skills/subagent-driven-development/quick-verifier-prompt.md" "quick verifier prompt keeps FAST limited-fix guardrails" \
+    "FAST quick verifier" \
+    "tiny typo-level" \
+    "NON_TRIVIAL_FAILURES" \
+    "quick-verifier/before" \
+    "spawn subagents" \
+    "workflow skills"
+require_contains_all "skills/subagent-driven-development/review-fix-prompt.md" "review+fix prompt keeps direct REVIEW execution guardrails" \
+    "REVIEW-tier review+fix agent" \
+    "Perform the assigned review directly in this worker" \
+    "Do not run Codex CLI" \
+    "spawn subagents" \
+    "workflow skills" \
+    "reroute execution" \
+    "review-fix/before"
+require_file "skills/systematic-debugging/parallel-investigation.md" "parallel investigation reference file exists"
+require_contains "skills/systematic-debugging/SKILL.md" "parallel-investigation.md" "systematic-debugging main skill references the parallel investigation guide"
+require_contains_all "skills/systematic-debugging/SKILL.md" "systematic-debugging keeps the four-phase root-cause workflow" \
+    "Root Cause" \
+    "Phase 1" \
+    "Phase 2" \
+    "Phase 3" \
+    "Phase 4" \
+    "simplepower-config.md" \
+    'fork_turns="none"' \
+    ".codex-debug/<instance-id>/" \
+    "After three failed fixes, stop." \
+    "architecture with the human partner"
+require_contains_all "skills/systematic-debugging/SKILL.md" "systematic-debugging keeps bounded Phase 1 escalation gates" \
+    "stalled without a plausible root cause" \
+    "use_subagent=false" \
+    'If `use_subagent=true`, read' \
+    "at most six distinct read-only angles" \
+    "investigator fixes" \
+    "synthesize all reports before fixes"
+require_contains_all "skills/systematic-debugging/parallel-investigation.md" "parallel investigation keeps bounded read-only investigator rules" \
+    "investigation brief" \
+    "plausible root cause" \
+    "at most six distinct angles" \
+    "read-only angle" \
+    "do not implement fixes" \
+    ".codex-debug/<instance-id>/" \
+    "Assigned angle" \
+    "Coordinator Synthesis"
 require_dir_absent "skills/subagent-driven-development/impl-reviewer-prompt.md" "retired inline reviewer prompt is absent"
 require_dir_absent "skills/subagent-driven-development/reviewer-prompt.md" "retired per-wave reviewer prompt is absent"
 require_dir_absent "skills/subagent-driven-development/fixer-prompt.md" "retired per-wave fixer prompt is absent"
@@ -744,7 +788,9 @@ require_contains "skills/subagent-driven-development/SKILL.md" "No per-task comm
 require_contains "AGENTS.md" "Do not add worker-owned or per-task commit requirements" "AGENTS forbids worker-owned and per-task commits"
 require_contains "AGENTS.md" "Coordinator-owned commits are allowed only at approved checkpoints" "AGENTS allows coordinator checkpoint commits"
 require_contains "skills/writing-plans/SKILL.md" "No worker commits or per-task commits" "writing-plans clarifies the worker commit restriction"
-require_contains "skills/subagent-driven-development/SKILL.md" "No worker commits or per-task commits" "SDD clarifies the worker commit restriction"
+require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD clarifies the worker commit restriction" \
+    "No worker commits." \
+    "No per-task commits."
 require_dir_absent "skills/subagent-driven-development/wave-reviewer-fixer-prompt.md" "retired wave reviewer/fixer prompt file is absent"
 require_no_active_match "wave-reviewer-fixer-prompt[.]md" "active files do not reference the retired combined reviewer/fixer prompt" "${active_paths[@]}"
 

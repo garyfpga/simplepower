@@ -5,29 +5,28 @@ description: Use only when the user explicitly requests simplepower:subagent-dri
 
 # Subagent-Driven Development
 
-## Overview
+## Purpose
 
-Execute an approved Simple Power plan through plan-first parallel
-implementation with aggregate parallel dispatch. Read the plan, validate file
-ownership, the Interface Contract, task Contract inputs, and
-`Serialization required` fields, then dispatch the full set of
-contract-compatible `sp-impl` file-edit workers before waiting. Execute any
-explicitly serialized implementation tasks only when their approved concrete
-reason is satisfied. After all implementation workers finish, run the quick
-verifier using the approved FAST tier with lint/build/tests and timeouts. By
-default that resolves to `model="gpt-5.3-codex-spark"` and
-`reasoning_effort="xhigh"`. Commit the quick-verified implementation, then
-dispatch one REVIEW-tier review+fix agent before final verification and final
-commit.
+Execute an accepted `simplepower:writing-plans` implementation plan in the
+current Codex session. The plan is authoritative and must contain an
+`Interface Contract`, `File Ownership`, task `Contract inputs`,
+`Serialization required`, verification commands, and model allocation.
 
-This workflow uses aggregate parallel dispatch: the accepted plan's Interface
-Contract satisfies cross-task coordination for non-overlapping workers,
-including test workers targeting plan-defined APIs. The coordinator owns
-approved-scope validation, lifecycle decisions, checkpoint commits, final
-verification, and final reporting while implementation workers edit only their
-assigned files.
+This skill is the coordinator workflow for `sp-impl` workers, the FAST quick
+verifier, and the single REVIEW review+fix pass. It uses capacity-aware rolling
+aggregate scheduling: build the complete ready set, fill every available child
+agent slot with ready non-conflicting work, and immediately dispatch the next
+queued ready task whenever a worker finishes and is lifecycle-closed.
 
-## Approved Path Enforcement
+Capacity queuing is not `Serialization required: Yes`. A task is truly
+serialized only for an approved concrete reason: overlapping write scopes,
+missing or ambiguous contract/dependency, a required generated artifact that
+must exist first, or intentional sequential runtime/migration ordering.
+
+Stable report terms: `approved-path`, `no-worker-commit`, and
+`final commit condition`.
+
+## Approved Path
 
 The approved plan is authoritative. Do not use a backup plan, escape plan,
 fallback implementation, reduced scope, docs-only substitute, stub substitute,
@@ -35,582 +34,337 @@ skipped verification, skipped review, execution-mode switch, or alternate
 implementation strategy unless the user gives fresh explicit approval at the
 moment the deviation is needed.
 
-Before dispatch, after worker results, before quick verification, before the
-coordinator checkpoint commit, before the review+fix pass, before final
-verification, and before the final commit, compare actual work against the
-approved plan, File Ownership entries, and write scopes. If work is incomplete,
-substituted, stubbed, docs-only, out of scope, missing required verification,
-or based on a different execution mode, do not accept it as progress.
+At each lifecycle boundary, compare actual work against the approved plan,
+`File Ownership`, task write scopes, `Contract inputs`, and required
+verification:
 
-If the approved path is blocked, stop, report the exact mismatch and current
-status, and ask the user before changing approach. Diagnostic investigation is
-allowed; alternate implementation work is not.
+- before any dispatch;
+- after each worker, quick-verifier, or review+fix result;
+- before quick verification;
+- before the quick-verified implementation checkpoint;
+- before review+fix;
+- before final verification;
+- before the final commit.
+
+If work is incomplete, substituted, stubbed, docs-only, out of scope, missing
+required verification, or based on a different execution mode, do not accept it
+as progress. Stop, report the exact mismatch and current status, and ask the
+user before changing approach. Diagnostic investigation is allowed; alternate
+implementation work is not.
 
 ## Implied Write-Scope Corrections
 
 When a worker reports that a required file is outside its assigned write scope,
-or the coordinator detects that a task step needs a file missing from the task
-write scope, classify the mismatch before asking the user.
+or the coordinator detects that a task needs a file missing from its write
+scope, classify the mismatch before asking the user.
 
 An `implied-scope omission` exists only when the missing file is already named
 or structurally required by the approved spec, plan file-structure section,
 task `Files:` block, task prose, task snippets, verification instructions, or
 public declaration requirements. For an implied-scope omission, the coordinator
-may update the plan's File Ownership entry for that task, update the task write
-scope, record a short note describing the correction, and continue with the
-same approved task.
+may update the plan's `File Ownership` entry for that task, update the task
+write scope, record the correction, and continue with the same approved task.
 
 A `true scope expansion` exists when the missing file or strategy is not
-already implied by approved text. If the missing file or strategy is not
-already implied, stop and ask the user for fresh explicit approval before
-changing scope, strategy, verification, review approach, or implementation
-work.
-
-If the missing file or strategy is not already implied, treat it as a true
-scope expansion.
+already implied by approved text. Stop and ask the user for fresh explicit
+approval before changing scope, strategy, verification, review approach, or
+implementation work.
 
 Workers and review+fix agents must not self-expand write scope. They report
 `BLOCKED` or `NEEDS_CONTEXT`; the coordinator owns classification and any plan
 correction.
 
-## When to Use
+## Required Read Points
 
-Use this workflow when:
+Before dispatching any subagent, read the approved plan and validate the
+sections named above.
 
-- The Simple Power plan is approved and ready for execution.
-- The plan defines an Interface Contract, file ownership, task Contract inputs,
-  `Serialization required` fields, verification, and model allocation.
-- Multiple implementation tasks can run concurrently without overlapping write
-  scopes, with coordination satisfied by the accepted Interface Contract.
-- Test workers may target plan-defined APIs before implementation workers have
-  finished those APIs, because the approved Interface Contract is the shared
-  contract for the aggregate worker set.
-- The coordinator can dispatch subagents directly from the current session.
+Before creating, diffing, deleting, or reporting scratch refs, read
+`./scratch-ref-workflow.md` and use its command shapes. Scratch refs live only
+under `refs/simplepower/scratch/<run-id>/` and are coordinator-owned local
+review anchors, not branches, accepted commits, pushed refs, merged refs,
+rebased refs, worker commits, or task commits.
 
-Do not use this workflow for unstable plans, broad design work, or work that
-requires serialization because of overlapping writes, missing or ambiguous
-contracts, generated artifacts that must exist first, or intentional sequential
-runtime or migration ordering.
+## Model And Config Routing
 
-## The Process
+Before any model-controlled dispatch, validate model configuration by following
+`skills/using-simplepower/references/simplepower-config.md`. Validate every
+present TOML file in full before overlays; a higher layer must not hide
+malformed TOML, unknown keys, wrong types, or invalid model values in a lower
+layer.
 
-1. Read the approved plan and model allocation.
-2. Validate the Interface Contract, file ownership, task Contract inputs, and
-   `Serialization required` fields.
-3. Identify the aggregate worker set and any explicitly serialized tasks. The
-   aggregate set is all `sp-impl` tasks whose approved write scopes do not
-   overlap, whose Contract inputs are satisfied by the accepted Interface
-   Contract, and whose `Serialization required` field is `No`.
-4. Dispatch the full aggregate worker set before waiting.
-5. Wait for the aggregate workers to finish.
-6. Execute serialized `sp-impl` tasks only at the required point named by their
-   concrete reason. If the point is unclear, stop for user direction before
-   quick verification.
-7. Run a lifecycle checkpoint and close finished workers by default.
-8. Validate changed files against approved write scopes.
-9. Record the scratch-ref run id if one is not already active, then create
-   `refs/simplepower/scratch/<run-id>/quick-verifier/before` for the approved
-   file list before quick verifier dispatch. If this fails, stop before
-   relying on the missing anchor.
-10. Dispatch the quick verifier using the approved FAST tier. The built-in
-    FAST value `gpt-5.3-codex-spark-xhigh` resolves to
-    `model="gpt-5.3-codex-spark"` and `reasoning_effort="xhigh"`.
-11. Let the quick verifier fix only tiny typo-level issues.
-12. If quick verifier tiny fixes changed files, validate those files, create
-    `refs/simplepower/scratch/<run-id>/quick-verifier/after`, and inspect the
-    quick-verifier scratch diff before the implementation checkpoint. If no
-    files changed, omit the `after` ref.
-13. Stop for user direction if quick verification finds non-trivial failures,
-    before further implementation, review, or commit work.
-14. Commit the quick-verified implementation before final review.
-15. Delete quick-verifier scratch refs only after the quick-verified
-    implementation checkpoint succeeds, or after a no-empty-commit case is
-    explicitly recorded as the successful checkpoint outcome.
-16. Create `refs/simplepower/scratch/<run-id>/review-fix/before` from the
-    quick-verified checkpoint state before dispatching review+fix.
-17. Dispatch one REVIEW-tier review+fix agent with the whole diff and approved
-    plan.
-18. If review+fix changes files, validate those files, create
-    `refs/simplepower/scratch/<run-id>/review-fix/after`, and inspect the
-    review+fix scratch diff before final verification. If no files changed,
-    omit the `after` ref.
-19. Run final verification.
-20. Commit final changes.
-21. Delete review+fix scratch refs after the final checkpoint succeeds, then
-    run a cleanup check for remaining refs under
-    `refs/simplepower/scratch/<run-id>/`.
-22. Report verification results, commit SHAs, changed files, aggregate
-    dispatch decisions, any serialized tasks with reasons, subagent lifecycle
-    status, the scratch run id when refs were created, and scratch-ref cleanup
-    status or cleanup commands when refs are preserved.
+Resolution order is: built-in defaults, `~/.codex/simplepower.toml`,
+repository `<git-root>/simplepower.toml`, the four non-empty
+`SIMPLEPOWER_*_MODEL` environment overrides, then explicit current-session
+instructions. Missing higher-layer keys inherit. Do not read model assignments
+from any `AGENTS.md` file. Parse the final dash-delimited segment as
+`reasoning_effort`; valid suffixes are `low`, `medium`, `high`, `xhigh`,
+`max`, and `ultra`.
+
+Routing decisions:
+
+- `sp-impl`: use the plan-approved FAST, NORMAL, or BEST tier. Escalate FAST
+  to NORMAL/BEST when the work is less mechanical than planned; escalate NORMAL
+  to BEST when the task is broad, ambiguous, behavior-shaping, high risk, or
+  hard to verify. Record the reason.
+- Quick verifier: use FAST. With built-in defaults this resolves to
+  `model="gpt-5.3-codex-spark"` and `reasoning_effort="xhigh"`.
+- Review+fix: use REVIEW. Exactly one REVIEW review+fix agent runs after the
+  quick-verified implementation checkpoint.
+
+Every Simple Power dispatch uses `fork_turns="none"` and a self-contained
+prompt. There are no conversation-history inheritance exceptions.
+
+## Authoritative Lifecycle
+
+1. Read the accepted plan and model allocation. Confirm it is a reviewed,
+   approved `simplepower:writing-plans` plan, not a backup or substitute.
+2. Validate the `Interface Contract`, `File Ownership`, every task's
+   `Contract inputs`, `Serialization required`, write scope, model tier,
+   verification commands, and output requirements.
+3. Classify all `sp-impl` tasks:
+   - ready aggregate tasks: `Serialization required: No`, non-overlapping
+     approved write scopes, and `Contract inputs` satisfied by the accepted
+     `Interface Contract`;
+   - true serialized tasks: approved `Serialization required: Yes` with a
+     concrete reason and the exact condition or point when it may run;
+   - blocked tasks: missing ownership, ambiguous contract, invalid model
+     allocation, or unclear serialization condition.
+4. Stop for user direction if any task is blocked in a way that is not an
+   implied-scope omission.
+5. Build the complete set of non-conflicting contract-ready `sp-impl` tasks.
+   Put ready tasks that do not fit current child-agent capacity into a queued
+   ready list; do not mark them serialized merely because capacity is full.
+6. Dispatch ready `sp-impl` tasks with `fork_turns="none"` until all child-agent
+   slots are full or no ready task remains. Never leave an available slot idle
+   while queued ready work remains.
+7. Whenever a worker finishes, run the lifecycle checkpoint immediately:
+   consume its report, inspect the actual diff, validate changed files against
+   approved ownership, decide close-by-default or record a written reason to
+   keep it open, then dispatch the next queued ready task into the freed slot.
+8. Continue rolling dispatch until every ready aggregate task is complete.
+   Dispatch true serialized tasks only after their approved condition is
+   satisfied; once ready, they also use the same slot-filling queue.
+9. Before quick verification, ensure all required `sp-impl` work is complete,
+   no finished worker remains open without a written reason, and every changed
+   file is in approved ownership.
+10. Create `refs/simplepower/scratch/<run-id>/quick-verifier/before` for the
+    approved file list. If this fails, stop before relying on the missing
+    anchor.
+11. Dispatch the quick verifier from `quick-verifier-prompt.md` with the
+    approved FAST model, `fork_turns="none"`, and a self-contained prompt
+    containing the plan, approved file list, worker results, exact commands,
+    timeouts, and expected results.
+12. The quick verifier runs lint/build/tests named in the plan. It may fix only
+    tiny typo-level issues that directly cause a command failure. Non-trivial
+    failures stop the workflow for user direction before further
+    implementation, review, or commit work.
+13. After quick verifier returns, lifecycle-close it by default, inspect the
+    report and actual diff, validate any changed files, and if tiny fixes
+    changed files create `quick-verifier/after` and inspect the scratch diff.
+    Omit the `after` ref when no files changed.
+14. Create the coordinator quick-verified implementation checkpoint commit.
+    If no uncommitted implementation changes remain, record the no-empty-commit
+    outcome as the successful checkpoint. No worker commits. Delete
+    quick-verifier scratch refs only after this checkpoint succeeds.
+15. Create `refs/simplepower/scratch/<run-id>/review-fix/before` from the
+    quick-verified checkpoint state for the approved file list. If this fails,
+    stop before review+fix.
+16. Dispatch exactly one REVIEW-tier review+fix agent from
+    `review-fix-prompt.md` with the whole diff, approved plan, ownership,
+    worker reports, verification evidence, scratch context, and
+    `fork_turns="none"`.
+17. After review+fix returns, lifecycle-close it by default, inspect the report
+    and actual diff, validate changed files, create `review-fix/after` only if
+    files changed, and inspect the scratch diff before final verification.
+18. Run final verification from the approved plan and any repo-required checks
+    for the changed files.
+19. Inspect `git status --short`. Create a final commit only if uncommitted
+    changes remain after final verification; do not create an empty final
+    commit. Delete review+fix scratch refs after the final checkpoint succeeds,
+    then run the final cleanup check for `refs/simplepower/scratch/<run-id>/`.
+20. Report verification results, coordinator checkpoint SHA, final commit SHA
+    when created, changed files, dispatch decisions, capacity queue behavior,
+    any serialized tasks and reasons, lifecycle status, scratch run id when
+    refs were created, and scratch-ref cleanup status or cleanup commands for
+    preserved refs.
 
 ## Dispatch Rules
 
-1. Read the approved plan before dispatching any subagent.
-2. Validate the plan's Interface Contract before dispatch. Confirm each task's
-   Contract inputs reference accepted Interface Contract entries, approved
-   design details, explicit external facts, or an approved serialized artifact
-   condition.
-3. Validate every task's `Serialization required` field before dispatch.
-   `Serialization required: No` is the default aggregate-parallel path. If the
-   value is `Yes`, the task must name a concrete reason and the point when it
-   may run.
-4. Dispatch all `sp-impl` tasks with `Serialization required: No`,
-   non-overlapping approved write scopes, and Contract inputs satisfied by the
-   accepted Interface Contract before waiting for any worker result.
-5. Do not block a task merely because it relies on another worker's
-   uncommitted implementation when the accepted Interface Contract defines the
-   public API, filename, command contract, fixture, data shape, behavior
-   guarantee, or cross-task assumption it needs.
-6. Serialize only for concrete reasons: overlapping write scopes, missing or
-   ambiguous contracts, generated artifacts that must exist before editing, or
-   intentional sequential runtime or migration work. A serialized task may run
-   after its approved condition is satisfied; do not require a commit between
-   implementation tasks unless the accepted plan explicitly requires a
-   committed checkpoint.
-7. Make every `sp-impl` prompt self-contained. Paste the full task text, exact
-   read and write scope, constraints, Contract inputs and other evidence,
-   `Serialization required` value and reason if any, model tier, required
-   output, and exact verification commands, timeouts, and expected results.
-8. Do not require a worker to read the plan file to discover its own task.
-9. Pass `fork_turns="none"` to every Simple Power `spawn_agent` dispatch. There
-   are no conversation-history inheritance exceptions.
-10. Record any model escalation, serialization exception, or lifecycle
-    exception with a written reason.
-11. No worker commits or per-task commits. No per-task commits.
-
-Dispatch each implementation worker with
-`spawn_agent(agent_type="worker", model=<approved_FAST_NORMAL_or_BEST_model>, reasoning_effort=<approved_effort>, fork_turns="none", message=<self-contained-sp-impl-prompt>)`.
+- Use only accepted plans with `Interface Contract`, `File Ownership`,
+  `Contract inputs`, and `Serialization required`.
+- Validate each task's `Contract inputs` against the accepted `Interface
+  Contract`, approved design details, explicit external facts, or approved
+  serialized artifact condition.
+- `Serialization required: No` is the default aggregate path. `Serialization
+  required: Yes` must name an approved concrete reason and the point when the
+  task may run.
+- Do not block a task merely because it relies on another worker's uncommitted
+  implementation when the accepted `Interface Contract` defines the public API,
+  filename, command contract, fixture, data shape, behavior guarantee, or
+  cross-task assumption it needs.
+- Do not treat capacity limits as serialization. Record capacity-limited tasks
+  as queued ready tasks and dispatch them as soon as a slot opens.
+- Serialize only for approved overlap, missing or ambiguous contracts, required
+  generated artifacts, or intentional sequential runtime/migration ordering.
+- Make every `sp-impl` prompt self-contained using
+  `implementer-prompt.md`: full task text, read scope, write scope,
+  constraints, `Contract inputs`, `Serialization required`, model tier,
+  required output, exact verification commands, timeouts, and expected results.
+- Do not require a worker to read the plan file to discover its own task.
+- Every dispatch is:
+  `spawn_agent(agent_type="worker", model=<resolved_model>, reasoning_effort=<resolved_effort>, fork_turns="none", message=<self-contained-prompt>)`.
+- Record any model escalation, serialization exception, capacity scheduling
+  decision, or lifecycle exception with a written reason.
+- No worker commits. No per-task commits. Workers, quick verifiers, and
+  review+fix agents must not create, update, or delete refs.
 
 ## Scratch Refs
 
-Scratch refs are coordinator-owned local review artifacts. They are not
-branches, accepted checkpoints, pushed, merged, rebased, or subagent commits.
-They provide concrete diff anchors for plan review changes, quick-verifier
-tiny fixes, and review+fix edits without changing real branch history. Scratch
-refs do not add accepted commits; the workflow still has exactly three
-accepted coordinator checkpoints: accepted plan, quick-verified
-implementation, and final verification.
+Scratch refs are coordinator-owned evidence for review diffs. They do not
+change the three accepted coordinator checkpoints: accepted plan,
+quick-verified implementation, and final verification/final commit condition.
 
-All temporary refs for one Simple Power run live under
-`refs/simplepower/scratch/<run-id>/`. The run id format is
+All temporary refs for one run live under
+`refs/simplepower/scratch/<run-id>/`, where the run id is
 `YYYYMMDD-HHMMSS-<short-head>`. Record the run id in working notes and final
 reporting whenever scratch refs are created.
 
-Scratch ref names:
+Use `./scratch-ref-workflow.md` for exact commands, including temporary-index
+creation, diffing, phase cleanup, final cleanup checks, and preserved-ref
+cleanup commands.
 
-- Plan review:
-  `refs/simplepower/scratch/<run-id>/plan-review/before` and
-  `refs/simplepower/scratch/<run-id>/plan-review/after-<n>`.
-- Quick verifier:
-  `refs/simplepower/scratch/<run-id>/quick-verifier/before` and
-  `refs/simplepower/scratch/<run-id>/quick-verifier/after`.
-- Review+fix:
-  `refs/simplepower/scratch/<run-id>/review-fix/before` and
-  `refs/simplepower/scratch/<run-id>/review-fix/after`.
+Phase ownership and timing:
 
-A phase may omit an `after` ref only when no file changes happened in that
-phase. Plan-review scratch refs are deleted after the accepted plan checkpoint
-succeeds. Quick-verifier scratch refs are deleted only after the
-quick-verified implementation checkpoint succeeds. Review+fix scratch refs are
-deleted only after the final checkpoint succeeds. On user direction, a
-blocker, or a failed checkpoint commit, preserve scratch refs and report the
-cleanup command instead of deleting evidence.
-
-Scratch refs must capture the current worktree state for the approved file
-list while preserving approved files only, leaving the real index unchanged,
-and leaving branch history unchanged. Use a temporary index with this command
-shape:
-
-```bash
-run_id="${run_id:-$(date -u +%Y%m%d-%H%M%S)-$(git rev-parse --short HEAD)}"
-ref="refs/simplepower/scratch/${run_id}/<phase>/<label>"
-tmp_index="$(mktemp)"
-GIT_INDEX_FILE="$tmp_index" git read-tree HEAD
-GIT_INDEX_FILE="$tmp_index" git add -- $APPROVED_CHANGED_FILES
-tree="$(GIT_INDEX_FILE="$tmp_index" git write-tree)"
-commit="$(printf '%s\n' "simplepower scratch ${run_id} <phase>/<label>" | git commit-tree "$tree" -p HEAD)"
-git update-ref "$ref" "$commit"
-rm -f "$tmp_index"
-```
+- Plan review refs are created and deleted by the planning coordinator, not by
+  `sp-impl`, quick verifier, or review+fix agents.
+- Quick-verifier `before` is created after all workers complete and before the
+  quick verifier dispatch. Quick-verifier `after` is created only when tiny
+  fixes changed files. Delete quick-verifier refs only after the
+  quick-verified implementation checkpoint succeeds or the no-empty-commit
+  outcome is recorded as successful.
+- Review+fix `before` is created after the quick-verified implementation
+  checkpoint and before review+fix dispatch. Review+fix `after` is created
+  only when review+fix changed files. Delete review+fix refs only after the
+  final checkpoint succeeds or the no-empty-final-commit outcome is recorded as
+  successful.
+- On user direction, a blocker, scratch-ref creation failure, or failed
+  checkpoint commit, preserve scratch refs as evidence and report the manual
+  cleanup command from `scratch-ref-workflow.md`.
 
 If scratch-ref creation fails, stop the review loop before relying on the
-missing anchor.
+missing anchor. For quick-verifier tiny fixes and review+fix edits, inspect
+the scratch diff before creating the next accepted checkpoint.
 
-Use this diff shape before creating the next accepted checkpoint whenever a
-phase changed files:
+## Subagent Lifecycle
 
-```bash
-git diff refs/simplepower/scratch/<run-id>/<phase>/<before-label> refs/simplepower/scratch/<run-id>/<phase>/<after-label> -- $APPROVED_CHANGED_FILES
-```
+Run a lifecycle checkpoint after every subagent final result, including
+`sp-impl`, quick verifier, and review+fix.
 
-Every revised-plan review prompt after a blocking issue must include either an
-exact diff command with the relevant scratch refs or an explicit diff summary.
-For quick-verifier tiny fixes and review+fix edits, the coordinator must
-inspect the scratch diff before creating the next accepted checkpoint.
-
-Cleanup check:
-
-```bash
-git for-each-ref --format='%(refname)' "refs/simplepower/scratch/${run_id}/"
-```
-
-Cleanup command for preserved refs:
-
-```bash
-git for-each-ref --format='%(refname)' "refs/simplepower/scratch/${run_id}/" | xargs -r -n1 git update-ref -d
-```
-
-## Quick Verification
-
-After all implementation workers finish and their changed files pass scope
-validation, create
-`refs/simplepower/scratch/<run-id>/quick-verifier/before` for the approved file
-list, then dispatch the quick verifier from `quick-verifier-prompt.md`.
-
-Use
-`spawn_agent(agent_type="worker", model=<FAST_model>, reasoning_effort=<FAST_effort>, fork_turns="none", message=<self-contained-quick-verifier-prompt>)`.
-
-The quick verifier uses the approved FAST tier by default. Unless a later
-configuration layer overrides FAST, that resolves to
-`model="gpt-5.3-codex-spark"` and `reasoning_effort="xhigh"`.
-
-The quick verifier must run the linting checks, build or compile checks, and
-tests named in the plan with proper timeouts. It may fix only tiny typo-level
-issues that directly cause a command failure. If it finds non-trivial failures,
-stop for user direction before further implementation, review, or commit work.
-The quick verifier must not create refs or commits.
-
-After quick verifier returns, run a lifecycle checkpoint, inspect its report,
-and validate any changed files against approved write scopes. If tiny fixes
-changed files, create
-`refs/simplepower/scratch/<run-id>/quick-verifier/after`, then inspect:
-
-```bash
-git diff refs/simplepower/scratch/<run-id>/quick-verifier/before refs/simplepower/scratch/<run-id>/quick-verifier/after -- $APPROVED_CHANGED_FILES
-```
-
-Only proceed to the quick-verified implementation checkpoint after this diff
-inspection passes. If the quick verifier reports any non-trivial failure, stop
-for user direction before further implementation, review, or commit work.
-
-## Coordinator Checkpoint Commits
-
-After quick verification passes, or after it fixes only tiny typo-level issues
-and the relevant checks pass, create a coordinator checkpoint commit for the
-quick-verified implementation before dispatching the review+fix agent.
-
-Workers and verification agents must not commit. The coordinator owns the
-checkpoint once accepted implementation changes and any tiny verification fixes
-are ready. Scratch refs are not checkpoint commits and do not change the
-workflow's exactly three accepted coordinator checkpoints.
-
-Use commands like:
-
-```bash
-git status --short
-git add $APPROVED_CHANGED_FILES
-git commit -m "feat: checkpoint ${FEATURE_NAME} implementation"
-git rev-parse --short HEAD
-```
-
-If there are no implementation file changes beyond already committed work, do
-not create an empty commit. Record that no coordinator checkpoint commit was
-needed before final review.
-
-If the checkpoint commit fails, stop before final review. Inspect
-`git status --short`, resolve the failure within the coordinator's approved
-scope, rerun required verification if committed content changes, then retry the
-checkpoint commit. Preserve quick-verifier scratch refs while the checkpoint is
-blocked or failed, and report the cleanup command instead of deleting evidence.
-
-Delete
-`refs/simplepower/scratch/<run-id>/quick-verifier/before` and
-`refs/simplepower/scratch/<run-id>/quick-verifier/after` only after the
-quick-verified implementation checkpoint succeeds, or after the no-empty-commit
-case is explicitly recorded as the successful checkpoint outcome.
-
-## Review+Fix
-
-After the quick-verified implementation checkpoint succeeds, or after the
-no-empty-commit case is recorded as the successful checkpoint outcome, create
-`refs/simplepower/scratch/<run-id>/review-fix/before` from the quick-verified
-checkpoint state for the approved file list. If this scratch ref cannot be
-created, stop before dispatching review+fix.
-
-Then dispatch one REVIEW-tier review+fix agent from `review-fix-prompt.md` with
-the whole diff, approved plan, task requirements, file ownership, verification
-results, worker reports that matter, and the coordinator-owned scratch diff
-context. The review+fix agent must not create refs or commits.
-
-Use
-`spawn_agent(agent_type="worker", model=<REVIEW_model>, reasoning_effort=<REVIEW_effort>, fork_turns="none", message=<self-contained-review-fix-prompt>)`.
-
-The review+fix agent reviews the actual diff, fixes in-scope correctness,
-quality, and plan-compliance issues, runs focused verification when practical,
-and reports any remaining issue that needs user approval. It must not reduce
-scope, create docs-only substitutes, create stub substitutes, skip
-verification, skip review, switch execution mode, or change the approved
-implementation path.
-
-Stop for user direction if the review+fix agent reports `BLOCKED` or if a
-required fix needs fresh explicit approval.
-
-After review+fix returns, run a lifecycle checkpoint, inspect its report, and
-validate any changed files against approved write scopes. If review+fix changed
-files, create
-`refs/simplepower/scratch/<run-id>/review-fix/after`, then inspect:
-
-```bash
-git diff refs/simplepower/scratch/<run-id>/review-fix/before refs/simplepower/scratch/<run-id>/review-fix/after -- $APPROVED_CHANGED_FILES
-```
-
-Create `review-fix/after` only when review+fix changes files. Only proceed to
-final verification after the review+fix scratch diff inspection passes.
-
-## Final Verification And Final Commit
-
-Run final verification after the review+fix pass is complete. Use the final
-verification commands named in the approved plan and any repo-required checks
-that apply to the changed files.
-
-Inspect `git status --short` after final verification. Create a final commit
-only if uncommitted changes remain. Do not create an empty final commit.
-
-Rule: final commit only if uncommitted changes remain after final verification.
-
-Use commands like:
-
-```bash
-git status --short
-git add $FINAL_CHANGED_FILES
-git commit -m "feat: finalize ${FEATURE_NAME}"
-git rev-parse --short HEAD
-```
-
-Report the final verification results, coordinator checkpoint commit SHA, final
-commit SHA when one was created, changed files, scratch run id if scratch refs
-were created, scratch-ref cleanup status or cleanup commands for preserved
-refs, and confirmation that all finished subagents were closed or have an
-active written reason to remain open.
-
-After the final checkpoint succeeds, or after the no-empty-final-commit case
-is recorded as the successful final checkpoint outcome, delete review+fix
-scratch refs for the run, then run a cleanup check for remaining refs under
-`refs/simplepower/scratch/<run-id>/`. If the final checkpoint fails, user
-direction preserves refs, or a blocker remains, keep refs and report the
-cleanup command instead of deleting evidence.
-
-## Subagent Lifecycle Checkpoint
-
-Run a subagent lifecycle checkpoint after every subagent returns a final result,
-including `sp-impl`, quick verifier, and review+fix results.
-
-**Default lifecycle decision: close.**
+Default lifecycle decision: close.
 
 At each checkpoint:
 
-1. Read and consume the subagent's final report.
-2. Decide whether the subagent is still needed.
-3. Close the subagent by default.
-4. If keeping it open, record a short written reason tied to the current plan
-   execution.
-5. Close the subagent as soon as that reason is resolved.
+1. Read and consume the final report.
+2. Inspect the actual diff and validate approved ownership.
+3. Decide whether the subagent is still needed.
+4. Close it by default.
+5. If keeping it open, record a written reason tied to current plan execution.
+6. Close it as soon as that reason is resolved.
+7. If queued ready work remains and capacity is available, dispatch the next
+   ready worker immediately after closure.
 
 Do not close a subagent that is still running, blocked, or awaiting input. Do
 not reach final completion while finished subagents remain open without an
 active written reason.
 
-## Model Selection
-
-Use the plan's approved FAST, NORMAL, BEST, or REVIEW allocation unless
-explicit current-session instructions override it. `sp-impl` implementation
-tasks use only FAST, NORMAL, or BEST unless a future approved design explicitly
-adds REVIEW for implementation work. Mandatory tier dispatch is independent of
-`use_subagent`.
-
-Before any model-controlled dispatch, validate the full six-key configuration
-by following `skills/using-simplepower/references/simplepower-config.md`. Every
-present TOML file must validate in full before overlays; a higher layer must not
-hide malformed TOML, unknown keys, wrong types, or invalid model values in a
-lower layer.
-
-| Tier | TOML key | Environment value | Built-in default |
-|------|----------|-------------------|------------------|
-| REVIEW | `review_model` | `SIMPLEPOWER_REVIEW_MODEL` | `gpt-5.6-sol-high` |
-| BEST | `best_model` | `SIMPLEPOWER_BEST_MODEL` | `gpt-5.6-sol-high` |
-| NORMAL | `normal_model` | `SIMPLEPOWER_NORMAL_MODEL` | `gpt-5.6-luna-max` |
-| FAST | `fast_model` | `SIMPLEPOWER_FAST_MODEL` | `gpt-5.3-codex-spark-xhigh` |
-
-Resolve all four values by starting with the built-in defaults, then
-overlaying `/home/gary/.codex/simplepower.toml`, repository
-`<git-root>/simplepower.toml`, the four non-empty `SIMPLEPOWER_*_MODEL` process
-environment values, and explicit current-session instructions last. Each later
-layer replaces only values it supplies, and missing higher-layer keys inherit.
-Do not read model assignments from any `AGENTS.md` file.
-
-Resolve each final value by taking the final dash-delimited segment as
-`reasoning_effort` and the preceding string as `model`. Valid effort suffixes
-are `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`. Stop and report an
-invalid value rather than guessing. With the built-in defaults, FAST resolves
-to model `gpt-5.3-codex-spark` with `xhigh`, NORMAL to model `gpt-5.6-luna`
-with `max`, and BEST and REVIEW to model `gpt-5.6-sol` with `high`.
-
-Tier routing:
-
-- REVIEW: plan reviewer and final review+fix.
-- BEST: broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or
-  hard-to-test implementation work.
-- NORMAL: routine low-risk implementation work that used the old FAST tier,
-  especially localized edits.
-- FAST: obvious repetitive work, mechanical edits across many files, large
-  static text sweeps, simple fixture or assertion churn, and quick
-  verification.
-
-Role routing:
-
-- `sp-impl`: use the plan's approved FAST, NORMAL, or BEST tier,
-  `agent_type="worker"`, `fork_turns="none"`.
-- Quick verifier: use the approved FAST tier, `agent_type="worker"`,
-  `fork_turns="none"`.
-- Review+fix agent: always use REVIEW, resolved from
-  the validated REVIEW setting, `agent_type="worker"`, `fork_turns="none"`.
-
-If a planned FAST implementation task is less mechanical or obvious than the
-plan predicted, escalate that task to NORMAL or BEST and record the reason
-before dispatch. If a planned NORMAL task is broader, riskier, more ambiguous,
-more behavior-shaping, or harder to verify than the plan predicted, escalate
-that task to BEST and record the reason before dispatch.
-
-## Context Selection
-
-Every Simple Power subagent dispatch must use `fork_turns="none"`. Each prompt
-must be self-contained with the exact task, read and write scope, constraints,
-evidence and Contract inputs, required output, and exact verification commands,
-timeouts, and expected results. If that information cannot be supplied, stop
-and obtain it before dispatch; conversation history must never substitute for
-the prompt contract.
-
 ## Prompt Templates
 
-- `./implementer-prompt.md` - Template for `sp-impl` file-edit workers
-- `./quick-verifier-prompt.md` - Template for quick verification before the
-  coordinator checkpoint commit
-- `./review-fix-prompt.md` - Template for the one REVIEW-tier review+fix agent
+- `./implementer-prompt.md` - self-contained `sp-impl` worker prompt.
+- `./quick-verifier-prompt.md` - self-contained FAST quick-verifier prompt.
+- `./review-fix-prompt.md` - self-contained REVIEW review+fix prompt.
 
 ## Red Flags
 
-**Never:**
+Never:
 
-- Dispatch aggregate parallel implementation when write scopes overlap,
-  Contract inputs are not satisfied by the accepted Interface Contract, or
-  contract ambiguity is unresolved.
-- Stage non-overlapping implementation or test tasks behind another worker's
-  uncommitted result when the accepted Interface Contract already satisfies
-  cross-task coordination.
-- Ignore a concrete `Serialization required: Yes` reason for overlapping
-  writes, missing or ambiguous contracts, required generated artifacts, or
-  intentional sequential work.
+- Dispatch implementation before validating `Interface Contract`, `File
+  Ownership`, `Contract inputs`, and `Serialization required`.
+- Dispatch parallel tasks with overlapping write scopes.
+- Dispatch a task with missing or ambiguous contract inputs.
+- Mark capacity queueing as `Serialization required: Yes`.
+- Leave an available child-agent slot idle while queued ready work remains.
+- Stage non-overlapping work behind another worker's uncommitted result when
+  the accepted `Interface Contract` already supplies the needed contract.
+- Ignore an approved `Serialization required: Yes` reason.
 - Skip explicitly serialized implementation tasks before quick verification.
 - Trust worker status reports instead of inspecting the actual diff.
 - Accept out-of-scope edits.
 - Accept substituted, incomplete, stubbed, docs-only, or reduced-scope work as
-  progress against the approved plan.
+  progress.
 - Use a backup plan, escape plan, fallback implementation, execution-mode
-  switch, or alternate implementation strategy without fresh explicit user
-  approval.
+  switch, or alternate strategy without fresh explicit user approval.
 - Continue implementation on an alternate path after a blocker before asking
   the user.
-- Require worker commits or per-task commits.
+- Require or allow worker commits, per-task commits, or ref management.
 - Let a worker, quick verifier, or review+fix agent update the approved plan
   unless that edit is explicitly assigned.
 - Let a worker read the plan file instead of receiving the task text and
   context.
-- Skip quick verification.
-- Skip the coordinator checkpoint commit after quick verification unless there
-  are no uncommitted implementation changes.
-- Skip the one REVIEW-tier review+fix agent.
-- Skip final verification.
-- Skip required scratch-ref creation, scratch diff inspection, or cleanup
-  checks.
-- Let a worker, quick verifier, or review+fix agent create, update, or delete
-  scratch refs.
-- Skip the subagent lifecycle checkpoint after a final subagent result.
+- Skip quick verification, the quick-verified implementation checkpoint, the
+  one REVIEW review+fix pass, final verification, or the final commit condition.
+- Skip required scratch-ref creation, scratch diff inspection, phase cleanup,
+  preserved-ref reporting, or final cleanup checks.
 - Leave a finished subagent open without a written reason tied to the current
   plan execution.
-- Move on while review+fix or verification issues are still open.
 - Merge, push, or create a PR without a separate user request.
 - Use stale upstream plugin skill prefixes in this scope.
 
-**If a worker asks questions:**
+If a worker asks questions, provide the missing task context or write-scope
+details before letting it continue.
 
-- Answer clearly before letting the worker continue.
-- Provide the missing task context or write-scope details.
+If a worker reports a blocker, treat it as real. Gather only the diagnostic
+context needed to explain it, classify missing write-scope files as
+`implied-scope omission` or `true scope expansion`, and stop for user approval
+before true scope expansion or alternate implementation work.
 
-**If a worker reports a blocker:**
+If quick verification finds issues, allow only tiny typo-level fixes that
+directly cause a command failure, require reruns of failed commands after tiny
+fixes, and stop for user direction on non-trivial failures.
 
-- Treat it as real.
-- Gather only the diagnostic context needed to explain the blocker.
-- If the blocker is a missing write-scope file, classify it as an
-  `implied-scope omission` or `true scope expansion` using the approved spec
-  and plan.
-- For an `implied-scope omission`, update the plan's File Ownership entry for
-  that task, update the task write scope, record a written reason, and continue
-  with the same approved task.
-- For a `true scope expansion`, stop before alternate implementation work.
-- Ask the user for fresh explicit approval before changing scope, plan,
-  verification, implementation strategy, or any file not implied by approved
-  text.
-
-**If quick verification finds issues:**
-
-- Allow only tiny typo-level fixes that directly cause a command failure.
-- Require an exact changed-file report, commands rerun, and whether any issue
-  is non-trivial.
-- Stop for user direction when failures are non-trivial, before further
-  implementation, review, or commit work.
-- Re-run the failed command after any tiny fix.
-- Create and inspect `quick-verifier/after` only if tiny fixes changed files,
-  then delete quick-verifier scratch refs only after the quick-verified
-  implementation checkpoint succeeds.
-
-**If review+fix finds issues:**
-
-- Fix only within approved write scopes.
-- Stop if a fix needs fresh explicit approval, a true scope expansion, reduced
-  scope, docs-only substitute, stub substitute, skipped verification, changed
-  implementation strategy, or broader rewrite.
-- Run focused verification for fixes when practical.
-- Require exact changed files and focused verification results so the
-  coordinator can create and inspect `review-fix/after` when files changed.
-- Re-run final verification before final completion.
+If review+fix finds issues, fix only within approved write scopes, run focused
+verification when practical, and stop if a required fix needs fresh approval,
+true scope expansion, reduced scope, docs-only substitute, stub substitute,
+skipped verification, changed implementation strategy, or broader rewrite.
 
 ## Integration
 
-**Required workflow skills:**
+Required upstream workflow skill:
 
-- **simplepower:writing-plans** - Creates the plan this skill executes.
+- `simplepower:writing-plans` creates the accepted plan this skill executes.
 
-**Subagents should use:**
+Subagents may use `simplepower:test-driven-development` only when the assigned
+prompt explicitly authorizes it and the work fits the task. They must not
+recursively invoke Simple Power workflow skills unless their prompt explicitly
+requires it.
 
-- **simplepower:test-driven-development** - Follow TDD when it fits the task.
+## Final Completion
 
-**Final completion:**
+Run final verification commands from the approved plan and any repo-required
+checks. Inspect `git status --short`. Create a final commit only if
+uncommitted changes remain after final verification; do not create an empty
+final commit.
 
-- Run the final verification commands from the plan and any repo-required
-  checks.
-- Inspect `git status --short` and summarize any remaining diff.
-- Create a final commit only if uncommitted changes remain after final
-  verification.
-- Report the final verification results, aggregate dispatch decisions, any
-  serialized tasks and reasons, coordinator checkpoint commit SHA, any final
-  commit SHA, changed files, scratch run id when refs were created,
-  scratch-ref cleanup status or cleanup commands for preserved refs, and
-  confirmation that all finished subagents were closed or have an active
+Final reporting must include:
+
+- final verification results;
+- aggregate dispatch and rolling capacity decisions, including queued tasks and
+  slot-filling behavior;
+- true serialized tasks and reasons;
+- coordinator quick-verified checkpoint SHA;
+- final commit SHA when created;
+- changed files;
+- scratch run id when refs were created;
+- scratch-ref cleanup status or cleanup commands for preserved refs;
+- confirmation that all finished subagents were closed or have an active
   written reason to remain open.
-- Do not merge, push, or create a PR unless the user separately asks.
-
-No worker commits or per-task commits. No per-task commits. Workers,
-verification agents, and review+fix agents must not commit. Coordinator
-checkpoint commits are required after quick-verified implementation. Create a
-final commit only if uncommitted changes remain after final verification.
