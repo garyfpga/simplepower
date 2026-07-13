@@ -17,7 +17,7 @@ implementation.
 
 Perform the assigned review directly in this worker. Do not run Codex CLI, do
 not spawn subagents, do not invoke Simple Power workflow skills, do not recurse
-into another workflow, and do not reroute execution.
+into another workflow, do not restart execution, and do not reroute execution.
 
 Approved plan context:
 - Plan path/title: [PLAN PATH OR TITLE]

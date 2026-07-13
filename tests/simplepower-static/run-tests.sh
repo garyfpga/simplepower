@@ -595,6 +595,8 @@ require_file "skills/subagent-driven-development/review-fix-prompt.md" "review+f
 require_contains_all "skills/subagent-driven-development/quick-verifier-prompt.md" "quick verifier prompt keeps FAST limited-fix guardrails" \
     "FAST quick verifier" \
     "tiny typo-level" \
+    "approved changed-file list" \
+    "approved File Ownership/write scopes" \
     "NON_TRIVIAL_FAILURES" \
     "quick-verifier/before" \
     "spawn subagents" \
@@ -603,6 +605,7 @@ require_contains_all "skills/subagent-driven-development/review-fix-prompt.md" "
     "REVIEW-tier review+fix agent" \
     "Perform the assigned review directly in this worker" \
     "Do not run Codex CLI" \
+    "do not restart execution" \
     "spawn subagents" \
     "workflow skills" \
     "reroute execution" \
@@ -636,6 +639,18 @@ require_contains_all "skills/systematic-debugging/parallel-investigation.md" "pa
     ".codex-debug/<instance-id>/" \
     "Assigned angle" \
     "Coordinator Synthesis"
+require_contains_all "skills/subagent-driven-development/scratch-ref-workflow.md" "scratch-ref workflow keeps exact coordinator mechanics" \
+    "refs/simplepower/scratch/<run-id>/" \
+    "quick-verifier/before" \
+    "quick-verifier/after" \
+    "review-fix/before" \
+    "review-fix/after" \
+    "tmp_index" \
+    "GIT_INDEX_FILE" \
+    "git commit-tree" \
+    "git update-ref" \
+    "git update-ref -d" \
+    "manual cleanup command"
 require_dir_absent "skills/subagent-driven-development/impl-reviewer-prompt.md" "retired inline reviewer prompt is absent"
 require_dir_absent "skills/subagent-driven-development/reviewer-prompt.md" "retired per-wave reviewer prompt is absent"
 require_dir_absent "skills/subagent-driven-development/fixer-prompt.md" "retired per-wave fixer prompt is absent"

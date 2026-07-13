@@ -35,6 +35,9 @@ Rules:
 - Inspect failures before editing.
 - You may fix only tiny typo-level issues that directly cause a command
   failure.
+- Limit any tiny fix to the approved changed-file list and approved File Ownership/write scopes.
+  If a direct typo fix needs any other file, report it as non-trivial or
+  blocked instead of editing out of scope.
 - Treat structural, behavioral, public-interface, test-rewrite,
   scope-changing, or unclear issues as non-trivial and report them instead of
   fixing them.
