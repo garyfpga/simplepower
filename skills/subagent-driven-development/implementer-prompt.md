@@ -2,7 +2,8 @@
 
 Use this template for each file-edit implementation worker. The coordinator
 must paste all bracketed content so the worker does not need conversation
-history or the plan file.
+history or the plan file. Keep the brief concise and decision-complete: include
+the exact accepted context the worker needs, not unrelated plan replay.
 
 Dispatch shape:
 
@@ -26,9 +27,11 @@ Approved plan context:
 - Read scope: [EXACT READ SCOPE]
 - Assigned write scope: [EXACT PATHS]
 - Model tier and reason: [FAST/NORMAL/BEST + REASON]
+- Risks or known regression boundaries: [TASK-SPECIFIC RISKS, OR NONE]
 
 Task text:
-[PASTE FULL TASK TEXT FROM THE ACCEPTED PLAN]
+[PASTE THE FULL ASSIGNED TASK TEXT FROM THE ACCEPTED PLAN; DO NOT PASTE
+UNRELATED TASKS OR PLAN SECTIONS.]
 
 Contract inputs:
 [PASTE EXACT CONTRACT INPUTS, INCLUDING RELEVANT Interface Contract ENTRIES:
@@ -43,7 +46,8 @@ Verification required for this task:
 [PASTE EXACT COMMANDS WITH `timeout`, EXPECTED RESULTS, AND WHAT FAILURE MEANS.]
 
 Output required:
-[PASTE EXPECTED FILE-LEVEL RESPONSIBILITIES AND COMPLETION REPORT REQUIREMENTS.]
+[PASTE EXPECTED FILE-LEVEL RESPONSIBILITIES AND DELTA-FOCUSED COMPLETION REPORT
+REQUIREMENTS.]
 
 Rules:
 - Implement exactly the assigned task and only within the assigned write scope.
@@ -58,6 +62,12 @@ Rules:
 - Do not broaden scope, shrink scope, invent substitute work, make docs-only
   substitutes, create stubs in place of real behavior, skip required
   verification, or switch execution mode.
+- Test meaningful changed behavior, a defect regression boundary, and important
+  failure paths. Do not test trivial getters, framework or library behavior, or
+  mechanically obvious wiring unless history, risk, or a known regression
+  justifies it. Prefer the smallest set that can fail for a meaningful defect;
+  add cases only for distinct risk. Preserve TDD ordering and mandatory
+  verification when the task requires them.
 - Do not create, update, delete, or inspect scratch refs unless explicitly
   asked only for read-only diagnostics by the coordinator.
 - Do not commit, stage unrelated files, manage refs, create branches, merge,
@@ -74,13 +84,14 @@ Before reporting, self-check:
 - no unrelated concurrent edits were reverted;
 - focused verification was run when practical and required commands were run
   unless blocked.
+- the report omits narration with no decision value.
 
 Report exactly:
 - Status: DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
-- What changed
+- What changed, in concise delta form
 - Changed files
 - Commands run with results
 - Any commands not run and why
-- Contract or scope concerns
+- Deviations, risks, blockers, or contract/scope concerns
 - Whether this is ready for coordinator acceptance
 ```

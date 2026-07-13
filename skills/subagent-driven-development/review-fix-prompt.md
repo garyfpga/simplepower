@@ -3,7 +3,9 @@
 Use this template for the single REVIEW-tier review+fix agent after the
 quick-verified implementation checkpoint. The coordinator must validate model
 config before dispatch and paste all bracketed content so the prompt is
-self-contained.
+self-contained. Keep the brief concise and delta-focused: include accepted
+context, changed files, results, risks, blockers, and the whole diff; do not
+replay unrelated plan sections.
 
 Dispatch shape:
 
@@ -29,6 +31,8 @@ Approved plan context:
 - Verification requirements: [COMMANDS/EXPECTATIONS]
 - Worker reports: [SUMMARIES]
 - Quick verifier report: [SUMMARY]
+- Risk or regression focus: [MEANINGFUL BEHAVIOR, REGRESSION BOUNDARIES, AND
+  IMPORTANT FAILURE PATHS TO PRIORITIZE]
 - Whole implementation diff or exact diff command: [DIFF OR COMMAND]
 - Scratch context: coordinator created
   `refs/simplepower/scratch/<run-id>/review-fix/before`; you must not create,
@@ -46,6 +50,11 @@ Rules:
   skipped verification, changed implementation strategy, or broader rewrite.
 - Do not reduce scope, create substitute work, skip review, skip verification,
   switch execution mode, or change the approved path.
+- Review tests for meaningful changed behavior, defect regression boundaries,
+  and important failure paths. Do not require tests for trivial getters,
+  framework or library behavior, or mechanically obvious wiring unless history,
+  risk, or a known regression justifies it. Prefer the smallest set that can
+  fail for a meaningful defect and add cases only for distinct risk.
 - Do not create, update, delete, or inspect scratch refs unless explicitly
   asked only for read-only diagnostics by the coordinator.
 - Do not commit, stage unrelated files, manage refs, create branches, merge,
@@ -54,8 +63,8 @@ Rules:
 
 Report exactly:
 - Status: FIXED | APPROVED_WITHOUT_CHANGES | PARTIALLY_FIXED | BLOCKED
-- Findings
-- Fixes made
+- Actionable findings and evidence
+- Fixes made, in concise delta form
 - Exact changed files
 - Focused verification run with results
 - Remaining risks, deviations, or user decisions needed

@@ -359,6 +359,27 @@ require_contains_all "skills/brainstorming/SKILL.md" "brainstorming keeps option
     "repository context or task complexity" \
     "temporary browser aid" \
     "not brainstorming"
+require_contains_all "skills/brainstorming/SKILL.md" "brainstorming keeps balanced lean brevity, context reuse, and required gates" \
+    "balanced lean style" \
+    "reuse accepted" \
+    "decision's complexity and consequence" \
+    "next decision is adequately supported" \
+    "decision-relevant deltas" \
+    "Lean behavior never" \
+    "skips a required gate."
+require_contains_all "skills/brainstorming/SKILL.md" "brainstorming keeps one-question, distinct-options, and scaled approval guidance" \
+    "Ask clarifying questions one at a time." \
+    "Ask only unresolved questions" \
+    "Do not restate already accepted" \
+    "unless ambiguity or risk requires it." \
+    "split it across messages" \
+    "materially distinct approaches" \
+    "propose 2-3 options with tradeoffs" \
+    "If constraints leave only one reasonable approach" \
+    "one compact approval section" \
+    "incremental sections" \
+    "error handling, and testing only where relevant to the decision." \
+    "Scale testing discussion to risk and consequence."
 require_contains "skills/brainstorming/visual-companion.md" ".simplepower/brainstorm" "visual companion uses the Simple Power brainstorming session path"
 require_contains "skills/brainstorming/visual-companion.md" "temporary localhost aid for brainstorming" "visual companion guide documents localhost behavior"
 require_contains "skills/brainstorming/visual-companion.md" "distinct from optional inline visuals in saved Markdown implementation plans" "visual companion guide distinguishes saved Markdown plan visuals"
@@ -575,6 +596,22 @@ require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD keeps ca
     "missing or ambiguous contract" \
     "required generated artifact" \
     "sequential runtime/migration"
+require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD keeps lean delta reports, required gates, and minimum-sufficient testing" \
+    "concise, self-contained, and decision-complete" \
+    "accepted context instead of replaying unrelated plan material" \
+    "decision is adequately supported" \
+    "delta-focused" \
+    "changed files, results, evidence or findings, deviations, risks, and blockers." \
+    "never omit required gates" \
+    "scratch lifecycle status" \
+    "scheduler decisions" \
+    "minimum-sufficient, not minimal by quota" \
+    "Test meaningful" \
+    "changed behavior, a defect regression boundary, and important failure paths." \
+    "Do not test trivial getters, framework or library behavior, or mechanically" \
+    "Prefer the smallest set that can fail for a meaningful defect" \
+    "Preserve TDD ordering" \
+    "mandatory verification"
 require_file "skills/subagent-driven-development/scratch-ref-workflow.md" "scratch-ref workflow reference file exists"
 require_contains "skills/subagent-driven-development/SKILL.md" "scratch-ref-workflow.md" "SDD references the scratch-ref workflow guide"
 require_contains "skills/subagent-driven-development/SKILL.md" "simplepower:writing-plans" "SDD points at the Simple Power planning skill"
@@ -590,6 +627,16 @@ require_contains_all "skills/subagent-driven-development/implementer-prompt.md" 
     "create stubs" \
     "spawn subagents" \
     "workflow skills"
+require_contains_all "skills/subagent-driven-development/implementer-prompt.md" "implementer prompt keeps concise self-contained contract and delta reporting" \
+    "worker does not need conversation" \
+    "Keep the brief concise and decision-complete" \
+    "the exact accepted context the worker needs" \
+    "Contract inputs:" \
+    "Serialization required:" \
+    "What changed, in concise delta form" \
+    "Changed files" \
+    "Commands run with results" \
+    "Deviations, risks, blockers, or contract/scope concerns"
 require_file "skills/subagent-driven-development/quick-verifier-prompt.md" "quick verifier prompt file exists"
 require_file "skills/subagent-driven-development/review-fix-prompt.md" "review+fix prompt file exists"
 require_contains_all "skills/subagent-driven-development/quick-verifier-prompt.md" "quick verifier prompt keeps FAST limited-fix guardrails" \
@@ -601,6 +648,14 @@ require_contains_all "skills/subagent-driven-development/quick-verifier-prompt.m
     "quick-verifier/before" \
     "spawn subagents" \
     "workflow skills"
+require_contains_all "skills/subagent-driven-development/quick-verifier-prompt.md" "quick verifier prompt keeps concise context and meaningful coverage guidance" \
+    "self-contained" \
+    "Keep the brief concise" \
+    "changed files, commands, results so far, risks, and blockers" \
+    "smallest set that can fail for a meaningful" \
+    "defect in changed behavior, a regression boundary, or an important failure" \
+    "Do not demand tests for trivial getters, framework or library behavior" \
+    "Verification risks, deviations, or missing meaningful coverage, if any"
 require_contains_all "skills/subagent-driven-development/review-fix-prompt.md" "review+fix prompt keeps direct REVIEW execution guardrails" \
     "REVIEW-tier review+fix agent" \
     "Perform the assigned review directly in this worker" \
@@ -610,6 +665,15 @@ require_contains_all "skills/subagent-driven-development/review-fix-prompt.md" "
     "workflow skills" \
     "reroute execution" \
     "review-fix/before"
+require_contains_all "skills/subagent-driven-development/review-fix-prompt.md" "review+fix prompt keeps concise delta focus and meaningful test review" \
+    "Keep the brief concise and delta-focused" \
+    "changed files, results, risks, blockers, and the whole diff" \
+    "Review tests for meaningful changed behavior" \
+    "Do not require tests for trivial getters" \
+    "Prefer the smallest set that can" \
+    "Actionable findings and evidence" \
+    "Fixes made, in concise delta form" \
+    "Remaining risks, deviations, or user decisions needed"
 require_file "skills/systematic-debugging/parallel-investigation.md" "parallel investigation reference file exists"
 require_contains "skills/systematic-debugging/SKILL.md" "parallel-investigation.md" "systematic-debugging main skill references the parallel investigation guide"
 require_contains_all "skills/systematic-debugging/SKILL.md" "systematic-debugging keeps the four-phase root-cause workflow" \
@@ -630,15 +694,34 @@ require_contains_all "skills/systematic-debugging/SKILL.md" "systematic-debuggin
     "at most six distinct read-only angles" \
     "investigator fixes" \
     "synthesize all reports before fixes"
+require_contains_all "skills/systematic-debugging/SKILL.md" "systematic-debugging keeps smallest-repro, contradiction, and regression boundaries" \
+    "smallest useful reproduction" \
+    "discriminating component boundaries" \
+    "plausible contradictory evidence" \
+    "next decision is adequately supported" \
+    "one specific hypothesis" \
+    "contradiction most likely to disprove the hypothesis" \
+    "Implement one minimal root-cause fix." \
+    "run appropriate regression" \
+    "After three failed fixes, stop."
 require_contains_all "skills/systematic-debugging/parallel-investigation.md" "parallel investigation keeps bounded read-only investigator rules" \
     "investigation brief" \
-    "plausible root cause" \
-    "at most six distinct angles" \
+    "root-cause hypothesis" \
+    "six-agent maximum" \
     "read-only angle" \
     "do not implement fixes" \
     ".codex-debug/<instance-id>/" \
     "Assigned angle" \
     "Coordinator Synthesis"
+require_contains_all "skills/systematic-debugging/parallel-investigation.md" "parallel investigation keeps distinct-angle selection and cause-evidence-decision-risk reports" \
+    "Choose only the distinct angles needed for unresolved, decision-changing" \
+    "Do not fill the allowance just because" \
+    "different cause, contradiction, boundary, or missing fact" \
+    "Likely cause or root-cause hypothesis" \
+    "Supporting evidence." \
+    "Contradicting evidence checked or found." \
+    "Recommended next decision or minimal diagnostic test." \
+    "Unresolved risk that could still change the decision."
 require_contains_all "skills/subagent-driven-development/scratch-ref-workflow.md" "scratch-ref workflow keeps exact coordinator mechanics" \
     "refs/simplepower/scratch/<run-id>/" \
     "quick-verifier/before" \

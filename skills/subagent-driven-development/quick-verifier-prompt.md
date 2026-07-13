@@ -3,7 +3,9 @@
 Use this template for the mandatory FAST quick verifier after all `sp-impl`
 workers finish and before the quick-verified implementation checkpoint. The
 coordinator must validate model config before dispatch and paste all bracketed
-content so the prompt is self-contained.
+content so the prompt is self-contained. Keep the brief concise: include the
+accepted context, changed files, commands, results so far, risks, and blockers
+needed for verification, not unrelated plan replay.
 
 Dispatch shape:
 
@@ -21,6 +23,8 @@ Approved plan context:
 - File Ownership summary: [OWNERSHIP]
 - Interface Contract summary: [CONTRACT ENTRIES NEEDED FOR VERIFICATION]
 - Worker result summaries: [SUMMARIES]
+- Risk or regression focus: [MEANINGFUL BEHAVIOR, REGRESSION BOUNDARIES, AND
+  IMPORTANT FAILURE PATHS TO PRIORITIZE]
 - Scratch context: coordinator created
   `refs/simplepower/scratch/<run-id>/quick-verifier/before`; you must not
   create, update, or delete refs.
@@ -42,6 +46,11 @@ Rules:
   scope-changing, or unclear issues as non-trivial and report them instead of
   fixing them.
 - After a tiny fix, rerun the failed command.
+- When assessing tests, prefer the smallest set that can fail for a meaningful
+  defect in changed behavior, a regression boundary, or an important failure
+  path. Do not demand tests for trivial getters, framework or library behavior,
+  or mechanically obvious wiring unless history, risk, or a known regression
+  justifies it.
 - Do not make broad behavioral, architectural, or scope-changing fixes.
 - Do not reduce scope, create docs-only substitutes, create stub substitutes,
   skip verification, switch execution mode, or change the approved path.
@@ -59,5 +68,6 @@ Report exactly:
 - Exact changed files, if any
 - Commands rerun after tiny fixes
 - Non-trivial failures or blockers, if any
+- Verification risks, deviations, or missing meaningful coverage, if any
 - Whether the implementation is ready for the coordinator checkpoint
 ```

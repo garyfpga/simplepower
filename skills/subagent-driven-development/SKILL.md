@@ -26,6 +26,29 @@ must exist first, or intentional sequential runtime/migration ordering.
 Stable report terms: `approved-path`, `no-worker-commit`, and
 `final commit condition`.
 
+## Lean Briefs, Reports, And Tests
+
+Keep briefs and reports concise, self-contained, and decision-complete. Reuse
+accepted context instead of replaying unrelated plan material, but include the
+exact `Interface Contract`, `File Ownership`, `Contract inputs`, scope,
+commands, risks, and blockers each role needs. Stop explaining when the next
+decision is adequately supported; continue only for uncertainty that could
+change dispatch, acceptance, verification, review, or user approval.
+
+Worker, quick-verifier, review+fix, and final reports are delta-focused:
+changed files, results, evidence or findings, deviations, risks, and blockers.
+Omit narration that has no decision value, but never omit required gates,
+verification, scratch lifecycle status, scheduler decisions, or approved-path
+exceptions.
+
+Testing must be minimum-sufficient, not minimal by quota. Test meaningful
+changed behavior, a defect regression boundary, and important failure paths.
+Do not test trivial getters, framework or library behavior, or mechanically
+obvious wiring unless history, risk, or a known regression justifies it.
+Prefer the smallest set that can fail for a meaningful defect; add cases only
+for distinct risk. Preserve TDD ordering and every mandatory verification
+command from the accepted plan.
+
 ## Approved Path
 
 The approved plan is authoritative. Do not use a backup plan, escape plan,
@@ -152,9 +175,9 @@ prompt. There are no conversation-history inheritance exceptions.
     approved file list. If this fails, stop before relying on the missing
     anchor.
 11. Dispatch the quick verifier from `quick-verifier-prompt.md` with the
-    approved FAST model, `fork_turns="none"`, and a self-contained prompt
-    containing the plan, approved file list, worker results, exact commands,
-    timeouts, and expected results.
+    approved FAST model, `fork_turns="none"`, and a concise self-contained
+    prompt containing the approved file list, relevant contract, worker result
+    deltas, risks, exact commands, timeouts, and expected results.
 12. The quick verifier runs lint/build/tests named in the plan. It may fix only
     tiny typo-level issues that directly cause a command failure. Non-trivial
     failures stop the workflow for user direction before further
@@ -172,7 +195,7 @@ prompt. There are no conversation-history inheritance exceptions.
     stop before review+fix.
 16. Dispatch exactly one REVIEW-tier review+fix agent from
     `review-fix-prompt.md` with the whole diff, approved plan, ownership,
-    worker reports, verification evidence, scratch context, and
+    delta-focused worker reports, verification evidence, scratch context, and
     `fork_turns="none"`.
 17. After review+fix returns, lifecycle-close it by default, inspect the report
     and actual diff, validate changed files, create `review-fix/after` only if
@@ -210,7 +233,9 @@ prompt. There are no conversation-history inheritance exceptions.
 - Make every `sp-impl` prompt self-contained using
   `implementer-prompt.md`: full task text, read scope, write scope,
   constraints, `Contract inputs`, `Serialization required`, model tier,
-  required output, exact verification commands, timeouts, and expected results.
+  required output, exact verification commands, timeouts, expected results,
+  and risk notes. Include only accepted plan context that the worker needs to
+  decide and complete the task; do not replay unrelated plan sections.
 - Do not require a worker to read the plan file to discover its own task.
 - Every dispatch is:
   `spawn_agent(agent_type="worker", model=<resolved_model>, reasoning_effort=<resolved_effort>, fork_turns="none", message=<self-contained-prompt>)`.

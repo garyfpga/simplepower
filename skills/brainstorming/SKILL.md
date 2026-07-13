@@ -34,6 +34,14 @@ uses this flow, including a todo list, a single-function utility, or a config
 change. The design may be only a few sentences for simple work, but approval is
 still mandatory before implementation.
 
+Use a balanced lean style throughout this procedure: be concise, reuse accepted
+conversation and plan context instead of restating it, scale explanation and
+evidence to the decision's complexity and consequence, and stop exploring once
+the next decision is adequately supported. Continue exploring when uncertainty
+could change scope, design, constraints, success criteria, or safety. Report
+decision-relevant deltas instead of replaying the workflow. Lean behavior never
+skips a required gate.
+
 1. **Resolve configuration, then explore context.** Before inspecting project
    context, resolve and validate the shared configuration by following
    `skills/using-simplepower/references/simplepower-config.md`. Then inspect
@@ -76,21 +84,27 @@ still mandatory before implementation.
    they relate and what order to build them, then brainstorm the first
    sub-project through this same procedure. Each sub-project gets its own plan
    and implementation cycle.
-4. **Ask clarifying questions one at a time.** Understand purpose, constraints,
-   success criteria, and user priorities. Prefer multiple-choice questions when
-   useful, but use open-ended questions when the answer needs room. If a topic
-   needs more exploration, split it across messages.
-5. **Compare approaches before designing.** Propose 2-3 approaches with
-   tradeoffs, lead with the recommended option, and explain why. Apply YAGNI:
-   remove unnecessary features from every option.
-6. **Present the design for approval, scaled to complexity.** Use short sections
-   for simple work and up to 200-300 words for nuanced sections. Ask after each
-   section whether it looks right so far, revise when needed, and do not move to
-   implementation until the user approves the complete design. Cover the
-   relevant architecture, components, data flow, error handling, and testing.
-   In existing codebases, follow current patterns; include targeted cleanup only
-   when it serves the approved goal; avoid unrelated refactors. Design units
-   with clear purposes, interfaces, dependencies, and testable boundaries.
+4. **Ask clarifying questions one at a time.** Ask only unresolved questions
+   whose answers can change scope, design, constraints, success criteria, or
+   user priorities. Prefer multiple-choice questions when useful, but use
+   open-ended questions when the answer needs room. If a topic needs more
+   exploration, split it across messages. Do not restate already accepted
+   context unless ambiguity or risk requires it.
+5. **Compare approaches before designing.** When materially distinct approaches
+   exist, propose 2-3 options with tradeoffs, lead with the recommended option,
+   and explain why. If constraints leave only one reasonable approach, state
+   that briefly instead of inventing alternatives. Apply YAGNI: remove
+   unnecessary features from every option.
+6. **Present the design for approval, scaled to complexity.** For simple work,
+   use one compact approval section when that is enough to make the decision
+   safe. For nuanced work, use incremental sections and ask whether each section
+   looks right so far. Revise when needed, and do not move to implementation
+   until the user approves the complete design. Cover architecture, components,
+   data flow, error handling, and testing only where relevant to the decision.
+   Scale testing discussion to risk and consequence. In existing codebases,
+   follow current patterns; include targeted cleanup only when it serves the
+   approved goal; avoid unrelated refactors. Design units with clear purposes,
+   interfaces, dependencies, and testable boundaries.
 7. **Hand off only to implementation planning.** After approval, invoke
    `simplepower:writing-plans` and pass the approved design summary,
    constraints, decisions, and success criteria forward in the current

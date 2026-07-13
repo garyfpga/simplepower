@@ -22,22 +22,28 @@ Cause Investigation. It does not authorize fixes, skip the four-phase workflow,
 or choose a root cause by vote count. The coordinator remains responsible for
 synthesis and cannot proceed to Phase 2, Phase 3, or Phase 4 until synthesis
 supports a root-cause hypothesis or identifies the next diagnostic test.
+Evidence gathering stops when the next decision is adequately supported, after
+checking plausible contradictions; it continues when unresolved uncertainty
+could change that decision or its safety.
 
 ## Dispatch Preconditions
 
 Before dispatching investigators, confirm all of the following:
 
 - The coordinator read the full error output or stack trace.
-- The failure was reproduced, or unreliable reproduction is documented.
+- The smallest useful reproduction was attempted, or unreliable reproduction is
+  documented.
 - Recent changes, diffs, dependencies, config, and environment were checked.
-- Relevant files, commands, components, and system boundaries were identified.
+- Relevant files, commands, components, and discriminating system boundaries
+  were identified.
 - Obvious backward data-flow tracing was attempted for deep stack symptoms.
 - `skills/using-simplepower/references/simplepower-config.md` was read and
   validated for effective `use_subagent` and `subagent_model`.
 - `use_subagent=true`; if it is false, disabled subagents mean no dispatch.
 
-If those steps reveal a plausible root cause, do not dispatch. Continue with
-Phase 2 and Phase 3.
+If those steps adequately support the next root-cause hypothesis or diagnostic
+test, do not dispatch. Continue in Phase 1 with that diagnostic test, or proceed
+to Phase 2 when a root-cause hypothesis is supported.
 
 ## Config and Spawn Requirements
 
@@ -56,7 +62,8 @@ Every spawn must:
 
 - Use the resolved model and reasoning effort.
 - Pass exact `fork_turns="none"`.
-- Include a complete, self-contained investigation brief.
+- Include a complete, self-contained investigation brief, isolated from inherited
+  context.
 - Stay within the six-agent maximum.
 - Assign one distinct read-only angle per investigator.
 
@@ -69,6 +76,8 @@ Write the brief before spawning. Include:
 - Relevant error output, stack trace, or failing assertions.
 - Known facts and evidence already collected.
 - Causes already ruled out.
+- The decision that remains unsupported and the contradictory evidence that
+  would change it.
 - Relevant files, modules, components, boundaries, and recent changes.
 - Constraints: do not implement fixes; do not edit existing repo files.
 - Temporary-output rule: use only `.codex-debug/<instance-id>/`.
@@ -76,8 +85,12 @@ Write the brief before spawning. Include:
 
 ## Angle Selection
 
-Choose at most six distinct angles. Do not duplicate angles across
-investigators. Useful angles include:
+Choose only the distinct angles needed for unresolved, decision-changing
+uncertainty, up to the six-agent maximum. Do not fill the allowance just because
+it exists, and do not duplicate angles across investigators. Each angle should
+target a different cause, contradiction, boundary, or missing fact that could
+change the next hypothesis, diagnostic test, fix, or safety decision. Useful
+angles include:
 
 - Error-message and stack-trace interpretation.
 - Recent-change regression analysis.
@@ -104,11 +117,13 @@ Each report must include:
 
 - Assigned angle.
 - Files, commands, and artifacts inspected.
-- Evidence found.
-- Root-cause hypothesis, if any.
+- Likely cause or root-cause hypothesis, if any.
+- Supporting evidence.
+- Contradicting evidence checked or found.
 - Confidence level and why.
 - Causes ruled out.
-- Recommended next minimal diagnostic test.
+- Recommended next decision or minimal diagnostic test.
+- Unresolved risk that could still change the decision.
 - Temporary artifacts created.
 - Confirmation that no existing repo files were intentionally modified.
 
@@ -123,5 +138,7 @@ there is a written reason to keep it open. Synthesize the reports into one of:
   to gather more evidence or discuss architecture-level concerns with the user.
 
 If reports disagree, run the smallest diagnostic test that distinguishes the
-competing hypotheses. Never proceed to implementation until synthesis supports
-a root-cause hypothesis.
+competing hypotheses. If the next decision is adequately supported and plausible
+contradictions were checked, do not collect extra angles, logs, or reports.
+Never proceed to implementation until synthesis supports a root-cause
+hypothesis.

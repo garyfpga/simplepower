@@ -48,16 +48,27 @@ Start with evidence, not solutions:
 
 1. Read errors, warnings, stack traces, failing assertions, line numbers, file
    paths, and error codes completely.
-2. Reproduce the failure consistently, or document exactly why reproduction is
-   not reliable yet and gather more data.
+2. Start with the smallest useful reproduction: the cheapest command, test,
+   fixture, request, or observation that can expose the symptom and distinguish
+   likely causes. Reproduce the failure consistently, or document exactly why
+   reproduction is not reliable yet and gather more data.
 3. Check recent changes: diffs, commits, dependencies, config, environment, and
    deployment/build differences.
-4. Inspect component boundaries. For each boundary, verify inputs, outputs,
-   environment/config propagation, and state at that layer before blaming a
-   downstream symptom.
+4. Inspect the discriminating component boundaries first: the boundaries whose
+   inputs, outputs, environment/config propagation, or state are most likely to
+   separate competing causes. Verify the relevant boundary evidence before
+   blaming a downstream symptom.
 5. Trace data flow backward from the bad value or deep stack-frame symptom to
    its origin. For the full technique, read
    [`root-cause-tracing.md`](root-cause-tracing.md).
+
+Evidence is adequate for the next hypothesis or fix decision when it explains
+the observed symptom at the relevant boundary, accounts for recent-change and
+data-flow facts that could change the decision, and includes a check for
+plausible contradictory evidence. Stop the current evidence-gathering activity
+when the next decision is adequately supported. Continue when unresolved
+uncertainty could change the hypothesis, the minimal diagnostic test, the fix,
+or the safety of applying it.
 
 Phase-local stop signs: proposing solutions before tracing data flow, ignoring
 error text, assuming a component boundary is fine without evidence, dispatching
@@ -91,8 +102,10 @@ Use the scientific method:
    command, or fixture that exposes the issue.
 3. Test one hypothesis with one minimal change or diagnostic at a time. Do not
    bundle variables.
-4. Verify the result. If confirmed, proceed to Phase 4. If rejected, record what
-   it ruled out and return to Phase 1 or Phase 2 with the new evidence.
+4. Verify the result against the expected supporting evidence and the plausible
+   contradiction most likely to disprove the hypothesis. If confirmed, proceed
+   to Phase 4. If rejected, record what it ruled out and return to Phase 1 or
+   Phase 2 with the new evidence.
 
 Phase-local stop signs: multiple simultaneous fixes, vague theories, manual
 verification when an automated or scripted reproduction is feasible, or
