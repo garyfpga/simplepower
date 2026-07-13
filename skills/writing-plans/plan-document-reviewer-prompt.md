@@ -34,7 +34,7 @@ Task tool (general-purpose):
     | Implementation Task Contract Fields | Confirms every implementation task has `Contract inputs` that point to approved Interface Contract entries, approved design details, or explicit external facts; confirms every task has `Serialization required`; confirms `Serialization required` defaults to `No` and any `Yes` includes a concrete reason. |
     | Aggregate Parallel Readiness | Confirms the plan expects aggregate parallel dispatch for all non-overlapping workers whose coordination needs are satisfied by the Interface Contract, including test workers writing against approved Interface Contract APIs while implementation workers create those APIs. |
     | Model Allocation | Confirms the active model tiers are exactly FAST/NORMAL/BEST/REVIEW and independent of `use_subagent`; every implementation task has FAST, NORMAL, or BEST; FAST defaults to `gpt-5.3-codex-spark-xhigh`, NORMAL defaults to `gpt-5.6-luna-max`, and BEST and REVIEW default to `gpt-5.6-sol-high`; FAST is limited to obvious repetitive/mechanical/static text/fixture or assertion churn and quick verification, NORMAL covers routine low-risk localized implementation work, BEST covers broad, ambiguous, behavior-shaping, high-risk, or hard-to-test implementation work, the plan reviewer is a REVIEW-tier plan reviewer, the final review+fix agent is a REVIEW-tier review+fix agent, and the quick verifier uses the FAST tier by default. |
-    | Model Resolution Precedence | Confirms the plan starts with built-in defaults, then overlays `/home/gary/.codex/simplepower.toml`, repository `<git-root>/simplepower.toml`, the four `SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_BEST_MODEL`, `SIMPLEPOWER_NORMAL_MODEL`, and `SIMPLEPOWER_FAST_MODEL` process environment values, and explicit current-session instructions last. Confirms the TOML keys are `review_model`, `best_model`, `normal_model`, and `fast_model`; model assignments are not read from `AGENTS.md`; and each final dash suffix is one of `low`, `medium`, `high`, `xhigh`, `max`, or `ultra`. |
+    | Model Resolution Precedence | Confirms the plan follows the full six-key contract in `skills/using-simplepower/references/simplepower-config.md`: built-in defaults, per-key overlays from `/home/gary/.codex/simplepower.toml`, repository `<git-root>/simplepower.toml`, the four non-empty `SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_BEST_MODEL`, `SIMPLEPOWER_NORMAL_MODEL`, and `SIMPLEPOWER_FAST_MODEL` process environment values, and explicit current-session instructions last. Confirms the supported TOML keys are `use_subagent`, `subagent_model`, `review_model`, `best_model`, `normal_model`, and `fast_model`; missing higher-layer keys inherit; every present TOML file is validated in full and is fatal if invalid even when a higher layer overrides its values; model assignments are not read from `AGENTS.md`; and each final dash suffix is one of `low`, `medium`, `high`, `xhigh`, `max`, or `ultra`. |
     | Quick Verification | Confirms quick lint/build/tests commands are concrete, use `timeout`, run after all file-edit workers complete, and happen before the quick-verified implementation checkpoint. |
     | Quick Verifier Scope | Confirms the quick verifier may fix only tiny typo-level errors and must report behavior changes, structural edits, test rewrites, public interface changes, or unclear issues instead of fixing them. |
     | Review+Fix | Confirms exactly one REVIEW-tier review+fix agent reviews and fixes the whole implementation after the quick-verified implementation checkpoint and before final verification. |
@@ -98,8 +98,11 @@ Task tool (general-purpose):
     review+fix agent to BEST instead of REVIEW. Reject plans that do not state
     the model resolution order as built-in defaults, home
     `/home/gary/.codex/simplepower.toml`, repository
-    `<git-root>/simplepower.toml`, the four `SIMPLEPOWER_*_MODEL` process
-    environment values, then explicit current-session instructions. Reject
+    `<git-root>/simplepower.toml`, the four non-empty `SIMPLEPOWER_*_MODEL`
+    process environment values, then explicit current-session instructions.
+    Reject plans that let a higher layer hide an invalid present TOML file,
+    treat a missing higher-layer key as replacement instead of inheritance, or
+    omit the six-key schema contract. Reject
     plans that read model assignments from `AGENTS.md`; removing old AGENTS
     model assignments or lookup instructions is correct and must not be
     rejected. Reject plans that use a final reasoning-effort suffix other than

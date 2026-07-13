@@ -19,12 +19,16 @@ Simple Power skills may mention generic skill tool names. When you encounter the
 | multiple independent file-edit tasks | Multiple `spawn_agent(fork_turns="none", message=...)` calls, one per non-conflicting ownership unit, before `wait` |
 
 The role mappings are mandatory Simple Power dispatches and are independent of
-`use_subagent`. Resolve their model settings by starting with the built-in
-defaults, then overlaying `/home/gary/.codex/simplepower.toml`, repository
-`<git-root>/simplepower.toml`, the four `SIMPLEPOWER_*_MODEL` process
+`use_subagent`. Before resolving them, validate the full six-key configuration
+by following `skills/using-simplepower/references/simplepower-config.md`. Every
+present TOML file must validate in full before overlays; a higher layer must not
+hide malformed TOML, unknown keys, wrong types, or invalid model values in a
+lower layer. Resolve model settings by starting with the built-in defaults,
+then overlaying `/home/gary/.codex/simplepower.toml`, repository
+`<git-root>/simplepower.toml`, the four non-empty `SIMPLEPOWER_*_MODEL` process
 environment values, and explicit current-session instructions last. Each later
-layer replaces only the tier values it supplies. Do not read model assignments
-from any `AGENTS.md` file.
+layer replaces only the tier values it supplies. Missing higher-layer keys
+inherit. Do not read model assignments from any `AGENTS.md` file.
 
 Scratch refs under `refs/simplepower/scratch/<run-id>/` are coordinator-owned
 local refs used to provide concrete `git diff` commands to reviewers. They are

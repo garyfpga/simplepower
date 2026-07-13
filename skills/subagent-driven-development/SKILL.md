@@ -429,6 +429,12 @@ tasks use only FAST, NORMAL, or BEST unless a future approved design explicitly
 adds REVIEW for implementation work. Mandatory tier dispatch is independent of
 `use_subagent`.
 
+Before any model-controlled dispatch, validate the full six-key configuration
+by following `skills/using-simplepower/references/simplepower-config.md`. Every
+present TOML file must validate in full before overlays; a higher layer must not
+hide malformed TOML, unknown keys, wrong types, or invalid model values in a
+lower layer.
+
 | Tier | TOML key | Environment value | Built-in default |
 |------|----------|-------------------|------------------|
 | REVIEW | `review_model` | `SIMPLEPOWER_REVIEW_MODEL` | `gpt-5.6-sol-high` |
@@ -438,10 +444,10 @@ adds REVIEW for implementation work. Mandatory tier dispatch is independent of
 
 Resolve all four values by starting with the built-in defaults, then
 overlaying `/home/gary/.codex/simplepower.toml`, repository
-`<git-root>/simplepower.toml`, the four `SIMPLEPOWER_*_MODEL` process
+`<git-root>/simplepower.toml`, the four non-empty `SIMPLEPOWER_*_MODEL` process
 environment values, and explicit current-session instructions last. Each later
-layer replaces only values it supplies. Do not read model assignments from any
-`AGENTS.md` file.
+layer replaces only values it supplies, and missing higher-layer keys inherit.
+Do not read model assignments from any `AGENTS.md` file.
 
 Resolve each final value by taking the final dash-delimited segment as
 `reasoning_effort` and the preceding string as `model`. Valid effort suffixes
@@ -468,7 +474,7 @@ Role routing:
 - Quick verifier: use the approved FAST tier, `agent_type="worker"`,
   `fork_turns="none"`.
 - Review+fix agent: always use REVIEW, resolved from
-  `SIMPLEPOWER_REVIEW_MODEL`, `agent_type="worker"`, `fork_turns="none"`.
+  the validated REVIEW setting, `agent_type="worker"`, `fork_turns="none"`.
 
 If a planned FAST implementation task is less mechanical or obvious than the
 plan predicted, escalate that task to NORMAL or BEST and record the reason

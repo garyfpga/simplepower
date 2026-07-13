@@ -30,6 +30,13 @@ Simple Power uses four configurable model tiers when planning implementation,
 review, and verification work. These mandatory tiers are independent of
 `use_subagent`.
 
+Before allocating models or dispatching the plan reviewer, validate the full
+six-key configuration by following
+`skills/using-simplepower/references/simplepower-config.md`. Every present TOML
+file must validate in full before overlays; a higher layer must not hide
+malformed TOML, unknown keys, wrong types, or invalid model values in a lower
+layer.
+
 | Tier | TOML key | Environment value | Built-in default |
 |------|----------|-------------------|------------------|
 | REVIEW | `review_model` | `SIMPLEPOWER_REVIEW_MODEL` | `gpt-5.6-sol-high` |
@@ -39,10 +46,10 @@ review, and verification work. These mandatory tiers are independent of
 
 Resolve all tier settings by starting with the built-in defaults, then
 overlaying `/home/gary/.codex/simplepower.toml`, repository
-`<git-root>/simplepower.toml`, the four `SIMPLEPOWER_*_MODEL` process
+`<git-root>/simplepower.toml`, the four non-empty `SIMPLEPOWER_*_MODEL` process
 environment values, and explicit current-session instructions last. Each later
-layer replaces only the tier values it supplies. Do not read model assignments
-from any `AGENTS.md` file.
+layer replaces only the tier values it supplies, and missing higher-layer keys
+inherit. Do not read model assignments from any `AGENTS.md` file.
 
 Interpret the final dash-delimited segment of the resolved value as
 `reasoning_effort` and the preceding string as `model`. Valid effort suffixes
@@ -177,7 +184,7 @@ git for-each-ref --format='%(refname)' "refs/simplepower/scratch/<run-id>" | whi
 
 **Tech Stack:** [Key technologies/libraries]
 
-**Model Allocation:** FAST/NORMAL/BEST/REVIEW tiers are assigned below and are independent of `use_subagent`. Resolve all tiers by starting with the built-in defaults, then overlaying `/home/gary/.codex/simplepower.toml`, repository `<git-root>/simplepower.toml`, the four `SIMPLEPOWER_*_MODEL` environment values, and explicit current-session instructions last; do not read model assignments from `AGENTS.md`. FAST defaults to `gpt-5.3-codex-spark-xhigh`, NORMAL defaults to `gpt-5.6-luna-max`, and BEST and REVIEW default to `gpt-5.6-sol-high`. Parse the final dash as reasoning effort; valid suffixes are `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`. The plan reviewer is a REVIEW-tier plan reviewer, the final review+fix agent is a REVIEW-tier review+fix agent, and the quick verifier uses FAST. With built-in defaults, FAST resolves to model `gpt-5.3-codex-spark` with `xhigh`, NORMAL to model `gpt-5.6-luna` with `max`, and BEST/REVIEW to model `gpt-5.6-sol` with `high`.
+**Model Allocation:** FAST/NORMAL/BEST/REVIEW tiers are assigned below and are independent of `use_subagent`. Resolve and validate the full six-key contract in `skills/using-simplepower/references/simplepower-config.md`: built-in defaults, then per-key overlays from `/home/gary/.codex/simplepower.toml`, repository `<git-root>/simplepower.toml`, the four non-empty `SIMPLEPOWER_*_MODEL` environment values, and explicit current-session instructions last. Missing higher-layer keys inherit, and every present TOML file is fatal if invalid even when a higher layer overrides its values. Do not read model assignments from `AGENTS.md`. FAST defaults to `gpt-5.3-codex-spark-xhigh`, NORMAL defaults to `gpt-5.6-luna-max`, and BEST and REVIEW default to `gpt-5.6-sol-high`. Parse the final dash as reasoning effort; valid suffixes are `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`. The plan reviewer is a REVIEW-tier plan reviewer, the final review+fix agent is a REVIEW-tier review+fix agent, and the quick verifier uses FAST. With built-in defaults, FAST resolves to model `gpt-5.3-codex-spark` with `xhigh`, NORMAL to model `gpt-5.6-luna` with `max`, and BEST/REVIEW to model `gpt-5.6-sol` with `high`.
 
 **Commit Policy:** The coordinator commits after the reviewed plan, allocation, and immediate current-session execution receive combined approval, after all file edits and quick verification complete before final review, and after final review/fix plus final verification. Workers, plan reviewers, quick verifiers, and review+fix agents must not commit. No per-task commits. Coordinator-owned temporary scratch refs under `refs/simplepower/scratch/<run-id>/...` may be created only as local review diff anchors; they are not accepted history commits, not pushed, not merged, not rebased, and must be cleaned up after successful checkpoints or reported for manual cleanup on blockers or failed checkpoints.
 
@@ -304,8 +311,11 @@ Rules:
   `SIMPLEPOWER_REVIEW_MODEL` overrides it at the corresponding layer).
 - Resolve all tiers from built-in defaults, then overlay
   `/home/gary/.codex/simplepower.toml`, repository
-  `<git-root>/simplepower.toml`, the four `SIMPLEPOWER_*_MODEL` process
-  environment values, and explicit current-session instructions last.
+  `<git-root>/simplepower.toml`, the four non-empty `SIMPLEPOWER_*_MODEL`
+  process environment values, and explicit current-session instructions last.
+- Validate every present TOML file in full before overlaying values; a higher
+  layer cannot hide a broken lower-precedence file. Missing higher-layer keys
+  inherit.
 - Do not read model assignments from any `AGENTS.md` file.
 - Mandatory FAST/NORMAL/BEST/REVIEW dispatches are independent of
   `use_subagent`.
@@ -601,8 +611,10 @@ failures:
   verification
 - Model resolution order is explicit: built-in defaults, home
   `/home/gary/.codex/simplepower.toml`, repository
-  `<git-root>/simplepower.toml`, the four `SIMPLEPOWER_*_MODEL` environment
-  values, then explicit current-session instructions
+  `<git-root>/simplepower.toml`, the four non-empty `SIMPLEPOWER_*_MODEL`
+  environment values, then explicit current-session instructions
+- Every present TOML file is validated before overlays, invalid lower layers
+  are fatal, and missing higher-layer keys inherit
 - Model assignments are never read from `AGENTS.md`
 - Mandatory tier dispatches are independent of `use_subagent`
 - FAST for obvious repetitive work, mechanical edits, static text sweeps, simple
