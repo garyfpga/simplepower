@@ -58,8 +58,7 @@ Rules in every mode:
   skipped verification, changed implementation strategy, or broader rewrite.
 - Do not reduce scope, create substitute work, skip review, skip verification,
   switch execution mode, or change the approved path.
-- Do not create, update, delete, inspect, or manage scratch refs unless the
-  coordinator explicitly asks only for read-only diagnostics.
+- Do not create, update, delete, inspect, or manage scratch refs.
 - Do not commit, stage unrelated files, manage refs, create branches, merge,
   rebase, push, or open PRs.
 - Preserve concurrent edits and do not revert unrelated changes.

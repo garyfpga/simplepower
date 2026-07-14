@@ -255,7 +255,8 @@ are ignored. The environment does not configure `use_subagent`,
 `subagent_model`, or `review_model2`.
 
 `use_subagent` is a hard gate for brainstorming and `simplepower:ro`: `false`
-prohibits every optional explorer; `true` permits but does not require one.
+prohibits every optional explorer; `true` permits optional exploration but does
+not require any dispatch.
 Both workflows begin with coordinator-owned initial triage, and neither
 automatically dispatches an explorer at startup. Only when triage identifies a
 large, cross-cutting, complex, or stalled investigation may the coordinator

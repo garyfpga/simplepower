@@ -229,6 +229,8 @@ require_contains_all "README.md" "README documents REVIEW for review roles" \
     "final review+fix"
 require_contains "README.md" "initial triage" "README documents coordinator initial triage"
 require_contains "README.md" "one or more" "README documents the on-demand fanout mode"
+require_contains "README.md" "permits optional exploration but does" "README treats use_subagent=true as permission rather than a one-explorer instruction"
+require_not_contains "README.md" "permits but does not require one" "README does not retain ambiguous exact-one explorer wording"
 require_contains "README.md" "secondary review" "README documents optional secondary review"
 require_contains "README.md" "primary-only" "README documents primary-only final fix authority"
 require_contains_all 'README.md' "README documents AGENTS model assignment retirement" \
@@ -733,7 +735,9 @@ require_contains_all "skills/subagent-driven-development/review-fix-prompt.md" "
     "reroute execution" \
     "Wait for the coordinator to collect and" \
     "synthesize both reports" \
-    "review-fix/before"
+    "review-fix/before" \
+    "Do not create, update, delete, inspect, or manage scratch refs."
+require_not_contains "skills/subagent-driven-development/review-fix-prompt.md" "unless the coordinator explicitly asks" "primary review+fix prompt does not allow ad hoc scratch-ref inspection"
 require_contains_all "skills/subagent-driven-development/secondary-review-prompt.md" "secondary review prompt enforces read-only, no-edit mode" \
     "secondary final reviewer" \
     "read-only" \

@@ -28,9 +28,11 @@ six base-key schema includes `use_subagent` and `subagent_model`, while the
 optional seventh key `review_model2` has no built-in default or model-2
 environment override. Confirm exact defaults, final-dash parsing, and fatal
 validation. Separate negative searches for retired `AGENTS.md` model
-assignments, `SIMPLEPOWER_REVIEW_MODEL2`, and whole-file repository replacement
-wording should produce no active-contract matches. The final command should
-report no whitespace errors.
+assignments, declarations that treat `SIMPLEPOWER_REVIEW_MODEL2` as a supported
+environment override, and whole-file repository replacement wording should
+produce no active-contract matches. References that explicitly say
+`SIMPLEPOWER_REVIEW_MODEL2` is unsupported are expected. The final command
+should report no whitespace errors.
 
 ## Manual Codex smoke test
 
