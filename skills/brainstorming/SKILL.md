@@ -34,27 +34,34 @@ uses this flow, including a todo list, a single-function utility, or a config
 change. The design may be only a few sentences for simple work, but approval is
 still mandatory before implementation.
 
-1. **Resolve configuration, then explore context.** Before inspecting project
-   context, resolve and validate the shared configuration by following
-   `skills/using-simplepower/references/simplepower-config.md`. Then inspect
-   relevant files, docs, and recent commits.
+1. **Resolve configuration, conduct initial triage, then explore context.**
+   Before optional dispatch, resolve and validate the shared configuration by
+   following `skills/using-simplepower/references/simplepower-config.md`. The
+   coordinator performs read-only initial triage of the request and available
+   repository context itself; never dispatch explorers automatically at workflow
+   activation. Then inspect relevant files, docs, and recent commits.
    - With effective `use_subagent=false`, explorer dispatch is prohibited; do
      all read-only inspection yourself.
-   - With effective `use_subagent=true`, optionally dispatch one read-only
-     context explorer only if repository context or task complexity makes it
-     necessary. If not necessary, do not spawn one.
-   - If you dispatch, use the model and reasoning effort parsed from
-     `subagent_model`, not a model tier; pass exactly `fork_turns="none"`; give
-     a self-contained read-only brief; forbid edits and file creation; and
-     require a report with inspected files and commands, architecture and
-     conventions, relevant recent changes, risks, and explicit no-edit
-     confirmation.
-   - If selected dispatch fails because multi-agent support is missing, the
-     configured model is unavailable, or spawning fails, stop and report that
-     blocker. Do not continue through coordinator-only work, another model, or
-     an alternate route.
-   - Synthesize any explorer report yourself. The explorer gathers context
-     only; you retain every question, approach comparison, design approval, and
+   - With effective `use_subagent=true`, only after initial triage identifies a
+     large, cross-cutting, complex, or stalled context investigation may the
+     coordinator dispatch one or more read-only context explorers. Assign
+     distinct useful angles; there is no policy numeric cap, because runtime
+     capacity and non-overlapping useful angles limit the batch.
+   - Every selected explorer uses the model and reasoning effort parsed from
+     `subagent_model`, not a model tier; passes exactly `fork_turns="none"`; and
+     receives a self-contained brief with the task, assigned distinct angle,
+     repository scope, read-only and no-file-creation restrictions, known
+     evidence, expected report, and verification. Explorers may inspect files
+     and run read-only commands only; they may not edit or create files. Require
+     a report with inspected files and commands, architecture and conventions,
+     relevant recent changes, risks, and explicit no-edit confirmation.
+   - If any explorer in a selected batch cannot dispatch because multi-agent
+     support is missing, the configured model is unavailable, or spawning
+     fails, stop and report that blocker; a partial batch is not a substitute.
+     Do not continue through coordinator-only work, another model, or an
+     alternate route.
+   - Synthesize all explorer reports yourself. Explorers gather context only;
+     you retain every question, approach comparison, design approval, and
      handoff responsibility.
 2. **Offer the visual companion only when visual questions are likely.** The
    companion is a temporary browser aid, not a mode and not an implementation

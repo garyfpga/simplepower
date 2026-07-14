@@ -121,6 +121,20 @@ require_regex_contains() {
     fi
 }
 
+require_regex_not_contains() {
+    local path="$1"
+    local pattern="$2"
+    local description="$3"
+
+    if grep -Eq -- "$pattern" "$REPO_ROOT/$path"; then
+        fail "$description"
+        echo "    unexpected match pattern: $pattern"
+        echo "    in: $path"
+    else
+        pass "$description"
+    fi
+}
+
 require_contains_all() {
     local path="$1"
     local description="$2"
@@ -192,6 +206,7 @@ require_file "skills/using-simplepower/SKILL.md" "using-simplepower skill exists
 require_file "skills/using-simplepower/references/simplepower-config.md" "shared Simple Power config reference exists"
 require_dir_absent "skills/using-superpowers" "using-superpowers skill directory is absent"
 require_path_untracked "simplepower.toml" "repository does not track a default Simple Power config"
+require_file "simplepower.toml.example" "simplepower.toml.example exists as a copyable example config"
 
 require_contains "README.md" "simplepower:*" "README uses the Simple Power namespace"
 require_not_contains "README.md" "author =" "README does not include an author line"
@@ -206,11 +221,22 @@ require_contains "README.md" "normal_model = \"gpt-5.6-luna-max\"" "README docum
 require_contains "README.md" "fast_model = \"gpt-5.3-codex-spark-xhigh\"" "README documents the FAST model default key"
 require_contains "README.md" "FAST is the Spark tier" "README documents FAST as the Spark tier"
 require_contains "README.md" "four mandatory model tiers" "README documents four model tiers"
-require_contains "README.md" "REVIEW is for the plan reviewer and final review+fix agent" "README documents REVIEW for review roles"
-require_contains 'README.md' 'nested `AGENTS.md` files do not provide model assignments.' "README documents AGENTS model assignment retirement"
+require_contains "README.md" "review_model2" "README documents optional review_model2"
+require_contains "README.md" "no environment override" "README documents that review_model2 has no environment override"
+require_contains_all "README.md" "README documents REVIEW for review roles" \
+    "REVIEW" \
+    "primary plan reviewer" \
+    "final review+fix"
+require_contains "README.md" "initial triage" "README documents coordinator initial triage"
+require_contains "README.md" "one or more" "README documents the on-demand fanout mode"
+require_contains "README.md" "secondary review" "README documents optional secondary review"
+require_contains "README.md" "primary-only" "README documents primary-only final fix authority"
+require_contains_all 'README.md' "README documents AGENTS model assignment retirement" \
+    'Root and nested `AGENTS.md` files do not provide' \
+    'model assignments.'
 require_contains "README.md" "repository 文件不会整体替代 home 文件" "README documents per-key repo overlay"
 require_not_contains "README.md" "Simple Power uses three configurable model tiers" "README no longer documents three model tiers"
-require_contains "README.md" "parsed at its final dash into a nonempty model prefix" "README explains final-dash parsing as model-prefix + effort-suffix"
+require_regex_contains "README.md" '按最后一个 dash 拆成非空 model prefix|parsed at.*final dash.*nonempty model prefix' "README explains final-dash parsing as model-prefix + effort-suffix"
 require_contains "README.md" "批准已审阅的 plan、模型分配，以及立刻在当前 session 里启动" "README documents combined approval and immediate current-session execution"
 require_contains "README.md" "accepted plan checkpoint commit" "README documents the accepted plan checkpoint"
 require_contains "README.md" "simplepower:subagent-driven-development" "README documents current-session auto-dispatch"
@@ -230,7 +256,8 @@ require_not_contains "README.md" "55%" "README does not preserve the 55 percent 
 require_not_contains "README.md" "current-session-context.md" "README does not preserve the retired context helper reference"
 
 require_contains ".codex-plugin/plugin.json" '"version": "1.1.0"' "plugin manifest version is 1.1.0"
-require_contains ".codex-plugin/plugin.json" "one REVIEW-tier review+fix pass" "plugin metadata documents REVIEW-tier review+fix"
+require_contains ".codex-plugin/plugin.json" "REVIEW-tier review+fix pass" "plugin metadata documents REVIEW-tier review+fix"
+require_contains ".codex-plugin/plugin.json" "optional distinct read-only secondary reviewer" "plugin metadata documents optional secondary review"
 require_contains ".codex-plugin/plugin.json" "temporary local scratch refs as diff anchors" "plugin metadata documents scratch refs as diff anchors"
 require_contains ".codex-plugin/plugin.json" "review/fix passes" "plugin metadata scopes scratch refs to revised plans and review/fix passes"
 require_not_contains ".codex-plugin/plugin.json" "one BEST-tier review+fix pass" "plugin metadata no longer documents BEST-tier review+fix"
@@ -257,9 +284,27 @@ require_contains "docs/README.codex.md" "SIMPLEPOWER_NORMAL_MODEL" "Codex instal
 require_contains "docs/README.codex.md" "SIMPLEPOWER_FAST_MODEL" "Codex install guide documents the FAST Spark model env var"
 require_contains "docs/README.codex.md" "Use FAST for obvious repetitive" "Codex install guide documents FAST as repetitive work"
 require_contains "docs/README.codex.md" "four mandatory model tiers" "Codex install guide documents four model tiers"
-require_contains "docs/README.codex.md" "one REVIEW-tier review+fix pass" "Codex install guide documents the REVIEW-tier review+fix pass"
-require_contains "docs/README.codex.md" "Use REVIEW for the plan reviewer and final review+fix agent" "Codex install guide documents REVIEW for review roles"
-require_contains 'docs/README.codex.md' 'nested `AGENTS.md` files do not provide model assignments.' "Codex install guide documents AGENTS model assignment retirement"
+require_contains_all "docs/README.codex.md" "Codex install guide documents the REVIEW-tier review+fix pass" \
+    "REVIEW-tier review+fix" \
+    "final review+fix"
+require_contains_all "docs/README.codex.md" "Codex install guide documents optional secondary review" \
+    "A distinct value" \
+    "enables a read-only secondary reviewer" \
+    "two initial read-only reports before synthesis" \
+    "primary-only in-scope fixes"
+require_contains_all "docs/README.codex.md" "Codex install guide documents REVIEW for review roles" \
+    "Use REVIEW for the primary plan reviewer and final review+fix agent"
+require_contains "docs/README.codex.md" "initial triage" "Codex install guide documents coordinator first triage"
+require_contains "docs/README.codex.md" "one or more" "Codex install guide documents on-demand fanout"
+require_contains_all "docs/README.codex.md" "Codex install guide documents optional dual-plan reviews" \
+    "final review has two initial read-only reports" \
+    "primary-only in-scope fixes"
+require_contains_all "docs/README.codex.md" "Codex install guide documents primary-only final fixes" \
+    "primary-only in-scope fixes" \
+    "a concurrent writer"
+require_contains_all 'docs/README.codex.md' "Codex install guide documents AGENTS model assignment retirement" \
+    'Root and nested `AGENTS.md` files do not provide' \
+    'model assignments.'
 require_contains "docs/README.codex.md" "per key" "Codex install guide documents per-key TOML key overlay"
 require_not_contains "docs/README.codex.md" "Simple Power uses three configurable model tiers" "Codex install guide no longer documents three model tiers"
 require_contains "docs/README.codex.md" "after combined approval in the current session" "Codex install guide documents combined approval in the current session"
@@ -290,6 +335,11 @@ require_contains "docs/testing.md" "docs/simplepower" "testing docs point genera
 require_contains "docs/testing.md" "optional plan visual guidance" "testing docs cover optional plan visual guidance"
 require_contains "docs/testing.md" "companion behavior" "testing docs cover brainstorming visual companion behavior"
 require_contains "docs/testing.md" "marketplace metadata" "testing docs mention marketplace metadata coverage"
+require_contains "docs/testing.md" "review_model2" "testing docs mention review_model2"
+require_contains "docs/testing.md" '`SIMPLEPOWER_REVIEW_MODEL2` is not accepted or consulted' "testing docs reject a review_model2 environment override"
+require_contains "docs/testing.md" "two concurrent read-only reviewers" "testing docs mention dual plan review"
+require_contains "docs/testing.md" "secondary is never a concurrent writer" "testing docs mention secondary read-only review"
+require_contains "docs/testing.md" "only the primary to make in-scope fixes" "testing docs mention primary-only final fixes"
 
 require_contains "skills/using-simplepower/SKILL.md" "simplepower:*" "using-simplepower skill uses the Simple Power namespace"
 require_contains "skills/using-simplepower/SKILL.md" "docs/simplepower" "using-simplepower skill points generated docs at docs/simplepower"
@@ -303,12 +353,15 @@ require_contains "$config_reference" '<git-root>/simplepower.toml' "config refer
 require_contains "$config_reference" 'use_subagent =' "config reference defines use_subagent"
 require_contains "$config_reference" 'subagent_model =' "config reference defines subagent_model"
 require_contains "$config_reference" 'review_model =' "config reference defines review_model"
+require_contains "$config_reference" 'review_model2 =' "config reference defines the optional review_model2"
 require_contains "$config_reference" 'best_model =' "config reference defines best_model"
 require_contains "$config_reference" 'normal_model =' "config reference defines normal_model"
 require_contains "$config_reference" 'fast_model =' "config reference defines fast_model"
 require_contains "$config_reference" 'use_subagent = false' "config reference gives the disabled-by-default Boolean"
 require_contains "$config_reference" 'subagent_model = "gpt-5.6-luna-xhigh"' "config reference gives the optional subagent model default"
 require_contains "$config_reference" 'review_model = "gpt-5.6-sol-high"' "config reference gives the default REVIEW model"
+require_contains "$config_reference" "no built-in default" "config reference marks review_model2 as optional with no built-in default"
+require_regex_not_contains "$config_reference" '^[[:space:]]*review_model2[[:space:]]*=' "config reference does not assign a default review_model2 value"
 require_contains "$config_reference" 'best_model = "gpt-5.6-sol-high"' "config reference gives the default BEST model"
 require_contains "$config_reference" 'normal_model = "gpt-5.6-luna-max"' "config reference gives the default NORMAL model"
 require_contains "$config_reference" 'fast_model = "gpt-5.3-codex-spark-xhigh"' "config reference gives the default FAST model"
@@ -316,29 +369,46 @@ require_contains "$config_reference" '`SIMPLEPOWER_REVIEW_MODEL`' "config refere
 require_contains "$config_reference" '`SIMPLEPOWER_BEST_MODEL`' "config reference names the BEST environment override"
 require_contains "$config_reference" '`SIMPLEPOWER_NORMAL_MODEL`' "config reference names the NORMAL environment override"
 require_contains "$config_reference" '`SIMPLEPOWER_FAST_MODEL`' "config reference names the FAST environment override"
+require_contains "$config_reference" '`SIMPLEPOWER_REVIEW_MODEL2` environment variable' "config reference states that review_model2 has no environment variable"
 require_contains "$config_reference" 'final dash' "config reference splits model and effort on the final dash"
 require_contains "$config_reference" '`low`, `medium`, `high`, `xhigh`, `max`, and `ultra`' "config reference lists every supported reasoning effort"
 require_contains "$config_reference" 'It does not replace the home file as a' "config reference documents per-key overlay"
 require_contains "$config_reference" 'missing repository keys retain home or default values.' "config reference documents per-key overlay"
 require_contains "$config_reference" 'are not configuration sources for model assignments. The environment configures' "config reference excludes optional toggles from environment overrides"
 require_contains "$config_reference" 'only the four mandatory model tiers;' "config reference excludes optional toggles from environment overrides"
-require_contains "$config_reference" 'it does not configure `use_subagent` or' "config reference excludes optional toggles from environment overrides"
+require_contains "$config_reference" 'it does not configure `use_subagent`,' "config reference excludes optional toggles from environment overrides"
 require_contains "$config_reference" '`~/.codex/simplepower.toml`' "config reference defines home config fallback"
 require_contains "$config_reference" 'Apply explicit current-session instructions last.' "config reference enforces current-session override precedence"
-require_contains "$config_reference" 'A missing' "config reference documents missing-key inheritance"
-require_contains "$config_reference" 'file or key is not an error; it inherits the value already resolved from' "config reference documents missing-key inheritance"
+require_contains "$config_reference" 'missing file or key is not an error; it inherits the value already resolved' "config reference documents missing-key inheritance"
 require_contains "$config_reference" 'Malformed TOML' "config reference rejects malformed TOML"
 require_contains "$config_reference" 'unknown top-level key' "config reference rejects unknown keys"
 require_contains "$config_reference" 'wrong types' "config reference rejects wrong value types"
 require_contains "$config_reference" 'missing model prefixes' "config reference rejects invalid model syntax"
 require_contains "$config_reference" 'unknown effort suffixes' "config reference rejects unknown effort suffixes"
 require_contains "$config_reference" 'name the source plus the precise problem' "config errors report the selected path and precise problem"
-require_contains "$config_reference" 'Every present file, every explicit current-session configuration value, and' "config reference validates present-file overrides before dispatch"
-require_contains "$config_reference" 'every non-empty environment override must be validated even if a higher layer' "config reference validates present-file overrides before dispatch"
-require_contains "$config_reference" 'If the coordinator selects an optional explorer but multi-agent support or' "config reference stops on enabled agent support/modeled blocker"
-require_contains "$config_reference" 'model is unavailable, or spawning fails' "config reference stops when blocker prevents optional explorer"
-require_contains "$config_reference" 'Do not silently switch to coordinator-only work or a' "config reference forbids silent enabled-mode fallback"
-require_contains "$config_reference" 'different model' "config reference forbids silent enabled-mode fallback"
+require_contains "$config_reference" 'higher layer would override the same key. On any configuration error' "config reference validates present-file overrides before dispatch"
+require_regex_contains "$config_reference" 'absent.*exactly equal|exactly equal.*absent|absent.*exact match|exact match.*absent' "config reference documents single-route fallback when review_model2 is absent or equal"
+require_regex_contains "$config_reference" 'absent.*exactly equal|exactly equal.*absent' "config reference documents single-route fallback when review_model2 is equal"
+require_contains_all "$config_reference" "config reference documents dual-review activation for distinct review_model2" \
+    'Any distinct valid `review_model2` enables that read-only' \
+    "secondary route."
+require_contains "$config_reference" "coordinator-owned read-only initial triage" "config reference documents coordinator-led triage before optional exploration"
+require_contains "$config_reference" "must not dispatch explorers" "config reference blocks startup dispatch for optional explorers"
+require_contains "$config_reference" "coordinator synthesizes all explorer reports" "config reference documents coordinator synthesis across optional-explorer dispatch"
+require_contains_all "$config_reference" "config reference documents stop-on-failure for selected batches" \
+    "stop the affected workflow and report the" \
+    "precise blocker"
+require_contains "$config_reference" "one or more" "config reference documents on-demand fanout"
+require_contains "$config_reference" "distinct" "config reference documents distinct optional angles"
+require_contains "$config_reference" "runtime capacity" "config reference documents runtime-capacity practical limits"
+require_contains "$config_reference" "self-contained" "config reference documents self-contained optional-explorer briefs"
+require_contains_all "$config_reference" "config reference stops on blocker before accepting partial optional-explorer fanout" \
+    "If any explorer in a" \
+    "selected batch cannot dispatch because multi-agent support, the configured" \
+    "model, or spawning is unavailable, stop the affected workflow and report the" \
+    "precise blocker; a partial batch is not a substitute."
+require_contains "$config_reference" "a partial batch is not a substitute" "config reference enforces all-or-nothing optional-explorer batches"
+require_contains "$config_reference" "precise blocker" "config reference requires explicit blocker reporting for optional-explorer failure"
 require_contains "$config_reference" 'do not govern mandatory plan reviewers' "optional config does not alter mandatory tier roles"
 
 require_not_contains "skills/brainstorming/SKILL.md" "docs/simplepower/specs" "brainstorming no longer writes standalone specs"
@@ -353,12 +423,20 @@ require_contains_all "skills/brainstorming/SKILL.md" "brainstorming keeps the ha
     'fork_turns="none"' \
     "visual-companion.md" \
     "simplepower:writing-plans"
-require_contains_all "skills/brainstorming/SKILL.md" "brainstorming keeps optional explorer and browser-aid boundaries" \
-    "use_subagent=false" \
-    "optionally dispatch one read-only" \
-    "repository context or task complexity" \
-    "temporary browser aid" \
-    "not brainstorming"
+require_contains_all "skills/brainstorming/SKILL.md" "brainstorming keeps coordinator-led read-only fanout boundaries" \
+    "coordinator performs read-only initial triage" \
+    "initial triage" \
+    "one or more" \
+    "distinct" \
+    "because runtime" \
+    "capacity and non-overlapping useful angles limit the batch." \
+    "read-only" \
+    "self-contained" \
+    "temporary browser aid"
+require_contains "skills/brainstorming/SKILL.md" "never dispatch explorers automatically" "brainstorming does not auto-dispatch optional explorers"
+require_contains "skills/brainstorming/SKILL.md" "large, cross-cutting, complex, or stalled context investigation" "brainstorming gates fan-out to large/cross-cutting/complex/stalled contexts"
+require_contains "skills/brainstorming/SKILL.md" "Do not continue through coordinator-only work, another model, or" "brainstorming blocks silent fallback when a selected explorer batch fails"
+require_contains "skills/brainstorming/SKILL.md" "a partial batch is not a substitute" "brainstorming enforces all-or-nothing optional-explorer selection"
 require_contains "skills/brainstorming/visual-companion.md" ".simplepower/brainstorm" "visual companion uses the Simple Power brainstorming session path"
 require_contains "skills/brainstorming/visual-companion.md" "temporary localhost aid for brainstorming" "visual companion guide documents localhost behavior"
 require_contains "skills/brainstorming/visual-companion.md" "distinct from optional inline visuals in saved Markdown implementation plans" "visual companion guide distinguishes saved Markdown plan visuals"
@@ -367,13 +445,28 @@ require_contains "skills/brainstorming/scripts/frame-template.html" "Simple Powe
 
 require_contains "skills/ro/SKILL.md" "simplepower-config.md" "RO reads the shared optional-subagent config"
 require_contains 'skills/ro/SKILL.md' 'With effective `use_subagent=false`, explorer dispatch is prohibited.' "RO explorer is prohibited without optional-subagent permission"
-require_contains "skills/ro/SKILL.md" "coordinator judges whether repository" "RO explorer is subject to coordinator necessity judgment"
-require_contains "skills/ro/SKILL.md" "context or task complexity makes an initial explorer necessary" "RO explorer is subject to coordinator necessity judgment"
-require_contains "skills/ro/SKILL.md" "If the coordinator judges an explorer necessary, spawn exactly one read-only" "RO can dispatch one optional read-only explorer when needed"
-require_contains "skills/ro/SKILL.md" "initial explorer using the model and reasoning effort parsed from" "RO can dispatch one optional read-only explorer when needed"
-require_contains "skills/ro/SKILL.md" "cannot edit tracked files" "RO explorer cannot edit tracked files"
-require_contains "skills/ro/SKILL.md" 'cannot create `.codex-ro` artifacts' "RO explorer cannot create coordinator-owned artifacts"
+require_contains "skills/ro/SKILL.md" "coordinator performs read-only initial triage of the request and" "RO starts with coordinator-owned initial triage"
+require_contains "skills/ro/SKILL.md" "Never dispatch explorers automatically" "RO does not auto-dispatch optional explorers"
+require_contains "skills/ro/SKILL.md" "initial triage identifies" "RO explorer starts from coordinator triage"
+require_contains "skills/ro/SKILL.md" "one or more" "RO explorer allows practical multi-angle fan-out"
+require_contains "skills/ro/SKILL.md" "distinct useful angle." "RO explorer supports distinct read-only angles"
+require_contains "skills/ro/SKILL.md" "runtime capacity" "RO explorer respects runtime capacity limits"
+require_contains "skills/ro/SKILL.md" "Every selected explorer uses the model and reasoning effort parsed from" "RO explorer dispatch model uses parsed subagent model"
+require_contains "skills/ro/SKILL.md" "partial batch is not a substitute" "RO marks selected explorer batch failure as all-or-nothing"
+require_contains "skills/ro/SKILL.md" "Do not continue coordinator-only, use a" "RO blocks silent fallback when explorer fan-out cannot be dispatched"
+require_contains "skills/ro/SKILL.md" "They cannot edit or create any files" "RO explorer cannot edit tracked files"
+require_contains "skills/ro/SKILL.md" 'cannot create `.codex-ro`' "RO explorer cannot create coordinator-owned artifacts"
 require_contains "skills/ro/SKILL.md" 'fork_turns="none"' "RO explorer receives no inherited turns"
+require_no_active_match "spawn exactly one read-only|optionally dispatch one read-only|initial explorer only" "active explorer policy does not keep retired exact-one wording" \
+    "skills/brainstorming/SKILL.md" \
+    "skills/ro/SKILL.md"
+require_no_active_match "select one read-only explorer|one read-only explorer|exactly one read-only|optionally dispatch one read-only" "active optional-explorer policy does not use obsolete exact-one wording" \
+    "$config_reference" \
+    "skills/brainstorming/SKILL.md" \
+    "skills/ro/SKILL.md" \
+    "skills/writing-plans/SKILL.md" \
+    "docs/README.codex.md" \
+    "README.md"
 
 require_contains "skills/writing-plans/SKILL.md" "File Ownership" "writing-plans requires File Ownership"
 require_contains "skills/writing-plans/SKILL.md" "Implementation Tasks" "writing-plans requires Implementation Tasks"
@@ -405,35 +498,46 @@ require_contains 'skills/writing-plans/SKILL.md' '`gpt-5.3-codex-spark-xhigh`' "
 require_contains "skills/writing-plans/SKILL.md" "The quick verifier uses the FAST tier by default" "writing-plans routes quick verifier through FAST"
 require_contains "skills/writing-plans/SKILL.md" "REVIEW-tier plan reviewer" "writing-plans dispatches a REVIEW-tier plan reviewer"
 require_contains "skills/writing-plans/SKILL.md" "REVIEW-tier review+fix agent" "writing-plans dispatches a REVIEW-tier review+fix agent"
+require_contains "skills/writing-plans/SKILL.md" "review_model2" "writing-plans documents the optional secondary review model"
+require_contains "skills/writing-plans/SKILL.md" "both plan reviewers concurrently" "writing-plans documents dual-plan reviewer routing when review_model2 is distinct"
+require_contains "skills/writing-plans/SKILL.md" "absent or an exact match" "writing-plans documents single-review fallback when review_model2 is absent or equal"
+require_contains "skills/writing-plans/SKILL.md" "collect and synthesize both reports" "writing-plans requires both concurrent review reports before fixes"
+require_contains "skills/writing-plans/SKILL.md" "Only the primary review+fix agent may edit files within" "writing-plans preserves primary-only final fix authority"
 require_contains 'skills/writing-plans/SKILL.md' 'Do not read model assignments from any `AGENTS.md` file.' "writing-plans documents AGENTS model assignment retirement"
 require_contains "skills/writing-plans/SKILL.md" "layer replaces only the tier values it supplies" "writing-plans documents per-key TOML overlay"
 require_contains "skills/writing-plans/SKILL.md" "Every present TOML" "writing-plans rejects invalid lower-precedence TOML files"
 require_contains "skills/writing-plans/SKILL.md" "higher layer must not hide" "writing-plans prevents higher layers from hiding invalid config"
 require_contains "skills/writing-plans/SKILL.md" "four non-empty" "writing-plans ignores empty model environment values"
-require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "full six-key contract" "plan reviewer checks the complete configuration schema"
+require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "six base TOML keys are" "plan reviewer checks the complete configuration schema"
+require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "review_model2" "plan reviewer checks the optional review_model2 key"
+require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" 'no `SIMPLEPOWER_REVIEW_MODEL2`' "plan reviewer confirms no review_model2 environment override"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "four non-empty" "plan reviewer checks empty environment handling"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "fatal if invalid even when a higher layer" "plan reviewer rejects hidden invalid TOML files"
-require_contains "skills/writing-plans/SKILL.md" "Do not run Codex CLI" "writing-plans reviewer dispatch forbids Codex CLI"
-require_contains "skills/writing-plans/SKILL.md" "Do not spawn subagents" "writing-plans reviewer dispatch forbids subagents"
-require_contains "skills/writing-plans/SKILL.md" "Do not invoke Simple Power skills" "writing-plans reviewer dispatch forbids skill recursion"
-require_contains "skills/writing-plans/SKILL.md" "Do not restart execution" "writing-plans reviewer dispatch forbids restart routing"
-require_contains "skills/writing-plans/SKILL.md" "Do not reroute the workflow" "writing-plans reviewer dispatch forbids rerouting"
+require_contains "skills/writing-plans/SKILL.md" "run Codex CLI" "writing-plans reviewer dispatch forbids Codex CLI"
+require_contains "skills/writing-plans/SKILL.md" "spawn subagents" "writing-plans reviewer dispatch forbids subagents"
+require_contains "skills/writing-plans/SKILL.md" "invoke Simple Power skills" "writing-plans reviewer dispatch forbids skill recursion"
+require_contains "skills/writing-plans/SKILL.md" "restart execution" "writing-plans reviewer dispatch forbids restart routing"
+require_contains "skills/writing-plans/SKILL.md" "reroute" "writing-plans reviewer dispatch forbids rerouting"
 require_contains "skills/writing-plans/SKILL.md" "aggregate parallel implementation" "writing-plans emits aggregate implementation handoff"
 require_contains "skills/writing-plans/SKILL.md" "gpt-5.3-codex-spark" "writing-plans documents the default FAST Spark model"
 require_contains "skills/writing-plans/SKILL.md" "review+fix" "writing-plans uses review+fix"
 require_contains "skills/writing-plans/SKILL.md" "current-session auto-dispatch" "writing-plans documents current-session auto-dispatch"
 require_contains "skills/writing-plans/SKILL.md" "combined approval" "writing-plans documents combined approval"
 require_contains "skills/writing-plans/SKILL.md" "accepted plan checkpoint commit" "writing-plans documents the accepted plan checkpoint"
-require_contains "skills/writing-plans/SKILL.md" "send the revised plan back to the same reviewer" "writing-plans documents the reusable reviewer loop"
+require_contains "skills/writing-plans/SKILL.md" "sends the revised plan and the concrete diff to the same original reviewer" "writing-plans documents the reusable reviewer loop"
 require_contains "skills/writing-plans/SKILL.md" 'immediately invokes `simplepower:subagent-driven-development`' "writing-plans documents immediate invocation after approval"
 require_contains "skills/writing-plans/SKILL.md" "docs/simplepower/plans" "writing-plans writes plans under docs/simplepower/plans"
-require_contains "skills/writing-plans/SKILL.md" "Workers, plan reviewers, quick verifiers, and review+fix agents must not commit" "writing-plans forbids non-coordinator commits"
+require_contains_all "skills/writing-plans/SKILL.md" "writing-plans forbids non-coordinator commits" \
+    "Workers, primary and secondary plan reviewers, quick verifiers, primary" \
+    "review+fix agents, and secondary reviewers must not commit"
 require_contains "skills/writing-plans/SKILL.md" "Planning and execution also use coordinator-owned temporary scratch refs as" "writing-plans documents scratch refs as review aids"
 require_contains "skills/writing-plans/SKILL.md" "refs/simplepower/scratch/<run-id>/" "writing-plans documents the scratch namespace"
 require_contains "skills/writing-plans/SKILL.md" "refs/simplepower/scratch/<run-id>/plan-review/before" "writing-plans names the plan-review before ref"
 require_contains "skills/writing-plans/SKILL.md" "refs/simplepower/scratch/<run-id>/plan-review/after-<n>" "writing-plans names the plan-review after ref"
 require_contains "skills/writing-plans/SKILL.md" 'git update-ref "$SP_REF" "$SP_COMMIT"' "writing-plans uses git update-ref for scratch refs"
-require_contains "skills/writing-plans/SKILL.md" "revised plan back to the same reviewer with the concrete diff command" "writing-plans sends revised plans with a concrete diff command"
+require_contains_all "skills/writing-plans/SKILL.md" "writing-plans sends revised plans with a concrete diff command" \
+    "send the revised plan back to the same original reviewer" \
+    'concrete scratch-ref `git diff` command'
 require_contains "skills/writing-plans/SKILL.md" "git diff refs/simplepower/scratch/<run-id>/<phase>/<before-label> refs/simplepower/scratch/<run-id>/<phase>/<after-label> -- <approved-files>" "writing-plans documents the scratch diff command"
 require_contains "skills/writing-plans/SKILL.md" "git update-ref -d" "writing-plans documents scratch cleanup with git update-ref -d"
 require_contains "skills/writing-plans/SKILL.md" "cleanup command instead of deleting them" "writing-plans preserves scratch refs on blockers"
@@ -464,17 +568,21 @@ require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "SIMPLE
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "FAST/NORMAL/BEST/REVIEW" "plan reviewer checks four-tier model allocation"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "SIMPLEPOWER_NORMAL_MODEL" "plan reviewer checks the NORMAL model env var"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "SIMPLEPOWER_FAST_MODEL" "plan reviewer checks the FAST model env var"
-require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "quick verifier uses the FAST tier by default" "plan reviewer checks quick verifier FAST routing"
+require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "quick verifier uses FAST by default" "plan reviewer checks quick verifier FAST routing"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Quick Verification" "plan reviewer checks quick verification"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Quick Verifier Scope" "plan reviewer checks quick verifier scope"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Review+Fix" "plan reviewer checks review+fix"
 require_contains 'skills/writing-plans/plan-document-reviewer-prompt.md' 'model assignments are not read from `AGENTS.md`' "plan reviewer checks AGENTS model assignment retirement"
-require_contains 'skills/writing-plans/plan-document-reviewer-prompt.md' 'supported TOML keys are `use_subagent`, `subagent_model`, `review_model`' "plan reviewer checks the six-key TOML schema"
+require_contains_all 'skills/writing-plans/plan-document-reviewer-prompt.md' "plan reviewer checks the seven-key TOML schema" \
+    "six base TOML keys are" \
+    '`review_model2` is optional'
+require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "both plan reviewers concurrently" "plan reviewer checks dual-plan-review routing"
+require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "both plan reviewers approve the same revision" "plan reviewer checks both-plan reviewer reports"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Do not run Codex CLI" "plan reviewer prompt forbids Codex CLI"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Do not spawn subagents" "plan reviewer prompt forbids subagents"
-require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Do not invoke Simple Power skills" "plan reviewer prompt forbids skill recursion"
+require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "not invoke Simple Power skills" "plan reviewer prompt forbids skill recursion"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Do not restart" "plan reviewer prompt forbids restart routing"
-require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Do not reroute the workflow" "plan reviewer prompt forbids rerouting"
+require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Do not reroute" "plan reviewer prompt forbids rerouting"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Perform the assigned review directly in the current worker" "plan reviewer prompt requires direct review"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "coordinator checkpoint commits" "plan reviewer checks coordinator checkpoint commits"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "No worker commits or per-task commits" "plan reviewer checks the worker commit restriction"
@@ -482,15 +590,15 @@ require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Commit
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Current-Session Auto-Dispatch" "plan reviewer checks current-session auto-dispatch"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "combined approval" "plan reviewer checks combined approval"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "accepted reviewed plan plus allocation plus immediate current-session execution after combined approval" "plan reviewer checks the combined approval checkpoint policy"
-require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "same reviewer" "plan reviewer checks the same reviewer loop"
+require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "same original reviewer" "plan reviewer checks the same reviewer loop"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "accepted-plan checkpoint commit" "plan reviewer checks the accepted plan checkpoint"
-require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "same reviewer loop open" "plan reviewer checks the reusable reviewer loop"
+require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "primary reviewer loop open" "plan reviewer checks the reusable reviewer loop"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" 'immediately invokes `simplepower:subagent-driven-development`' "plan reviewer checks immediate invocation after approval"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Scratch Ref Review Anchors" "plan reviewer checks scratch ref anchors"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "refs/simplepower/scratch/<run-id>/" "plan reviewer checks the scratch namespace"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" 'plan-review refs use `plan-review/before` before first review and `plan-review/after-<n>` after coordinator revisions' "plan reviewer checks plan-review before/after refs"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" 'revised-plan review loops provide a concrete `git diff` command or explicit diff summary' "plan reviewer checks revised-plan diff commands"
-require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "quick-verifier and review+fix edits are inspectable with the same scratch-ref diff command shape" "plan reviewer checks quick-verifier and review-fix scratch anchors"
+require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "quick-verifier and primary review+fix edits are inspectable with the same scratch-ref diff command shape" "plan reviewer checks quick-verifier and review-fix scratch anchors"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "cleanup after successful checkpoints" "plan reviewer checks scratch cleanup after success"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "preservation and manual cleanup reporting on blockers or failed checkpoints" "plan reviewer preserves scratch refs on blockers"
 require_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "never changing the exactly-three-checkpoint commit policy" "plan reviewer preserves the three-checkpoint policy"
@@ -544,10 +652,21 @@ require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD keeps ap
     "simplepower-config.md" \
     "four non-empty" \
     "Quick verifier: use FAST" \
-    "Review+fix: use REVIEW" \
+    "Primary review+fix: use REVIEW" \
     "gpt-5.3-codex-spark" \
     "Do not read model assignments" \
     'fork_turns="none"'
+require_contains "skills/subagent-driven-development/SKILL.md" "review_model2" "SDD documents the optional secondary review model contract"
+require_not_contains "skills/subagent-driven-development/SKILL.md" "Dispatch exactly one REVIEW-tier review+fix agent" "SDD no longer hardcodes exactly one review+fix agent in all cases"
+require_contains "skills/subagent-driven-development/SKILL.md" "both initial reviewers concurrently" "SDD dispatches concurrent final reviewers when review_model2 is distinct"
+require_contains "skills/subagent-driven-development/SKILL.md" "review-fix/before" "SDD uses the same review-fix scratch anchor for final review pair"
+require_contains "skills/subagent-driven-development/SKILL.md" "secondary" "SDD documents a secondary final review role"
+require_contains "skills/subagent-driven-development/SKILL.md" "primary" "SDD preserves primary review+fix continuity"
+require_contains "skills/subagent-driven-development/SKILL.md" "stop" "SDD stops final review if required dispatch fails"
+require_contains "skills/subagent-driven-development/SKILL.md" "wait for both reports" "SDD requires both final-review reports before primary fixes"
+require_contains "skills/subagent-driven-development/SKILL.md" "do not use a partial review" "SDD blocks partial review fallback"
+require_contains "skills/subagent-driven-development/SKILL.md" "secondary reviewer" "SDD keeps the secondary reader role explicit"
+require_contains "skills/subagent-driven-development/SKILL.md" "coordinator synthesis" "SDD synthesizes both final-review reports before fixing"
 require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD keeps lifecycle, commit, and scratch-ref guardrails" \
     "Default lifecycle decision: close." \
     "written reason" \
@@ -592,6 +711,7 @@ require_contains_all "skills/subagent-driven-development/implementer-prompt.md" 
     "workflow skills"
 require_file "skills/subagent-driven-development/quick-verifier-prompt.md" "quick verifier prompt file exists"
 require_file "skills/subagent-driven-development/review-fix-prompt.md" "review+fix prompt file exists"
+require_file "skills/subagent-driven-development/secondary-review-prompt.md" "secondary review prompt file exists"
 require_contains_all "skills/subagent-driven-development/quick-verifier-prompt.md" "quick verifier prompt keeps FAST limited-fix guardrails" \
     "FAST quick verifier" \
     "tiny typo-level" \
@@ -604,12 +724,26 @@ require_contains_all "skills/subagent-driven-development/quick-verifier-prompt.m
 require_contains_all "skills/subagent-driven-development/review-fix-prompt.md" "review+fix prompt keeps direct REVIEW execution guardrails" \
     "REVIEW-tier review+fix agent" \
     "Perform the assigned review directly in this worker" \
+    "Review mode: [single | dual]" \
+    "secondary" \
     "Do not run Codex CLI" \
     "do not restart execution" \
-    "spawn subagents" \
+    "not spawn subagents" \
     "workflow skills" \
     "reroute execution" \
+    "Wait for the coordinator to collect and" \
+    "synthesize both reports" \
     "review-fix/before"
+require_contains_all "skills/subagent-driven-development/secondary-review-prompt.md" "secondary review prompt enforces read-only, no-edit mode" \
+    "secondary final reviewer" \
+    "read-only" \
+    "Do not edit, create, delete" \
+    "Do not run Codex CLI" \
+    "spawn subagents" \
+    "invoke Simple Power workflow skills" \
+    "Do not create, update, delete, inspect, or manage refs" \
+    "do not commit" \
+    "no files were edited"
 require_file "skills/systematic-debugging/parallel-investigation.md" "parallel investigation reference file exists"
 require_contains "skills/systematic-debugging/SKILL.md" "parallel-investigation.md" "systematic-debugging main skill references the parallel investigation guide"
 require_contains_all "skills/systematic-debugging/SKILL.md" "systematic-debugging keeps the four-phase root-cause workflow" \
@@ -659,11 +793,17 @@ require_contains "skills/using-simplepower/references/codex-tools.md" "independe
 require_contains "skills/using-simplepower/references/codex-tools.md" "sp-impl file-edit worker" "Codex tool mapping includes the sp-impl file-edit worker"
 require_contains "skills/using-simplepower/references/codex-tools.md" "quick verifier" "Codex tool mapping includes the quick verifier"
 require_contains "skills/using-simplepower/references/codex-tools.md" "review+fix agent" "Codex tool mapping includes the review+fix agent"
+require_contains "skills/using-simplepower/references/codex-tools.md" "secondary review" "Codex tool mapping documents the secondary review role"
+require_contains "skills/using-simplepower/references/codex-tools.md" "secondary-review-prompt.md" "Codex tool mapping points to the secondary review prompt"
+require_contains "skills/using-simplepower/references/codex-tools.md" "read-only" "Codex tool mapping marks secondary review as read-only"
 require_contains "skills/using-simplepower/references/codex-tools.md" "SIMPLEPOWER_BEST_MODEL" "Codex tool mapping documents the BEST model env var"
 require_contains "skills/using-simplepower/references/codex-tools.md" "SIMPLEPOWER_REVIEW_MODEL" "Codex tool mapping documents the REVIEW model env var"
+require_contains "skills/using-simplepower/references/codex-tools.md" 'no `SIMPLEPOWER_REVIEW_MODEL2` environment variable' "Codex tool mapping states that review_model2 has no environment variable"
 require_contains "skills/using-simplepower/references/codex-tools.md" "SIMPLEPOWER_NORMAL_MODEL" "Codex tool mapping documents the NORMAL model env var"
 require_contains "skills/using-simplepower/references/codex-tools.md" "SIMPLEPOWER_FAST_MODEL" "Codex tool mapping documents the FAST model env var"
-require_contains "skills/using-simplepower/references/codex-tools.md" "present TOML file must validate in full" "Codex tool mapping rejects invalid lower-precedence TOML files"
+require_contains_all "skills/using-simplepower/references/codex-tools.md" "Codex tool mapping rejects invalid lower-precedence TOML files" \
+    "Every present TOML" \
+    "file must validate in full"
 require_contains "skills/using-simplepower/references/codex-tools.md" "four non-empty" "Codex tool mapping ignores empty model environment values"
 require_contains "skills/using-simplepower/references/codex-tools.md" "REVIEW_model" "Codex tool mapping includes the REVIEW model dispatch"
 require_contains "skills/using-simplepower/references/codex-tools.md" 'layer replaces only the tier values it supplies.' "Codex tool mapping documents per-key tier overlays"
@@ -674,7 +814,7 @@ require_contains "skills/using-simplepower/references/codex-tools.md" 'concrete 
 require_contains "skills/using-simplepower/references/codex-tools.md" "not branches, accepted checkpoints, pushed refs, or subagent commits" "Codex tool mapping excludes branch/checkpoint/pushed/subagent semantics"
 require_contains "skills/using-simplepower/references/codex-tools.md" "must not create, update, delete, or commit them" "Codex tool mapping forbids worker and review agent scratch ref ownership"
 require_contains "skills/using-simplepower/references/codex-tools.md" "Use the plan's approved FAST/NORMAL/BEST allocation for \`sp-impl\` file-edit" "Codex tool mapping keeps sp-impl dispatch on the three implementation tiers"
-require_contains "skills/using-simplepower/references/codex-tools.md" "Always dispatch the plan reviewer and review+fix agent with REVIEW" "Codex tool mapping routes review roles through REVIEW"
+require_contains "skills/using-simplepower/references/codex-tools.md" "Always dispatch the primary plan reviewer and one primary review+fix" "Codex tool mapping routes review roles through REVIEW"
 require_contains "skills/using-simplepower/references/codex-tools.md" '| FAST | `fast_model` | `SIMPLEPOWER_FAST_MODEL` | `gpt-5.3-codex-spark-xhigh` |' "Codex tool mapping defaults FAST to Spark xhigh"
 require_contains "skills/using-simplepower/references/codex-tools.md" "quick verifier" "Codex tool mapping includes the quick verifier"
 require_contains "skills/using-simplepower/references/codex-tools.md" "Default resolves to Spark xhigh" "Codex tool mapping describes the quick verifier FAST default"

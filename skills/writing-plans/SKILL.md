@@ -12,9 +12,10 @@ brainstorming design. The plan replaces standalone specs in the normal Simple
 Power workflow. It must include a compact `Design Summary`, exact file
 ownership, a required `Interface Contract`, implementation task allocation
 using `Contract inputs` and `Serialization required`, FAST/NORMAL/BEST/REVIEW
-model allocation, aggregate parallel dispatch guidance, review allocation, quick
-verification commands with timeouts, current-session auto-dispatch guidance,
-combined approval, and three coordinator commit checkpoints. Plans may include
+model allocation, conditional primary-plus-secondary review allocation,
+aggregate parallel dispatch guidance, quick verification commands with timeouts,
+current-session auto-dispatch guidance, combined approval, and three coordinator
+commit checkpoints. Plans may include
 optional inline visual aids when they reduce ambiguity.
 Planning and execution also use coordinator-owned temporary scratch refs as
 local review diff anchors. Scratch refs are not accepted history commits and do
@@ -30,8 +31,8 @@ Simple Power uses four configurable model tiers when planning implementation,
 review, and verification work. These mandatory tiers are independent of
 `use_subagent`.
 
-Before allocating models or dispatching the plan reviewer, validate the full
-six-key configuration by following
+Before allocating models or dispatching a reviewer, validate the full six-base-key
+configuration plus its optional `review_model2` key by following
 `skills/using-simplepower/references/simplepower-config.md`. Every present TOML
 file must validate in full before overlays; a higher layer must not hide
 malformed TOML, unknown keys, wrong types, or invalid model values in a lower
@@ -43,6 +44,17 @@ layer.
 | BEST | `best_model` | `SIMPLEPOWER_BEST_MODEL` | `gpt-5.6-sol-high` |
 | NORMAL | `normal_model` | `SIMPLEPOWER_NORMAL_MODEL` | `gpt-5.6-luna-max` |
 | FAST | `fast_model` | `SIMPLEPOWER_FAST_MODEL` | `gpt-5.3-codex-spark-xhigh` |
+
+The six base keys are `use_subagent`, `subagent_model`, `review_model`,
+`best_model`, `normal_model`, and `fast_model`. `review_model2` is optional:
+it has no built-in default, is resolved only through the home file, repository
+file, and explicit current-session instructions, and has no
+`SIMPLEPOWER_REVIEW_MODEL2` environment variable. First fully resolve the
+primary `review_model`; then resolve and validate a present `review_model2`
+with the same final-dash parsing. An absent secondary or an exact match with
+the fully resolved primary keeps the single-primary route. Only a distinct
+fully resolved secondary enables the conditional read-only route. It is not a
+fifth mandatory model tier and does not change the four mandatory tiers above.
 
 Resolve all tier settings by starting with the built-in defaults, then
 overlaying `/home/gary/.codex/simplepower.toml`, repository
@@ -59,7 +71,10 @@ FAST to model `gpt-5.3-codex-spark` with `xhigh`, NORMAL to model
 `gpt-5.6-luna` with `max`, and BEST and REVIEW to model `gpt-5.6-sol` with
 `high`.
 
-Use REVIEW for the REVIEW-tier plan reviewer and REVIEW-tier review+fix agent.
+Use REVIEW for the primary REVIEW-tier plan reviewer and the one primary
+REVIEW-tier review+fix agent. A distinct optional `review_model2` supplies only
+the read-only secondary plan-review and final-review route; it never supplies
+review+fix authority.
 Use BEST for broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or
 hard-to-test implementation work. Use NORMAL for routine low-risk
 implementation work, especially localized edits where the NORMAL tier is
@@ -91,9 +106,9 @@ user before changing approach.
 ## Scratch Ref Review Anchors
 
 Temporary scratch refs are used by the coordinator to give reviewers concrete
-diff anchors without adding permanent commits. Workers, plan reviewers, quick
-verifiers, review+fix agents, and individual tasks must not create scratch refs
-or commits.
+diff anchors without adding permanent commits. Workers, primary and secondary
+plan reviewers, quick verifiers, review+fix agents, and individual tasks must
+not create scratch refs or commits.
 
 All scratch refs for one Simple Power run live under
 `refs/simplepower/scratch/<run-id>/`. The run id format is
@@ -174,7 +189,7 @@ git for-each-ref --format='%(refname)' "refs/simplepower/scratch/<run-id>" | whi
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use `simplepower:subagent-driven-development` for aggregate parallel implementation. Dispatch all non-conflicting `sp-impl` file-edit workers whose coordination needs are satisfied by the approved Interface Contract, run the quick verifier after all workers finish, commit the quick-verified implementation, then run one REVIEW-tier review+fix agent before final verification and final commit.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `simplepower:subagent-driven-development` for aggregate parallel implementation. Dispatch all non-conflicting `sp-impl` file-edit workers whose coordination needs are satisfied by the approved Interface Contract, run the quick verifier after all workers finish, commit the quick-verified implementation, then run one primary REVIEW-tier review+fix agent before final verification and final commit. When a fully resolved optional `review_model2` is distinct from `review_model`, pair its initial review with one concurrent read-only secondary reviewer, synthesize both reports, and authorize only the primary to fix.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -184,9 +199,9 @@ git for-each-ref --format='%(refname)' "refs/simplepower/scratch/<run-id>" | whi
 
 **Tech Stack:** [Key technologies/libraries]
 
-**Model Allocation:** FAST/NORMAL/BEST/REVIEW tiers are assigned below and are independent of `use_subagent`. Resolve and validate the full six-key contract in `skills/using-simplepower/references/simplepower-config.md`: built-in defaults, then per-key overlays from `/home/gary/.codex/simplepower.toml`, repository `<git-root>/simplepower.toml`, the four non-empty `SIMPLEPOWER_*_MODEL` environment values, and explicit current-session instructions last. Missing higher-layer keys inherit, and every present TOML file is fatal if invalid even when a higher layer overrides its values. Do not read model assignments from `AGENTS.md`. FAST defaults to `gpt-5.3-codex-spark-xhigh`, NORMAL defaults to `gpt-5.6-luna-max`, and BEST and REVIEW default to `gpt-5.6-sol-high`. Parse the final dash as reasoning effort; valid suffixes are `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`. The plan reviewer is a REVIEW-tier plan reviewer, the final review+fix agent is a REVIEW-tier review+fix agent, and the quick verifier uses FAST. With built-in defaults, FAST resolves to model `gpt-5.3-codex-spark` with `xhigh`, NORMAL to model `gpt-5.6-luna` with `max`, and BEST/REVIEW to model `gpt-5.6-sol` with `high`.
+**Model Allocation:** FAST/NORMAL/BEST/REVIEW tiers are assigned below and are independent of `use_subagent`. Resolve and validate the six base keys—`use_subagent`, `subagent_model`, `review_model`, `best_model`, `normal_model`, and `fast_model`—plus optional `review_model2` in `skills/using-simplepower/references/simplepower-config.md`: built-in defaults, then per-key overlays from `/home/gary/.codex/simplepower.toml`, repository `<git-root>/simplepower.toml`, the four non-empty `SIMPLEPOWER_*_MODEL` environment values, and explicit current-session instructions last. Missing higher-layer keys inherit, and every present TOML file is fatal if invalid even when a higher layer overrides its values. Do not read model assignments from `AGENTS.md`. `review_model2` has no built-in default or `SIMPLEPOWER_REVIEW_MODEL2` environment variable; resolve it after the primary and enable its read-only secondary route only when its fully resolved value is distinct, not an exact match. FAST defaults to `gpt-5.3-codex-spark-xhigh`, NORMAL defaults to `gpt-5.6-luna-max`, and BEST and REVIEW default to `gpt-5.6-sol-high`. Parse the final dash as reasoning effort; valid suffixes are `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`. The primary plan reviewer and primary final review+fix agent use REVIEW; a distinct optional secondary is read-only and never fixes. The quick verifier uses FAST. With built-in defaults, FAST resolves to model `gpt-5.3-codex-spark` with `xhigh`, NORMAL to model `gpt-5.6-luna` with `max`, and BEST/REVIEW to model `gpt-5.6-sol` with `high`.
 
-**Commit Policy:** The coordinator commits after the reviewed plan, allocation, and immediate current-session execution receive combined approval, after all file edits and quick verification complete before final review, and after final review/fix plus final verification. Workers, plan reviewers, quick verifiers, and review+fix agents must not commit. No per-task commits. Coordinator-owned temporary scratch refs under `refs/simplepower/scratch/<run-id>/...` may be created only as local review diff anchors; they are not accepted history commits, not pushed, not merged, not rebased, and must be cleaned up after successful checkpoints or reported for manual cleanup on blockers or failed checkpoints.
+**Commit Policy:** The coordinator commits after the reviewed plan, allocation, and immediate current-session execution receive combined approval, after all file edits and quick verification complete before final review, and after final review/fix plus final verification. Workers, primary and secondary plan reviewers, quick verifiers, primary review+fix agents, and secondary reviewers must not commit. No per-task commits. Coordinator-owned temporary scratch refs under `refs/simplepower/scratch/<run-id>/...` may be created only as local review diff anchors; they are not accepted history commits, not pushed, not merged, not rebased, and must be cleaned up after successful checkpoints or reported for manual cleanup on blockers or failed checkpoints.
 
 ---
 ```
@@ -274,7 +289,7 @@ Each task must include:
 - Parallel: Yes or No, with compatible task names when Yes
 - Risk: Low, Medium, or High, with a concrete reason
 - Model tier: FAST, NORMAL, or BEST, with the resolved model and effort. REVIEW
-  is reserved for the plan reviewer and final review+fix agent.
+  is reserved for the primary plan reviewer and primary final review+fix agent.
 - Worker role: `sp-impl`
 - Outputs and file-level responsibilities
 - Implementation steps with exact commands, code locations, and expected results
@@ -289,8 +304,8 @@ parallel even when tests target APIs that implementation workers are creating.
 
 ## Model Allocation
 
-List every implementation task, the plan reviewer, the quick verifier, and the
-final review+fix agent.
+List every implementation task, the primary plan reviewer, any conditional
+secondary reviewer, the quick verifier, and the primary final review+fix agent.
 
 Required columns:
 - Stage
@@ -309,6 +324,11 @@ Rules:
   `SIMPLEPOWER_BEST_MODEL` overrides it at the corresponding layer).
 - REVIEW defaults to `gpt-5.6-sol-high` (`review_model` or
   `SIMPLEPOWER_REVIEW_MODEL` overrides it at the corresponding layer).
+- `review_model2` is optional, has no built-in default and no
+  `SIMPLEPOWER_REVIEW_MODEL2` environment value, and is not a fifth tier.
+  Resolve it after `review_model`; an absent value or exact match keeps the
+  single-primary route, while a distinct fully resolved value is a read-only
+  secondary route only.
 - Resolve all tiers from built-in defaults, then overlay
   `/home/gary/.codex/simplepower.toml`, repository
   `<git-root>/simplepower.toml`, the four non-empty `SIMPLEPOWER_*_MODEL`
@@ -330,8 +350,12 @@ Rules:
 - Escalate FAST to NORMAL or BEST if the work is less mechanical or obvious.
 - Escalate NORMAL to BEST if the work is broad, ambiguous, behavior-shaping, or
   hard to verify.
-- The plan reviewer uses REVIEW.
-- The final review+fix agent uses REVIEW.
+- The primary plan reviewer uses REVIEW. A distinct `review_model2` adds a
+  concurrent read-only secondary plan reviewer; both plan reviewers must
+  approve the current plan revision.
+- The one primary final review+fix agent uses REVIEW. A distinct
+  `review_model2` adds a concurrent read-only initial final reviewer, whose
+  report is synthesized before the primary-only fix follow-up.
 - The quick verifier uses the FAST tier by default, resolving to
   `model="gpt-5.3-codex-spark"` and `reasoning_effort="xhigh"` unless
   `SIMPLEPOWER_FAST_MODEL` is overridden.
@@ -358,10 +382,14 @@ Self-review checklist:
 - Model allocation: FAST/NORMAL/BEST/REVIEW choices match risk and mechanics,
   all four configurable defaults and overlay layers are documented, no model
   assignments are read from `AGENTS.md`, mandatory tiers are independent of
-  `use_subagent`, the plan reviewer and final review+fix agent use REVIEW, and
-  the quick verifier uses the FAST tier by default.
-- Review allocation: the plan has one REVIEW-tier review+fix agent after quick
-  verification.
+  `use_subagent`, and optional `review_model2` has no default or environment
+  variable and is compared as a fully resolved string after `review_model`.
+  The primary plan reviewer and primary review+fix agent use REVIEW, a distinct
+  secondary is read-only, and the quick verifier uses the FAST tier by default.
+- Review allocation: absent `review_model2` or an exact match has one primary
+  reviewer path; a distinct value has concurrent read-only plan reviewers that
+  both approve, then concurrent read-only initial final reviews whose both
+  reports precede primary-only fixes.
 - Commit policy: exactly three coordinator checkpoints are present and no
   non-coordinator role commits; scratch refs are local review anchors, not
   accepted checkpoint commits.
@@ -376,52 +404,69 @@ Before first review, the coordinator creates
 `refs/simplepower/scratch/<run-id>/plan-review/before` for the saved plan file
 using the temporary-index pattern in `Scratch Ref Review Anchors`.
 
-Then dispatch a REVIEW-tier plan reviewer using
-`skills/writing-plans/plan-document-reviewer-prompt.md`. Provide the saved plan
-path, the approved brainstorming design context, the scratch run id when one was
-created, and the `plan-review/before` ref. Dispatch with
+First fully resolve the primary `review_model`, then resolve any optional
+`review_model2`. It has no built-in default and no
+`SIMPLEPOWER_REVIEW_MODEL2` environment variable. An absent secondary or an
+exact match with the fully resolved primary uses the current one-primary plan
+reviewer behavior: dispatch one primary REVIEW-tier plan reviewer using
+`skills/writing-plans/plan-document-reviewer-prompt.md` with
 `spawn_agent(agent_type="worker", model=<REVIEW_model>, reasoning_effort=<REVIEW_effort>, fork_turns="none", message=<self-contained-review-prompt>)`.
-The prompt must contain the exact review task, read-only scope and constraints,
-approved design and plan evidence, required review output, and verification
-criteria. Keep the initial reviewer subagent
-open while it reports recoverable issues. If the reviewer reports issues, fix
-the plan, rerun the focused self-review checks for the changed categories,
-create `refs/simplepower/scratch/<run-id>/plan-review/after-<n>`, and send the
-revised plan back to the same reviewer with the concrete diff command:
+
+When the fully resolved optional secondary is distinct, dispatch both plan
+reviewers concurrently: the primary with the REVIEW model and the secondary
+with the parsed `review_model2` model and effort. Both plan reviewers use the
+same self-contained `plan-document-reviewer-prompt.md` evidence, are explicitly
+read-only, and receive the saved plan path, approved brainstorming design
+context, scratch run id, and the same `plan-review/before` snapshot. Every
+dispatch must pass `fork_turns="none"`. If either required reviewer fails to
+launch, stop the plan-review checkpoint; do not accept a partial review.
+
+For either route, the prompt must contain the exact review task, read-only scope
+and constraints, approved design and plan evidence, required review output, and
+verification criteria. Keep the original required reviewer or reviewers open
+through recoverable issue loops. If any reviewer reports issues, the coordinator
+fixes the plan, reruns the focused self-review checks for the changed
+categories, creates `refs/simplepower/scratch/<run-id>/plan-review/after-<n>`,
+and sends the revised plan and the concrete diff to the same original reviewer
+or both original reviewers:
 
 ```bash
 git diff refs/simplepower/scratch/<run-id>/plan-review/before refs/simplepower/scratch/<run-id>/plan-review/after-<n> -- <plan-file>
 ```
 
-If the same reviewer still finds issues, the next revision creates
+If any original reviewer still finds issues, the next revision creates
 `plan-review/after-<n+1>` and compares the last `after-<n>` ref to the new
-`after-<n+1>` ref:
+`after-<n+1>` ref before sending that diff to every required original reviewer:
 
 ```bash
 git diff refs/simplepower/scratch/<run-id>/plan-review/after-<n> refs/simplepower/scratch/<run-id>/plan-review/after-<n+1> -- <plan-file>
 ```
 
-Close the reviewer only after approval, an unrecoverable interruption, or
-explicit user direction. If a needed scratch ref is missing, stop the review loop
-before relying on that missing diff anchor.
+The single-primary route passes after its primary approval. The distinct route
+passes only after both plan reviewers approve the same current plan revision;
+an approval from one reviewer does not excuse the other review. Close the
+required reviewer or reviewers only after the applicable approval condition, an
+unrecoverable interruption, or explicit user direction. If a needed scratch ref
+is missing, stop the review loop before relying on that missing diff anchor.
 
-The REVIEW-tier plan reviewer must perform the assigned review directly in the
-current worker. Do not run Codex CLI. Do not spawn subagents. Do not invoke
-Simple Power skills. Do not restart execution. Do not reroute the workflow.
+Primary and optional secondary plan reviewers must perform the assigned review
+directly in the current worker. They must not edit or create files, run Codex
+CLI, spawn subagents, invoke Simple Power skills, restart execution, or reroute
+the workflow.
 
-After the plan reviewer approves, ask the user for combined approval of the
-reviewed plan, model/task allocation, and immediate current-session execution.
-The accepted plan checkpoint commit happens only after that combined approval.
-Workers and reviewers must not create this commit.
+After the required plan reviewer approval condition passes, ask the user for
+combined approval of the reviewed plan, model/task allocation, and immediate
+current-session execution. The accepted plan checkpoint commit happens only
+after that combined approval. Workers and reviewers must not create this commit.
 
 After the user gives combined approval, the coordinator creates the accepted
 plan checkpoint commit and immediately invokes
 `simplepower:subagent-driven-development` to execute the accepted plan with the
 approved model allocation in the current session. Every future implementation,
-quick-verifier, and review+fix `spawn_agent` dispatch must pass
-`fork_turns="none"` and a self-contained prompt containing the exact task,
-scope, constraints, evidence or Contract inputs, required output, and exact
-verification commands and expectations. After the accepted plan
+quick-verifier, primary review+fix, and optional secondary-review `spawn_agent`
+dispatch must pass `fork_turns="none"` and a self-contained prompt containing
+the exact task, scope, constraints, evidence or Contract inputs, required
+output, and exact verification commands and expectations. After the accepted plan
 checkpoint succeeds, delete that run's `plan-review` scratch refs. If the
 checkpoint fails or the workflow stops before the checkpoint, preserve the refs
 and report the manual cleanup command.
@@ -468,34 +513,60 @@ preserve the refs and report the manual cleanup command.
 
 ## Final Review And Fix
 
-After the coordinator checkpoint for the quick-verified implementation, dispatch
-one REVIEW-tier review+fix agent. That agent reviews and fixes the whole
-implementation against the accepted plan, file ownership, approved path
-enforcement, aggregate parallel dispatch semantics, and verification
-requirements.
-
-Dispatch it with
-`spawn_agent(agent_type="worker", model=<REVIEW_model>, reasoning_effort=<REVIEW_effort>, fork_turns="none", message=<self-contained-review-fix-prompt>)`.
-
 Before dispatching the review+fix agent, the coordinator creates
 `refs/simplepower/scratch/<run-id>/review-fix/before` for the approved
-implementation file list. If the review+fix agent edits files, the coordinator
-creates `refs/simplepower/scratch/<run-id>/review-fix/after` after those edits
-and before final verification, then inspects or hands off this diff command:
+implementation file list. Resolve the primary `review_model` first, then any
+optional `review_model2`; the secondary has no default and no
+`SIMPLEPOWER_REVIEW_MODEL2` environment variable.
+
+If the secondary is absent or an exact match with the fully resolved primary,
+dispatch one primary REVIEW-tier review+fix agent in `single` mode. It retains
+the current direct review+fix behavior and reviews the whole implementation
+against the accepted plan, file ownership, approved path enforcement, aggregate
+parallel dispatch semantics, and verification requirements:
+
+`spawn_agent(agent_type="worker", model=<REVIEW_model>, reasoning_effort=<REVIEW_effort>, fork_turns="none", message=<self-contained-single-review-fix-prompt>)`.
+
+If the fully resolved secondary is distinct, dispatch the one primary
+REVIEW-tier review+fix agent in `dual` mode and the optional secondary reviewer
+concurrently against the same `review-fix/before` snapshot. Use
+`review-fix-prompt.md` for the primary and
+`secondary-review-prompt.md` for the secondary. Both initial briefs are
+self-contained, use `fork_turns="none"`, and explicitly prohibit edits. The
+secondary is read-only and never receives review+fix authority. If either
+required reviewer fails to launch, stop the final-review checkpoint; do not use
+a partial review and do not let the primary edit early. If one initial reviewer
+launched before its peer failed, close it after confirming its no-edit
+restriction remained intact.
+
+In dual mode, collect and synthesize both reports against the accepted plan and
+actual snapshot. Lifecycle-close the secondary after its report. Retain the
+primary only while it awaits the coordinator's synthesis; this is the explicit
+lifecycle exception for dual review. Then send that same primary a
+self-contained follow-up that authorizes only in-scope primary fixes, names the
+synthesized findings and evidence, and restates the approved ownership and
+verification boundaries. The secondary never edits, creates files, commits,
+manages refs, reroutes, recurses, or receives a fix follow-up. Do not introduce
+a concurrent writer or another checkpoint.
+
+After the primary completes its direct single-mode review+fix or its authorized
+dual-mode follow-up, lifecycle-close it by default, inspect its report and the
+actual diff, and validate changed files. Create `review-fix/after` only when
+the primary edited files; the secondary never contributes edits to that anchor.
+Before final verification, inspect or hand off this diff command when the
+primary made changes:
 
 ```bash
 git diff refs/simplepower/scratch/<run-id>/review-fix/before refs/simplepower/scratch/<run-id>/review-fix/after -- <approved-files>
 ```
 
-The review+fix agent may edit files within the plan's approved file ownership
-when fixing issues it finds. It must report changed files, commands run, results,
-remaining risks, and any unresolved deviations that require user approval. It
-must not commit.
-
-The REVIEW-tier review+fix agent must perform the assigned review and fixes
-directly in the current worker. Do not run Codex CLI. Do not spawn subagents.
-Do not invoke Simple Power skills. Do not restart execution. Do not reroute the
-workflow. If no file changes happen during review+fix, omit the
+Only the primary review+fix agent may edit files within the plan's approved file
+ownership when authorized to fix issues. It must report changed files, commands
+run, results, remaining risks, and any unresolved deviations that require user
+approval. It must not commit. The primary and optional secondary must perform
+their assigned reviews directly in the current worker. Do not run Codex CLI,
+spawn subagents, invoke Simple Power skills, restart execution, or reroute the
+workflow. If no primary file changes happen during review+fix, omit the
 `review-fix/after` ref. After the final checkpoint succeeds, delete that run's
 `review-fix` scratch refs. If the checkpoint fails or the workflow stops before
 the checkpoint, preserve the refs and report the manual cleanup command.
@@ -509,11 +580,13 @@ Every plan must define exactly three future coordinator commit checkpoints:
    execution, and before invoking `simplepower:subagent-driven-development`.
 2. Quick-verified implementation checkpoint: after all `sp-impl` file edits
    complete and the quick verifier passes.
-3. Final checkpoint: after the REVIEW-tier review+fix agent completes and final
-   verification passes.
+3. Final checkpoint: after the primary REVIEW-tier review+fix lifecycle
+   completes and final verification passes. A distinct optional secondary adds
+   no checkpoint and never becomes a writer.
 
-Workers, plan reviewers, quick verifiers, and review+fix agents must not commit.
-Do not include worker-owned commits or per-task commits.
+Workers, primary and secondary plan reviewers, quick verifiers, primary
+review+fix agents, and secondary reviewers must not commit. Do not include
+worker-owned commits or per-task commits.
 
 Scratch refs are the only allowed temporary review anchors. They are
 coordinator-owned, local-only, and not accepted checkpoint commits. They must be
@@ -529,15 +602,16 @@ implementation JSON artifact.
 Normal Simple Power planning proceeds in the current session. Do not run routing
 heuristics or offer alternate execution routes.
 
-After the plan reviewer approves, ask the user for one combined approval that
-covers:
+After the required plan reviewer approval condition passes, ask the user for one
+combined approval that covers:
 - The reviewed plan
 - The model/task allocation
 - Immediate current-session execution
 
 If the user requests changes, update the plan, rerun the focused self-review
 checks for the changed categories, create the next `plan-review/after-<n>`
-scratch ref, and send the revised plan back to the same reviewer with the
+scratch ref, and send the revised plan back to the same original reviewer or,
+when the distinct secondary route is enabled, both original reviewers with the
 concrete scratch-ref `git diff` command when review approval must be refreshed.
 Do not create the accepted plan checkpoint until the user gives combined
 approval.
@@ -547,7 +621,7 @@ commit, deletes the successful `plan-review` scratch refs, then immediately invo
 this instruction:
 
 ```text
-Execute `<PLAN_PATH>` with aggregate parallel implementation from the approved Interface Contract. Use the approved FAST/NORMAL/BEST/REVIEW model allocation. Dispatch all non-conflicting `sp-impl` file-edit workers whose coordination needs are satisfied by their Contract inputs, run the quick FAST-tier verifier with lint/build/tests and timeouts after all workers finish, commit the quick-verified implementation, then run one REVIEW-tier review+fix agent, final verification, and final commit.
+Execute `<PLAN_PATH>` with aggregate parallel implementation from the approved Interface Contract. Use the approved FAST/NORMAL/BEST/REVIEW model allocation. Dispatch all non-conflicting `sp-impl` file-edit workers whose coordination needs are satisfied by their Contract inputs, run the quick FAST-tier verifier with lint/build/tests and timeouts after all workers finish, and commit the quick-verified implementation. Then resolve `review_model2` after `review_model`: if absent or an exact match, run one primary REVIEW-tier review+fix agent directly; if distinct, run that primary and a concurrent read-only secondary initial reviewer from the same snapshot, synthesize both reports, and authorize only the primary to fix. Run final verification and the final commit condition without adding a checkpoint or concurrent writer.
 ```
 
 ## Verification
@@ -562,8 +636,9 @@ usually:
 - `timeout 120s <test command>`
 
 The final verification section must also say that the coordinator performs the
-final checkpoint only after the REVIEW-tier review+fix agent has completed and
-the final commands pass.
+final checkpoint only after the primary REVIEW-tier review+fix lifecycle has
+completed, any enabled secondary report has been synthesized before
+primary-only fixes, and the final commands pass.
 
 Final reporting must include a cleanup check for any remaining scratch refs from
 the run:
@@ -608,7 +683,8 @@ failures:
 - Complete task instructions, with code snippets when code shape matters
 - Concrete commands with `timeout` and expected results
 - FAST/NORMAL/BEST/REVIEW allocation across implementation tasks, review, and
-  verification
+  verification; optional `review_model2` is a read-only secondary route, not a
+  fifth tier
 - Model resolution order is explicit: built-in defaults, home
   `/home/gary/.codex/simplepower.toml`, repository
   `<git-root>/simplepower.toml`, the four non-empty `SIMPLEPOWER_*_MODEL`
@@ -621,10 +697,15 @@ failures:
   fixture/assertion churn, and quick verification
 - NORMAL for routine low-risk localized implementation work
 - BEST for broad, ambiguous, behavior-shaping, high-risk, or hard-to-test work
-- REVIEW-tier plan reviewer
-- Keep the initial plan reviewer open for issue loops; send revised plans back
-  to the same reviewer until approval, unrecoverable interruption, or explicit
-  user direction
+- Resolve `review_model2` only after the primary REVIEW value; it has no
+  `SIMPLEPOWER_REVIEW_MODEL2` environment variable, and an absent value or
+  exact match keeps the single-primary route
+- Primary REVIEW-tier plan reviewer; when a distinct secondary exists, dispatch
+  both plan reviewers concurrently and require both approvals
+- Keep the initial required plan reviewer or reviewers open for issue loops;
+  send revised plans and their concrete scratch diff to the same original
+  reviewer or both original reviewers until the applicable approval condition,
+  unrecoverable interruption, or explicit user direction
 - Coordinator-owned scratch refs may live only under
   `refs/simplepower/scratch/<run-id>/`; use the
   `YYYYMMDD-HHMMSS-<short-head>` run id format and record the run id in working
@@ -632,10 +713,12 @@ failures:
 - Scratch refs are local review diff anchors, not branches, not accepted
   checkpoint commits, and not worker or task commits
 - Create `plan-review/before` before first plan review; after coordinator plan
-  edits, create `plan-review/after-<n>` and send the same reviewer a concrete
-  `git diff` command
+  edits, create `plan-review/after-<n>` and send the same original reviewer or,
+  in the distinct-secondary route, both original reviewers a concrete `git diff`
+  command
 - Use the same scratch-ref diff shape for quick-verifier tiny fixes and
-  review+fix edits before the next accepted checkpoint
+  primary review+fix edits before the next accepted checkpoint; never create a
+  `review-fix/after` for the secondary
 - Delete phase scratch refs after the accepted checkpoint for that phase
   succeeds; preserve refs and report the manual cleanup command on blockers,
   user stops, or failed checkpoint commits
@@ -643,7 +726,10 @@ failures:
   `refs/simplepower/scratch/<run-id>/`
 - Quick verifier uses the FAST tier by default, resolving to
   `gpt-5.3-codex-spark-xhigh` when unset
-- One REVIEW-tier review+fix agent
+- One primary REVIEW-tier review+fix agent is the only writer. With a distinct
+  secondary, both initial final reviews are read-only, both reports are
+  synthesized, the secondary closes, and only the retained primary receives
+  fix authorization
 - No worker commits or per-task commits
 - Exactly three coordinator checkpoints
 - Ask for combined approval of the reviewed plan, model/task allocation, and

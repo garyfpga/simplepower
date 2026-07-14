@@ -13,10 +13,13 @@ current Codex session. The plan is authoritative and must contain an
 `Serialization required`, verification commands, and model allocation.
 
 This skill is the coordinator workflow for `sp-impl` workers, the FAST quick
-verifier, and the single REVIEW review+fix pass. It uses capacity-aware rolling
-aggregate scheduling: build the complete ready set, fill every available child
-agent slot with ready non-conflicting work, and immediately dispatch the next
-queued ready task whenever a worker finishes and is lifecycle-closed.
+verifier, and one primary REVIEW review+fix agent. A distinct optional
+`review_model2` can add a concurrent read-only second review at the plan and
+final-review phases, but it never adds a writer or a checkpoint. This skill
+uses capacity-aware rolling aggregate scheduling: build the complete ready set,
+fill every available child agent slot with ready non-conflicting work, and
+immediately dispatch the next queued ready task whenever a worker finishes and
+is lifecycle-closed.
 
 Capacity queuing is not `Serialization required: Yes`. A task is truly
 serialized only for an approved concrete reason: overlapping write scopes,
@@ -39,7 +42,8 @@ At each lifecycle boundary, compare actual work against the approved plan,
 verification:
 
 - before any dispatch;
-- after each worker, quick-verifier, or review+fix result;
+- after each worker, quick-verifier, primary review+fix, or secondary-review
+  result;
 - before quick verification;
 - before the quick-verified implementation checkpoint;
 - before review+fix;
@@ -70,9 +74,9 @@ already implied by approved text. Stop and ask the user for fresh explicit
 approval before changing scope, strategy, verification, review approach, or
 implementation work.
 
-Workers and review+fix agents must not self-expand write scope. They report
-`BLOCKED` or `NEEDS_CONTEXT`; the coordinator owns classification and any plan
-correction.
+Workers, the primary review+fix agent, and the secondary reviewer must not
+self-expand write scope. They report `BLOCKED` or `NEEDS_CONTEXT`; the
+coordinator owns classification and any plan correction.
 
 ## Required Read Points
 
@@ -101,6 +105,16 @@ from any `AGENTS.md` file. Parse the final dash-delimited segment as
 `reasoning_effort`; valid suffixes are `low`, `medium`, `high`, `xhigh`,
 `max`, and `ultra`.
 
+The six base keys are `use_subagent`, `subagent_model`, `review_model`,
+`best_model`, `normal_model`, and `fast_model`; `review_model2` is an optional
+key, not a fifth tier. Resolve the primary `review_model` first. Then resolve a
+present `review_model2` from the home file, repository file, and explicit
+current-session instructions only: it has no built-in default and no
+`SIMPLEPOWER_REVIEW_MODEL2` environment variable. Validate and parse it with
+the same rules. An absent secondary or an exact match with the fully resolved
+primary disables the secondary route; only a distinct fully resolved value
+enables a read-only secondary reviewer.
+
 Routing decisions:
 
 - `sp-impl`: use the plan-approved FAST, NORMAL, or BEST tier. Escalate FAST
@@ -109,8 +123,12 @@ Routing decisions:
   hard to verify. Record the reason.
 - Quick verifier: use FAST. With built-in defaults this resolves to
   `model="gpt-5.3-codex-spark"` and `reasoning_effort="xhigh"`.
-- Review+fix: use REVIEW. Exactly one REVIEW review+fix agent runs after the
-  quick-verified implementation checkpoint.
+- Primary review+fix: use REVIEW. Exactly one primary REVIEW review+fix agent
+  is the only final-review writer after the quick-verified implementation
+  checkpoint.
+- Secondary review: use the distinct parsed optional `review_model2` only when
+  enabled by the exact resolved-string comparison. It is read-only, receives no
+  review+fix authority, and is never a mandatory tier.
 
 Every Simple Power dispatch uses `fork_turns="none"` and a self-contained
 prompt. There are no conversation-history inheritance exceptions.
@@ -170,24 +188,49 @@ prompt. There are no conversation-history inheritance exceptions.
 15. Create `refs/simplepower/scratch/<run-id>/review-fix/before` from the
     quick-verified checkpoint state for the approved file list. If this fails,
     stop before review+fix.
-16. Dispatch exactly one REVIEW-tier review+fix agent from
-    `review-fix-prompt.md` with the whole diff, approved plan, ownership,
-    worker reports, verification evidence, scratch context, and
-    `fork_turns="none"`.
-17. After review+fix returns, lifecycle-close it by default, inspect the report
-    and actual diff, validate changed files, create `review-fix/after` only if
-    files changed, and inspect the scratch diff before final verification.
-18. Run final verification from the approved plan and any repo-required checks
+16. Resolve the primary `review_model` first, then the optional `review_model2`.
+    If the secondary is absent or an exact match with the fully resolved
+    primary, dispatch exactly one primary REVIEW-tier review+fix agent from
+    `review-fix-prompt.md` in `single` mode with the whole diff, approved plan,
+    ownership, worker reports, verification evidence, scratch context, and
+    `fork_turns="none"`. It retains direct review+fix authority.
+17. If the fully resolved secondary is distinct, dispatch the primary from
+    `review-fix-prompt.md` in `dual` mode and the secondary from
+    `secondary-review-prompt.md` concurrently against the same
+    `review-fix/before` snapshot. Both self-contained initial briefs must pass
+    `fork_turns="none"` and prohibit edits. The primary's initial role is
+    read-only until follow-up authorization; the secondary is always read-only.
+    If either configured reviewer fails to launch, stop the final-review
+    checkpoint, do not use a partial review, and do not let the primary edit
+    early. Close any successfully launched peer after confirming that its
+    initial no-edit restriction remained intact.
+18. In the distinct-secondary route, wait for both reports, inspect their
+    evidence against the actual snapshot, and synthesize both reports against
+    the accepted plan. Lifecycle-close the secondary after its report. Retain
+    the primary while it awaits this synthesis; this is the sole explicit
+    lifecycle exception. Send the retained primary a self-contained follow-up
+    authorizing only in-scope primary fixes, with the synthesized findings,
+    ownership boundaries, verification requirements, and continued no-commit,
+    no-ref, and no-reroute restrictions. The secondary never edits, creates
+    files, commits, manages refs, reroutes, recurses, or receives a follow-up.
+19. After the primary's direct single-mode review+fix or authorized dual-mode
+    follow-up returns, lifecycle-close it by default, inspect its report and
+    actual diff, validate changed files, create `review-fix/after` only if the
+    primary changed files, and inspect the scratch diff before final
+    verification. Never create a `review-fix/after` for the secondary.
+20. Run final verification from the approved plan and any repo-required checks
     for the changed files.
-19. Inspect `git status --short`. Create a final commit only if uncommitted
+21. Inspect `git status --short`. Create a final commit only if uncommitted
     changes remain after final verification; do not create an empty final
     commit. Delete review+fix scratch refs after the final checkpoint succeeds,
     then run the final cleanup check for `refs/simplepower/scratch/<run-id>/`.
-20. Report verification results, coordinator checkpoint SHA, final commit SHA
+22. Report verification results, coordinator checkpoint SHA, final commit SHA
     when created, changed files, dispatch decisions, capacity queue behavior,
     any serialized tasks and reasons, lifecycle status, scratch run id when
-    refs were created, and scratch-ref cleanup status or cleanup commands for
-    preserved refs.
+    refs were created, scratch-ref cleanup status or cleanup commands for
+    preserved refs, and whether the secondary route was disabled by absence or
+    exact match, or enabled with both reports synthesized before primary-only
+    fixes.
 
 ## Dispatch Rules
 
@@ -217,7 +260,13 @@ prompt. There are no conversation-history inheritance exceptions.
 - Record any model escalation, serialization exception, capacity scheduling
   decision, or lifecycle exception with a written reason.
 - No worker commits. No per-task commits. Workers, quick verifiers, and
-  review+fix agents must not create, update, or delete refs.
+  primary review+fix agents and secondary reviewers must not create, update,
+  delete, inspect, or manage refs.
+- In a distinct-secondary final review, use one shared `review-fix/before`
+  snapshot, dispatch both initial reviewers concurrently, require both reports,
+  and authorize primary-only fixes only after coordinator synthesis. Do not
+  dispatch a concurrent writer, downgrade a failed launch to one review, or add
+  a checkpoint.
 
 ## Scratch Refs
 
@@ -237,31 +286,40 @@ cleanup commands.
 Phase ownership and timing:
 
 - Plan review refs are created and deleted by the planning coordinator, not by
-  `sp-impl`, quick verifier, or review+fix agents.
+  `sp-impl`, quick verifier, primary review+fix agents, or secondary reviewers.
 - Quick-verifier `before` is created after all workers complete and before the
   quick verifier dispatch. Quick-verifier `after` is created only when tiny
   fixes changed files. Delete quick-verifier refs only after the
   quick-verified implementation checkpoint succeeds or the no-empty-commit
   outcome is recorded as successful.
 - Review+fix `before` is created after the quick-verified implementation
-  checkpoint and before review+fix dispatch. Review+fix `after` is created
-  only when review+fix changed files. Delete review+fix refs only after the
-  final checkpoint succeeds or the no-empty-final-commit outcome is recorded as
-  successful.
+  checkpoint and before the primary review+fix dispatch or, when enabled, both
+  concurrent initial reviewers. Review+fix `after` is created only when the
+  primary review+fix agent changes files after direct single-mode review or
+  dual-mode authorization; the secondary never edits and never creates an
+  `after` anchor. Delete review+fix refs only after the final checkpoint
+  succeeds or the no-empty-final-commit outcome is recorded as successful.
 - On user direction, a blocker, scratch-ref creation failure, or failed
   checkpoint commit, preserve scratch refs as evidence and report the manual
   cleanup command from `scratch-ref-workflow.md`.
 
 If scratch-ref creation fails, stop the review loop before relying on the
-missing anchor. For quick-verifier tiny fixes and review+fix edits, inspect
-the scratch diff before creating the next accepted checkpoint.
+missing anchor. For quick-verifier tiny fixes and primary review+fix edits,
+inspect the scratch diff before creating the next accepted checkpoint.
 
 ## Subagent Lifecycle
 
 Run a lifecycle checkpoint after every subagent final result, including
-`sp-impl`, quick verifier, and review+fix.
+`sp-impl`, quick verifier, primary review+fix, and secondary review.
 
 Default lifecycle decision: close.
+
+The sole lifecycle exception is a primary in a distinct-secondary final review
+after it has returned its initial read-only report. Keep that primary open only
+while the coordinator awaits, consumes, and synthesizes both reports before
+sending the self-contained primary-only fix authorization. Record that reason,
+close the secondary after its report, and close the primary as soon as its
+authorized follow-up completes or the checkpoint stops.
 
 At each checkpoint:
 
@@ -282,7 +340,10 @@ active written reason.
 
 - `./implementer-prompt.md` - self-contained `sp-impl` worker prompt.
 - `./quick-verifier-prompt.md` - self-contained FAST quick-verifier prompt.
-- `./review-fix-prompt.md` - self-contained REVIEW review+fix prompt.
+- `./review-fix-prompt.md` - self-contained primary REVIEW review+fix prompt;
+  it supports direct `single` mode and initially read-only `dual` mode.
+- `./secondary-review-prompt.md` - self-contained optional secondary final
+  reviewer prompt; it is always read-only and has no fix follow-up.
 
 ## Red Flags
 
@@ -307,12 +368,20 @@ Never:
 - Continue implementation on an alternate path after a blocker before asking
   the user.
 - Require or allow worker commits, per-task commits, or ref management.
-- Let a worker, quick verifier, or review+fix agent update the approved plan
-  unless that edit is explicitly assigned.
+- Let a secondary reviewer edit, create files, stage, commit, manage refs,
+  spawn subagents, invoke skills, reroute, recurse, or receive a fix follow-up.
+- Let a worker, quick verifier, primary review+fix agent, or secondary reviewer
+  update the approved plan unless that edit is explicitly assigned.
 - Let a worker read the plan file instead of receiving the task text and
   context.
 - Skip quick verification, the quick-verified implementation checkpoint, the
-  one REVIEW review+fix pass, final verification, or the final commit condition.
+  one primary REVIEW review+fix pass, final verification, or the final commit
+  condition.
+- When `review_model2` is distinct, dispatch less than both initial reviewers,
+  let either initial reviewer edit, let the primary fix before both reports and
+  coordinator synthesis, fail to stop after either launch failure, retain the
+  secondary after its report without a written reason, introduce a concurrent
+  writer, create a secondary `review-fix/after`, or add a checkpoint.
 - Skip required scratch-ref creation, scratch diff inspection, phase cleanup,
   preserved-ref reporting, or final cleanup checks.
 - Leave a finished subagent open without a written reason tied to the current
@@ -332,10 +401,13 @@ If quick verification finds issues, allow only tiny typo-level fixes that
 directly cause a command failure, require reruns of failed commands after tiny
 fixes, and stop for user direction on non-trivial failures.
 
-If review+fix finds issues, fix only within approved write scopes, run focused
-verification when practical, and stop if a required fix needs fresh approval,
-true scope expansion, reduced scope, docs-only substitute, stub substitute,
-skipped verification, changed implementation strategy, or broader rewrite.
+If the primary review+fix agent finds issues, fix only within approved write
+scopes, run focused verification when practical, and stop if a required fix
+needs fresh approval, true scope expansion, reduced scope, docs-only substitute,
+stub substitute, skipped verification, changed implementation strategy, or
+broader rewrite. In dual mode, the coordinator first consumes both reports and
+then authorizes only the primary to fix; secondary findings never authorize
+edits.
 
 ## Integration
 
@@ -366,5 +438,9 @@ Final reporting must include:
 - changed files;
 - scratch run id when refs were created;
 - scratch-ref cleanup status or cleanup commands for preserved refs;
+- review routing outcome: secondary absent, exact match, or distinct; if
+  distinct, confirmation that both reports were synthesized and only the
+  primary made or was authorized for fixes;
+- any retained-primary lifecycle exception and why it was closed; and
 - confirmation that all finished subagents were closed or have an active
   written reason to remain open.

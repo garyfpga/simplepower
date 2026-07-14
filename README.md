@@ -34,7 +34,7 @@ SimplePower 是 Jesse Vincent / Prime Radiant 的 [Superpowers](https://github.c
 | 阶段 | SuperPower | SimplePower |
 |---|---:|---:|
 | Spec / Plan | brainstorming -> <br> approve spec -> <br> spec.md (commit) -> <br> plan.md (approve and commit) | brainstorming -> <br> approve spec -> <br> plan.md (approve and commit) <br> 懒得同时检查 spec.md 和 plan.md
-| Subagent Implementation <br><br> 这就是 SimplePower 快的原因 | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | 多个 subagent 并行处理多个文件 -> <br> FAST-tier 快速验证 subagent -> <br> 单个 REVIEW-tier reviewer + fixer
+| Subagent Implementation <br><br> 这就是 SimplePower 快的原因 | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | 多个 subagent 并行处理多个文件 -> <br> FAST-tier 快速验证 subagent -> <br> primary REVIEW-tier reviewer + fixer；可选 distinct read-only secondary reviewer
 | Git Commits? | 每一步 | parallel subagent 之后一次性提交 + <br> review 之后最终提交
 
 ## 安装
@@ -56,7 +56,7 @@ codex plugin marketplace upgrade garyfpga-codex-plugins
 
 ## 模型分配
 
-Simple Power 使用四个强制模型层级。它们的内建默认值也是当前 session 已批准的值：
+Simple Power 使用四个强制模型层级（four mandatory model tiers）。它们的内建默认值也是当前 session 已批准的值：
 
 ```toml
 review_model = "gpt-5.6-sol-high"
@@ -67,9 +67,11 @@ fast_model = "gpt-5.3-codex-spark-xhigh"
 
 最终分配为 REVIEW = `gpt-5.6-sol`/`high`、BEST = `gpt-5.6-sol`/`high`、NORMAL = `gpt-5.6-luna`/`max`、FAST = `gpt-5.3-codex-spark`/`xhigh`。
 
-环境变量只能覆盖这四个层级，并且只使用非空的 `SIMPLEPOWER_REVIEW_MODEL`、`SIMPLEPOWER_BEST_MODEL`、`SIMPLEPOWER_NORMAL_MODEL` 和 `SIMPLEPOWER_FAST_MODEL`。根目录或嵌套的 `AGENTS.md` 都不再提供模型赋值。
+环境变量只能覆盖这四个层级，并且只使用非空的 `SIMPLEPOWER_REVIEW_MODEL`、`SIMPLEPOWER_BEST_MODEL`、`SIMPLEPOWER_NORMAL_MODEL` 和 `SIMPLEPOWER_FAST_MODEL`。不存在 `SIMPLEPOWER_REVIEW_MODEL2`。根目录或嵌套的 `AGENTS.md` 都不再提供模型赋值。
 
-REVIEW 用于 plan reviewer 和 final review+fix。
+`review_model2` 是可选的 secondary reviewer 配置，不是第五个强制层级；它没有内建默认值，也没有环境变量覆盖。缺失或与已解析的 `review_model` 完全相等时保持一个 primary reviewer。只有 distinct 的值才启用额外的 read-only reviewer：plan review 使用两个 read-only reviewers，final review 先收集两个 read-only reports，再由 primary 进行范围内修复；secondary 永远不写文件。
+
+REVIEW 用于 primary plan reviewer 和 final review+fix。
 BEST 用于广泛、跨文件、含糊、会改变行为、高风险、难测试的工作。
 NORMAL 用于原来会放进旧 FAST 层的常规低风险实现工作，尤其是局部修改。
 FAST 是 Spark 层，用于明显重复的工作、多文件机械性修改、大量静态文本扫改、简单 fixture/assertion 变更，以及快速验证。
@@ -78,7 +80,9 @@ FAST 是 Spark 层，用于明显重复的工作、多文件机械性修改、�
 
 Simple Power 按 key 独立解析配置：先使用内建默认值，再 overlay `~/.codex/simplepower.toml` 中出现的 key；在 Git 仓库内，再 overlay `<git-root>/simplepower.toml` 中出现的 key；然后 overlay 上述四个非空模型环境变量；最后应用当前 session 的显式指示。较高层缺失的 key 会继承较低层的值，因此 repository 文件不会整体替代 home 文件。在 Git 仓库外跳过 repository 文件这一层。
 
-支持的 TOML 顶层 key 及其精确默认值只有以下六个：
+可复制的完整示例见 [simplepower.toml.example](simplepower.toml.example)；该文件本身不是 active repository configuration。
+
+支持的 TOML 顶层 key 是以下六个 base keys，加上没有默认值的可选 `review_model2`。下面六个 key 的精确默认值保持不变：
 
 ```toml
 use_subagent = false
@@ -89,9 +93,11 @@ normal_model = "gpt-5.6-luna-max"
 fast_model = "gpt-5.3-codex-spark-xhigh"
 ```
 
-`use_subagent` 必须是 TOML Boolean。每个模型 key 都必须是非空 TOML string，并按最后一个 dash 拆成非空 model prefix 与 reasoning-effort suffix；合法 suffix 只有 `low`、`medium`、`high`、`xhigh`、`max` 和 `ultra`。格式错误的 TOML、未知 key、错误类型、空模型字符串、缺失 model prefix 或非法 effort 都是 fatal error。每个存在的文件、每个显式 current-session 配置值，以及每个非空环境 override 都必须验证，即使更高层随后会覆盖同一 key；缺失文件或 key 则继承。只有空的模型环境变量会被忽略。环境变量不会配置 `use_subagent` 或 `subagent_model`。
+`use_subagent` 必须是 TOML Boolean。每个存在的模型 key（包括可选的 `review_model2`）都必须是非空 TOML string，并按最后一个 dash 拆成非空 model prefix 与 reasoning-effort suffix；合法 suffix 只有 `low`、`medium`、`high`、`xhigh`、`max` 和 `ultra`。格式错误的 TOML、未知 key、错误类型、空模型字符串、缺失 model prefix 或非法 effort 都是 fatal error。每个存在的文件、每个显式 current-session 配置值，以及每个非空环境 override 都必须验证，即使更高层随后会覆盖同一 key；缺失文件或 key 则继承。只有空的模型环境变量会被忽略。环境变量不会配置 `use_subagent`、`subagent_model` 或 `review_model2`。
 
-`use_subagent` 是 brainstorming 和 `simplepower:ro` 的硬 gate：`false` 禁止可选 explorer；`true` 允许但不要求 coordinator 根据判断为相应 workflow 选择一个只读 explorer。它与四个强制模型层级相互独立，也不控制强制的 plan reviewer、implementation、quick verifier 或 review+fix agents；这些仍使用 FAST/NORMAL/BEST/REVIEW 分配。如果 coordinator 已选择 explorer，但 multi-agent 支持、指定模型或派发不可用，流程会停止，不会静默降级。每一次 Simple Power agent 派发都使用 `fork_turns="none"` 和自包含上下文。
+`use_subagent` 是 brainstorming 和 `simplepower:ro` 的硬 gate：`false` 禁止所有可选 explorer；`true` 只是 permission，不是启动指令。两个 workflow 都先由 coordinator 进行 initial triage，不会在启动时自动 dispatch explorer。只有 triage 判断 investigation 属于 large、cross-cutting、complex 或 stalled 时，coordinator 才能在 runtime capacity 内 fan-out 一个或多个具有 distinct investigation angles 的 read-only explorers。每个 explorer 都使用自包含 brief 和 `fork_turns="none"`，只能读取和运行只读命令；coordinator 会综合所有报告。选定的 explorer batch 如果无法完整派发，流程会停止，不会用 partial batch 静默替代。
+
+当 `review_model2` distinct 时，plan review 会并行运行两个 read-only reviewers，并要求两者都批准；final review 会在同一个 verified snapshot 上先取得两个 read-only reports，完成 synthesis 后才授权 primary 做范围内修复。secondary 是额外 pair of eyes，永远不是 concurrent writer；如果任一 reviewer 无法派发，review checkpoint 会停止，不会降级为单 reviewer。缺失或 equal 时则使用一个 primary reviewer。
 
 这次变更不会创建或 track repository-level `simplepower.toml`；如果该文件存在，系统会支持它并按 key overlay home 文件。
 
@@ -101,10 +107,10 @@ Simple Power skills 使用 `simplepower:*` namespace。当你想让 Codex 使用
 
 brainstorming skill 可以使用临时的 localhost visual companion 来处理 mockups、diagrams 和其他视觉问题。生成的 implementation plans 会保存到 `docs/simplepower/plans/`。
 
-在 `simplepower:writing-plans` 完成 plan review 之后，Simple Power 会一次性询问你是否批准已审阅的 plan、模型分配，以及立刻在当前 session 里启动 `simplepower:subagent-driven-development`。
+在 `simplepower:writing-plans` 完成 plan review 之后，Simple Power 会一次性询问你是否批准已审阅的 plan、模型分配，以及立刻在当前 session 里启动 `simplepower:subagent-driven-development`。最终 review 保留一个 primary REVIEW-tier reviewer + fixer；若配置了 distinct `review_model2`，先综合两个 read-only reports，再只允许 primary 做范围内修复。
 你确认后，coordinator 会创建 accepted plan checkpoint commit，并立即调用 `simplepower:subagent-driven-development` 执行已批准的 plan。
 为了让 reviewer 更容易对 revised plan 和 review/fix 变化做 diff，coordinator 会在本地创建临时 scratch refs 作为 diff anchors；这些 refs 只是审阅辅助，不是 branch 或 accepted checkpoint，成功后会清理。
-如果 REVIEW-tier reviewer 提出问题，coordinator 会修正 plan、重新跑相关自检，再把 revised plan 送回同一个 reviewer。REVIEW-tier reviewer 会一直保持打开，直到通过、发生不可恢复中断，或你明确要求停止。
+如果 REVIEW-tier reviewer 提出问题，coordinator 会修正 plan、重新跑相关自检，再把 revised plan 送回原 reviewer；distinct `review_model2` 启用时，会把同一份 concrete diff 送回两个原 read-only reviewers。reviewer 会一直保持打开，直到通过、发生不可恢复中断，或你明确要求停止。
 
 ## 如何使用 Simple Power
 
@@ -150,7 +156,7 @@ This table explains what SimplePower is trying to achieve (times are just estima
 | Pharse | SuperPower | SimplePower |
 |---|---:|---:|
 | Spec / Plan | brainstorming -> <br> approve spec -> <br> spec.md (commit) -> <br> plan.md (approve and commit) | brainstorming -> <br> approve spec -> <br> plan.md (approve and commit) <br> too lazy to check spec.md and plan.md
-| Subagent Implementation <br><br> this is why SimplePower is fast | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | Many subagents in parallel for multiple files -> <br> FAST-tier quick verifier subagent -> <br> Single REVIEW-tier reviewer + fixer
+| Subagent Implementation <br><br> this is why SimplePower is fast | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | Many subagents in parallel for multiple files -> <br> FAST-tier quick verifier subagent -> <br> Primary REVIEW-tier reviewer + fixer, with an optional distinct read-only secondary reviewer
 | Git Commits? | every steps | all at once after parallel subagent + <br> final after review
 
 ## Installation
@@ -187,12 +193,21 @@ The resulting assignments are REVIEW = `gpt-5.6-sol`/`high`, BEST =
 `gpt-5.6-sol`/`high`, NORMAL = `gpt-5.6-luna`/`max`, and FAST =
 `gpt-5.3-codex-spark`/`xhigh`.
 
-The environment can override only these tiers, with non-empty
+The environment can override only these four tiers, with non-empty
 `SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_BEST_MODEL`,
-`SIMPLEPOWER_NORMAL_MODEL`, and `SIMPLEPOWER_FAST_MODEL` values. Root and
-nested `AGENTS.md` files do not provide model assignments.
+`SIMPLEPOWER_NORMAL_MODEL`, and `SIMPLEPOWER_FAST_MODEL` values. There is no
+`SIMPLEPOWER_REVIEW_MODEL2`. Root and nested `AGENTS.md` files do not provide
+model assignments.
 
-REVIEW is for the plan reviewer and final review+fix agent.
+`review_model2` is optional and is not a fifth mandatory tier. It has no
+built-in default and no environment override. If it is absent or exactly equal
+to the resolved `review_model`, Simple Power keeps one primary reviewer. A
+distinct value enables an additional read-only reviewer: plan review has two
+read-only reviewers, while final review gathers two initial read-only reports
+before synthesis and primary-only in-scope fixes. The secondary is an extra
+pair of eyes and never a concurrent writer.
+
+REVIEW is for the primary plan reviewer and final review+fix agent.
 BEST is for broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or
 hard-to-test work.
 NORMAL is for routine low-risk implementation work that used to fit the old
@@ -212,7 +227,11 @@ the lower-layer value. In particular, a repository file overlays the home file
 per key; it does not replace it as a whole. Outside Git, the repository layer
 is skipped.
 
-The only supported TOML top-level keys and their exact defaults are:
+See [simplepower.toml.example](simplepower.toml.example) for a copyable full
+example; the example itself is not active repository configuration.
+
+The supported TOML schema is these six base keys plus optional `review_model2`.
+The six base keys have the following exact defaults:
 
 ```toml
 use_subagent = false
@@ -223,26 +242,38 @@ normal_model = "gpt-5.6-luna-max"
 fast_model = "gpt-5.3-codex-spark-xhigh"
 ```
 
-`use_subagent` must be a TOML Boolean. Every model key must be a nonempty TOML
-string and is parsed at its final dash into a nonempty model prefix and a
-reasoning-effort suffix. Valid suffixes are `low`, `medium`, `high`, `xhigh`,
-`max`, and `ultra`. Malformed TOML, unknown keys, wrong types, empty model
-strings, missing model prefixes, and invalid effort suffixes are fatal. Every
-present file, every explicit current-session configuration value, and every
-non-empty environment override is validated even if a higher layer would
-replace its value; missing files and keys inherit instead of failing. Only
-empty model-tier environment variables are ignored. The environment does not
-configure `use_subagent` or `subagent_model`.
+`use_subagent` must be a TOML Boolean. Every present model key, including
+optional `review_model2`, must be a nonempty TOML string and is parsed at its
+final dash into a nonempty model prefix and a reasoning-effort suffix. Valid
+suffixes are `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`. Malformed
+TOML, unknown keys, wrong types, empty model strings, missing model prefixes,
+and invalid effort suffixes are fatal. Every present file, every explicit
+current-session configuration value, and every non-empty environment override
+is validated even if a higher layer would replace its value; missing files and
+keys inherit instead of failing. Only empty model-tier environment variables
+are ignored. The environment does not configure `use_subagent`,
+`subagent_model`, or `review_model2`.
 
 `use_subagent` is a hard gate for brainstorming and `simplepower:ro`: `false`
-prohibits an optional explorer; `true` permits, but does not require, the
-coordinator to select one read-only explorer for the relevant workflow. It is
-separate from the four mandatory model tiers and does not control the mandatory
-plan reviewer, implementation, quick verifier, or review+fix agents; those
-continue to use the FAST/NORMAL/BEST/REVIEW allocation. If the coordinator
-selects an explorer but multi-agent support, the configured model, or spawning
-is unavailable, the workflow stops without silent fallback. Every Simple Power
-agent dispatch uses `fork_turns="none"` with self-contained context.
+prohibits every optional explorer; `true` permits but does not require one.
+Both workflows begin with coordinator-owned initial triage, and neither
+automatically dispatches an explorer at startup. Only when triage identifies a
+large, cross-cutting, complex, or stalled investigation may the coordinator
+fan-out one or more distinct read-only explorers within runtime capacity. Each
+explorer receives a self-contained brief and uses `fork_turns="none"`; the
+coordinator synthesizes the reports. A selected batch that cannot fully
+dispatch stops the workflow rather than silently using a partial batch. This
+is separate from the four mandatory model tiers and does not control the
+mandatory plan reviewer, implementation, quick verifier, or review+fix agents;
+those continue to use the FAST/NORMAL/BEST/REVIEW allocation.
+
+When `review_model2` is distinct, plan review runs two read-only reviewers
+concurrently and requires both approvals. Final review starts with two initial
+read-only reports against the same verified snapshot; after synthesis, only
+the primary may make in-scope fixes. The secondary is an extra pair of eyes,
+never a concurrent writer. If either reviewer cannot dispatch, the review
+checkpoint stops instead of downgrading to one reviewer. An absent or equal
+`review_model2` keeps the single primary-reviewer path.
 
 This change does not create or track a repository-level `simplepower.toml`.
 When one is present, it is supported and overlays the home file per key.
@@ -267,10 +298,12 @@ To make revised plans and review/fix changes easier to diff, the coordinator
 creates temporary local scratch refs as diff anchors; they are review-only
 artifacts, not branches or accepted checkpoints, and they are cleaned up after
 success.
-If the REVIEW-tier reviewer reports issues, the coordinator fixes the plan,
+If a REVIEW-tier reviewer reports issues, the coordinator fixes the plan,
 reruns focused self-review checks for the changed categories, and sends the
-revised plan back to the same reviewer. The REVIEW-tier reviewer stays open
-until approval, an unrecoverable interruption, or explicit user direction.
+revised plan back to the original reviewer. When a distinct `review_model2` is
+enabled, the same concrete diff goes to both original read-only reviewers.
+The reviewers stay open until approval, an unrecoverable interruption, or
+explicit user direction.
 
 ## How To Use Simple Power
 

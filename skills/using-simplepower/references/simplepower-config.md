@@ -10,7 +10,8 @@ The exact filename is `simplepower.toml`.
 
 Resolve every supported key independently in this order:
 
-1. Start with the built-in defaults.
+1. Start with the built-in defaults for the six base keys. `review_model2` has
+   no built-in default and starts absent.
 2. If `~/.codex/simplepower.toml` exists, overlay the keys present there.
 3. When inside a Git repository, if `<git-root>/simplepower.toml` exists,
    overlay the keys present there. It does not replace the home file as a
@@ -22,8 +23,9 @@ Resolve every supported key independently in this order:
 
 Outside Git, skip the repository-file layer. Root and nested `AGENTS.md` files
 are not configuration sources for model assignments. The environment configures
-only the four mandatory model tiers; it does not configure `use_subagent` or
-`subagent_model`.
+only the four mandatory model tiers; it does not configure `use_subagent`,
+`subagent_model`, or `review_model2`. There is no
+`SIMPLEPOWER_REVIEW_MODEL2` environment variable.
 
 Do not create a default configuration file. Configuration is instruction-driven
 and requires no runtime parser dependency. This change does not create a
@@ -32,7 +34,7 @@ supported as the per-key overlay described above.
 
 ## Schema, Defaults, And Validation
 
-Only these top-level keys are supported:
+Only these six base top-level keys plus optional `review_model2` are supported:
 
 ```toml
 use_subagent = false
@@ -41,48 +43,80 @@ review_model = "gpt-5.6-sol-high"
 best_model = "gpt-5.6-sol-high"
 normal_model = "gpt-5.6-luna-max"
 fast_model = "gpt-5.3-codex-spark-xhigh"
+
+# Optional: no built-in default.
+# review_model2 = "gpt-5.6-luna-max"
 ```
 
 `use_subagent` must be a TOML Boolean and defaults to `false` when missing.
-Each model key must be a nonempty TOML string and defaults to the exact value
-shown above when missing from all higher-priority layers.
+The five base model keys must be nonempty TOML strings and default to the exact
+values shown above when missing from all higher-priority layers.
+`review_model2` has no built-in default: it remains absent unless a home,
+repository, or explicit current-session configuration supplies it. When
+present in a TOML file, it must be a nonempty TOML model/effort string; when
+present as explicit current-session configuration, it must be a nonempty
+model/effort string.
 
-Parse every model value by splitting on its final dash. The nonempty prefix is
-the `model`, and the suffix is the `reasoning_effort`. The only valid effort
-suffixes are `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`. The defaults
-therefore resolve to `subagent_model` = `gpt-5.6-luna`/`xhigh`, REVIEW =
-`gpt-5.6-sol`/`high`, BEST = `gpt-5.6-sol`/`high`, NORMAL =
+Parse every present model value by splitting on its final dash. The nonempty
+prefix is the `model`, and the suffix is the `reasoning_effort`. The only valid
+effort suffixes are `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`. The
+base defaults therefore resolve to `subagent_model` = `gpt-5.6-luna`/`xhigh`,
+REVIEW = `gpt-5.6-sol`/`high`, BEST = `gpt-5.6-sol`/`high`, NORMAL =
 `gpt-5.6-luna`/`max`, and FAST = `gpt-5.3-codex-spark`/`xhigh`.
 
 Malformed TOML, unknown top-level keys, wrong types, empty model strings,
 missing model prefixes, and unknown effort suffixes are errors. This includes
-any value without a nonempty model prefix and final supported effort suffix.
-Every present file, every explicit current-session configuration value, and
-every non-empty environment override must be validated even if a higher layer
-would override the same key. On any configuration error, stop the affected
-skill before dispatch and name the source plus the precise problem. A missing
-file or key is not an error; it inherits the value already resolved from
-lower-priority layers. Only empty model environment variables are ignored
-rather than treated as overrides.
+any present `review_model2` without a nonempty model prefix and final supported
+effort suffix. Every present file, every explicit current-session configuration
+value, and every non-empty environment override must be validated even if a
+higher layer would override the same key. On any configuration error, stop the
+affected skill before dispatch and name the source plus the precise problem. A
+missing file or key is not an error; it inherits the value already resolved
+from lower-priority layers. `review_model2` remains absent when no allowed
+layer supplies it. Only empty model environment variables are ignored rather
+than treated as overrides.
 
-## Optional Dispatch Behavior
+## Optional Secondary Reviewer
+
+Compare fully resolved `review_model2` and `review_model` strings exactly.
+An absent `review_model2`, or one exactly equal to `review_model`, disables the
+secondary reviewer. Any distinct valid `review_model2` enables that read-only
+secondary route. It is optional and is not a fifth mandatory model tier.
+
+## Optional Explorer Fan-Out
 
 When effective `use_subagent=false`, brainstorming and `simplepower:ro` must
-not dispatch an optional explorer. When effective `use_subagent=true`, the
-coordinator may, but is not required to, select one read-only explorer for
-brainstorming or one read-only explorer for `simplepower:ro`, using the parsed
-`subagent_model` model and reasoning effort. Coordinator judgment determines
-whether that single explorer is useful for the current workflow.
+not dispatch optional explorers. When effective `use_subagent=true`, optional
+exploration is permitted, not required. Both workflows begin with
+coordinator-owned read-only initial triage and must not dispatch explorers
+automatically at workflow activation.
+
+Only after initial triage identifies a large, cross-cutting, complex, or
+stalled investigation may the coordinator dispatch one or more read-only
+explorers. Assign every selected explorer a distinct useful investigation angle.
+There is no policy numeric cap; runtime capacity and the availability of
+non-overlapping useful angles are the practical limits.
+
+Every selected explorer uses the model and reasoning effort parsed from
+`subagent_model`, rather than a model tier, and passes exact
+`fork_turns="none"`. Give each a self-contained brief with the task, assigned
+distinct angle, repository scope, read-only and no-file-creation restrictions,
+known evidence, expected report, and verification. Explorers may inspect files
+and run read-only commands only. They may not edit or create files, create RO
+artifacts, answer user design questions, choose approaches, approve designs, or
+transfer coordinator ownership. Require each report to identify its assigned
+angle, inspected files and commands, findings and evidence, risks or
+uncertainties, and explicit no-edit confirmation.
+
+The coordinator synthesizes all explorer reports. If any explorer in a
+selected batch cannot dispatch because multi-agent support, the configured
+model, or spawning is unavailable, stop the affected workflow and report the
+precise blocker; a partial batch is not a substitute.
 
 The switch and `subagent_model` do not govern mandatory plan reviewers,
 `sp-impl` workers, quick verifiers, review+fix agents, or their
 FAST/NORMAL/BEST/REVIEW allocation. They also do not govern explicitly invoked
 general delegation skills.
-
-If the coordinator selects an optional explorer but multi-agent support or the
-configured model is unavailable, or spawning fails, stop the affected workflow
-and report the blocker. Do not silently switch to coordinator-only work or a
-different model, and do not authorize substitute behavior.
 
 ## Universal Dispatch Isolation
 
