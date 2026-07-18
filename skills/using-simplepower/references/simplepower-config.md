@@ -10,8 +10,8 @@ The exact filename is `simplepower.toml`.
 
 Resolve every supported key independently in this order:
 
-1. Start with the built-in defaults for the six base keys. `review_model2` has
-   no built-in default and starts absent.
+1. Start with the built-in defaults for the six base keys. `review_model2` and
+   `final_review_model` have no independent built-in defaults and start absent.
 2. If `~/.codex/simplepower.toml` exists, overlay the keys present there.
 3. When inside a Git repository, if `<git-root>/simplepower.toml` exists,
    overlay the keys present there. It does not replace the home file as a
@@ -24,8 +24,9 @@ Resolve every supported key independently in this order:
 Outside Git, skip the repository-file layer. Root and nested `AGENTS.md` files
 are not configuration sources for model assignments. The environment configures
 only the four mandatory model tiers; it does not configure `use_subagent`,
-`subagent_model`, or `review_model2`. There is no
-`SIMPLEPOWER_REVIEW_MODEL2` environment variable.
+`subagent_model`, `review_model2`, or `final_review_model`. There is no
+`SIMPLEPOWER_REVIEW_MODEL2` or `SIMPLEPOWER_FINAL_REVIEW_MODEL` environment
+variable.
 
 Do not create a default configuration file. Configuration is instruction-driven
 and requires no runtime parser dependency. This change does not create a
@@ -34,7 +35,8 @@ supported as the per-key overlay described above.
 
 ## Schema, Defaults, And Validation
 
-Only these six base top-level keys plus optional `review_model2` are supported:
+Only these six base top-level keys plus optional `review_model2` and
+`final_review_model` are supported:
 
 ```toml
 use_subagent = false
@@ -45,6 +47,7 @@ normal_model = "gpt-5.6-luna-max"
 fast_model = "gpt-5.3-codex-spark-xhigh"
 
 # Optional: no built-in default.
+# final_review_model = "gpt-5.6-luna-max"
 # review_model2 = "gpt-5.6-luna-max"
 ```
 
@@ -52,10 +55,11 @@ fast_model = "gpt-5.3-codex-spark-xhigh"
 The five base model keys must be nonempty TOML strings and default to the exact
 values shown above when missing from all higher-priority layers.
 `review_model2` has no built-in default: it remains absent unless a home,
-repository, or explicit current-session configuration supplies it. When
-present in a TOML file, it must be a nonempty TOML model/effort string; when
-present as explicit current-session configuration, it must be a nonempty
-model/effort string.
+repository, or explicit current-session configuration supplies it.
+`final_review_model` likewise has no independent built-in default. When it is
+absent from all allowed layers, its effective value is the fully resolved
+`review_model`. When either optional key is present in a TOML file or explicit
+current-session configuration, it must be a nonempty model/effort string.
 
 Parse every present model value by splitting on its final dash. The nonempty
 prefix is the `model`, and the suffix is the `reasoning_effort`. The only valid
@@ -66,22 +70,33 @@ REVIEW = `gpt-5.6-sol`/`high`, BEST = `gpt-5.6-sol`/`high`, NORMAL =
 
 Malformed TOML, unknown top-level keys, wrong types, empty model strings,
 missing model prefixes, and unknown effort suffixes are errors. This includes
-any present `review_model2` without a nonempty model prefix and final supported
-effort suffix. Every present file, every explicit current-session configuration
-value, and every non-empty environment override must be validated even if a
-higher layer would override the same key. On any configuration error, stop the
-affected skill before dispatch and name the source plus the precise problem. A
-missing file or key is not an error; it inherits the value already resolved
-from lower-priority layers. `review_model2` remains absent when no allowed
-layer supplies it. Only empty model environment variables are ignored rather
-than treated as overrides.
+any present `review_model2` or `final_review_model` without a nonempty model
+prefix and final supported effort suffix. Every present file, every explicit
+current-session configuration value, and every non-empty environment override
+must be validated even if a higher layer would override the same key. On any
+configuration error, stop the affected skill before dispatch and name the
+source plus the precise problem. A missing file or key is not an error; it
+inherits the value already resolved from lower-priority layers.
+`review_model2` remains absent when no allowed layer supplies it;
+`final_review_model` then falls back to fully resolved `review_model`. Only
+empty model environment variables are ignored rather than treated as overrides.
 
-## Optional Secondary Reviewer
+## Final Review Model
+
+Resolve `review_model` first. Then resolve a present `final_review_model` from
+the home file, repository file, and explicit current-session instructions. If
+the latter is absent, use the fully resolved `review_model` for final review.
+The effective final-review value selects exactly one final review+fix agent;
+it is not a fifth mandatory tier and does not add an environment override.
+
+## Optional Plan-Review Secondary
 
 Compare fully resolved `review_model2` and `review_model` strings exactly.
 An absent `review_model2`, or one exactly equal to `review_model`, disables the
 secondary reviewer. Any distinct valid `review_model2` enables that read-only
-secondary route. It is optional and is not a fifth mandatory model tier.
+plan-review route. It is optional and is not a fifth mandatory model tier.
+Final review always dispatches exactly one review+fix agent and never uses
+`review_model2`.
 
 ## Optional Explorer Fan-Out
 

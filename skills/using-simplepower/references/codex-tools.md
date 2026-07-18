@@ -16,13 +16,12 @@ Simple Power skills may mention generic skill tool names. When you encounter the
 | quick verifier | `spawn_agent(agent_type="worker", model=<FAST_model>, reasoning_effort=<FAST_effort>, fork_turns="none", message=...)` Default resolves to Spark xhigh unless overridden. |
 | primary plan reviewer | `spawn_agent(agent_type="worker", model=<REVIEW_model>, reasoning_effort=<REVIEW_effort>, fork_turns="none", message=...)` |
 | conditional secondary plan reviewer | Only when fully resolved `review_model2` is distinct from `review_model`: `spawn_agent(agent_type="worker", model=<review_model2_model>, reasoning_effort=<review_model2_effort>, fork_turns="none", message=...)`; read-only and concurrent with the primary plan reviewer. |
-| primary review+fix agent | `spawn_agent(agent_type="worker", model=<REVIEW_model>, reasoning_effort=<REVIEW_effort>, fork_turns="none", message=...)`; it is the only final-review writer. |
-| conditional secondary final reviewer | Only when fully resolved `review_model2` is distinct from `review_model`: `spawn_agent(agent_type="worker", model=<review_model2_model>, reasoning_effort=<review_model2_effort>, fork_turns="none", message=...)`; read-only, same snapshot as the primary's initial dual review, and never a fixer. |
+| final review+fix agent | `spawn_agent(agent_type="worker", model=<resolved_final_review_model>, reasoning_effort=<resolved_final_review_effort>, fork_turns="none", message=...)`; it is the only final-review agent and writer. |
 | multiple independent file-edit tasks | Multiple `spawn_agent(fork_turns="none", message=...)` calls, one per non-conflicting ownership unit, before `wait` |
 
 The role mappings are mandatory Simple Power dispatches and are independent of
 `use_subagent`. Before resolving them, validate the six base keys plus optional
-`review_model2` by following
+`review_model2` and `final_review_model` by following
 `skills/using-simplepower/references/simplepower-config.md`. Every present TOML
 file must validate in full before overlays; a higher layer must not hide
 malformed TOML, unknown keys, wrong types, or invalid model values in a lower
@@ -35,11 +34,13 @@ inherit. Do not read model assignments from any `AGENTS.md` file.
 
 The six base keys are `use_subagent`, `subagent_model`, `review_model`,
 `best_model`, `normal_model`, and `fast_model`. Resolve the optional
-`review_model2` only after the primary `review_model`: it has no built-in
-default and no `SIMPLEPOWER_REVIEW_MODEL2` environment variable. An absent
-secondary or an exact match with the fully resolved primary disables it. A
-distinct fully resolved value supplies an optional read-only reviewer, not a
-fifth mandatory tier and never a review+fix writer.
+`review_model2` and `final_review_model` after the primary `review_model`.
+Neither has an environment variable: there is no `SIMPLEPOWER_REVIEW_MODEL2`
+or `SIMPLEPOWER_FINAL_REVIEW_MODEL`. An absent `final_review_model` uses the
+fully resolved `review_model` and dispatches exactly one final review+fix
+agent. An absent `review_model2`, or an exact match with the fully resolved
+primary, disables the optional read-only plan-review secondary; a distinct
+value enables it only for plan review.
 
 Scratch refs under `refs/simplepower/scratch/<run-id>/` are coordinator-owned
 local refs used to provide concrete `git diff` commands to reviewers. They are
@@ -63,10 +64,11 @@ guessing. With the built-in defaults, FAST resolves to model
 and BEST and REVIEW to model `gpt-5.6-sol` with `high`.
 
 Use the plan's approved FAST/NORMAL/BEST allocation for `sp-impl` file-edit
-workers. Always dispatch the primary plan reviewer and one primary review+fix
-agent with REVIEW. When the optional secondary is enabled, dispatch it with the
-parsed distinct `review_model2` value only as a read-only reviewer; it never
-replaces the primary or gains fix authority.
+workers. Always dispatch the primary plan reviewer with REVIEW and one final
+review+fix agent with resolved `final_review_model`. When the optional
+secondary is enabled, dispatch it with the parsed distinct `review_model2`
+value only as a read-only plan reviewer; it never replaces the primary or gains
+fix authority.
 
 ## Subagent dispatch requires multi-agent support
 
@@ -82,9 +84,9 @@ This enables `spawn_agent`, `wait`, and `close_agent` for skills like `simplepow
 ## Review prompt dispatch
 
 Codex does not use a named Simple Power agent registry. When a skill needs a
-file-edit worker, quick verifier, primary review+fix agent, or optional
-secondary reviewer, use the skill-local prompt template and dispatch a generic
-subagent from a built-in role (`default`, `explorer`, `worker`).
+file-edit worker, quick verifier, plan reviewer, or final review+fix agent, use
+the skill-local prompt template and dispatch a generic subagent from a built-in
+role (`default`, `explorer`, `worker`).
 
 When a skill says to dispatch a Simple Power worker:
 
@@ -93,22 +95,15 @@ When a skill says to dispatch a Simple Power worker:
    used by `simplepower:subagent-driven-development`:
    `skills/subagent-driven-development/implementer-prompt.md`,
    `skills/subagent-driven-development/quick-verifier-prompt.md`, or
-   `skills/subagent-driven-development/review-fix-prompt.md` or
-   `skills/subagent-driven-development/secondary-review-prompt.md`
+   `skills/subagent-driven-development/review-fix-prompt.md`
 2. Read the prompt content
 3. Fill any template placeholders from the current task, working tree status,
    diff, and verification results
 4. Spawn a `worker` agent with the filled content as the `message`
 
-For a distinct optional secondary, fill the primary `review-fix-prompt.md` in
-`dual` mode and `secondary-review-prompt.md` from the same quick-verified
-snapshot. Dispatch both concurrently with self-contained briefs and
-`fork_turns="none"`; both initial briefs prohibit edits. If either launch
-fails, stop the checkpoint rather than using a partial review. After both
-reports, the coordinator closes the secondary, synthesizes the evidence, and
-sends only the retained primary a self-contained in-scope fix authorization.
-The secondary never edits, creates files, commits, manages refs, reroutes,
-recurses, or receives a follow-up.
+For final review, fill `review-fix-prompt.md` with the quick-verified snapshot
+and dispatch exactly one self-contained review+fix agent using resolved
+`final_review_model` and `fork_turns="none"`.
 
 | Skill instruction | Codex equivalent |
 |-------------------|------------------|
@@ -144,10 +139,9 @@ specified in the instructions above.
 - Every Simple Power dispatch must pass `fork_turns="none"`. Its prompt must be
   self-contained with the exact task, scope, constraints, evidence or contracts,
   required output, and verification commands and expectations.
-- A secondary review prompt must additionally state its same-snapshot,
+- A secondary plan-review prompt must additionally state its same-snapshot,
   read-only/no-file-creation/no-ref/no-commit/no-subagent/no-skill/no-reroute
-  restrictions. A primary dual-mode prompt must state that it cannot edit until
-  the coordinator has both reports and sends primary-only authorization.
+  restrictions. Final review always uses one direct review+fix prompt.
 
 ### When this workaround can be removed
 

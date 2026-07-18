@@ -18,21 +18,22 @@ workflow.
 For focused configuration-contract documentation coverage, run:
 
 ```bash
-timeout 30s rg -n 'review_model|review_model2|best_model|normal_model|fast_model|SIMPLEPOWER_REVIEW_MODEL|SIMPLEPOWER_REVIEW_MODEL2|SIMPLEPOWER_FAST_MODEL|home.*repository|per-key|environment' README.md docs/README.codex.md docs/testing.md skills/using-simplepower/references/simplepower-config.md
+timeout 30s rg -n 'review_model|review_model2|final_review_model|best_model|normal_model|fast_model|SIMPLEPOWER_REVIEW_MODEL|SIMPLEPOWER_REVIEW_MODEL2|SIMPLEPOWER_FINAL_REVIEW_MODEL|SIMPLEPOWER_FAST_MODEL|home.*repository|per-key|environment' README.md docs/README.codex.md docs/testing.md skills/using-simplepower/references/simplepower-config.md
 timeout 30s git diff --check -- AGENTS.md README.md docs/README.codex.md docs/testing.md skills/using-simplepower/references/simplepower-config.md
 ```
 
 The first command should find all four mandatory tier keys, exactly four model
 environment overrides, and per-key home/repository layering. Also confirm the
 six base-key schema includes `use_subagent` and `subagent_model`, while the
-optional seventh key `review_model2` has no built-in default or model-2
-environment override. Confirm exact defaults, final-dash parsing, and fatal
-validation. Separate negative searches for retired `AGENTS.md` model
-assignments, declarations that treat `SIMPLEPOWER_REVIEW_MODEL2` as a supported
-environment override, and whole-file repository replacement wording should
-produce no active-contract matches. References that explicitly say
-`SIMPLEPOWER_REVIEW_MODEL2` is unsupported are expected. The final command
-should report no whitespace errors.
+optional `review_model2` and `final_review_model` keys have no independent
+built-in defaults or environment overrides. Confirm exact defaults, final-dash
+parsing, and fatal validation. Separate negative searches for retired
+`AGENTS.md` model assignments, declarations that treat
+`SIMPLEPOWER_REVIEW_MODEL2` or `SIMPLEPOWER_FINAL_REVIEW_MODEL` as supported
+environment overrides, and whole-file repository replacement wording should
+produce no active-contract matches. References that explicitly say either
+environment variable is unsupported are expected. The final command should
+report no whitespace errors.
 
 ## Manual Codex smoke test
 
@@ -58,8 +59,9 @@ Configuration smoke expectations:
   `review_model = "gpt-5.6-sol-high"`,
   `best_model = "gpt-5.6-sol-high"`,
   `normal_model = "gpt-5.6-luna-max"`, and
-  `fast_model = "gpt-5.3-codex-spark-xhigh"`. Verify that `review_model2` is
-  absent by default rather than assigned a built-in value.
+  `fast_model = "gpt-5.3-codex-spark-xhigh"`. Verify that `review_model2` and
+  `final_review_model` are absent by default rather than assigned independent
+  built-in values, and that effective final review falls back to `review_model`.
 - Resolve per key in this order: defaults, `~/.codex/simplepower.toml`,
   `<git-root>/simplepower.toml` inside Git, non-empty
   `SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_BEST_MODEL`,
@@ -67,9 +69,11 @@ Configuration smoke expectations:
   current-session instructions. Missing higher-layer keys inherit; the
   repository file does not replace the home file as a whole.
 - Verify environment values configure only the four mandatory tiers and that
-  `SIMPLEPOWER_REVIEW_MODEL2` is not accepted or consulted. Root and nested
-  `AGENTS.md` model assignments have no effect.
-- Parse every present model, including `review_model2`, at its final dash.
+  `SIMPLEPOWER_REVIEW_MODEL2` and `SIMPLEPOWER_FINAL_REVIEW_MODEL` are not
+  accepted or consulted. Root and nested `AGENTS.md` model assignments have no
+  effect.
+- Parse every present model, including `review_model2` and
+  `final_review_model`, at its final dash.
   Accept only `low`, `medium`, `high`, `xhigh`, `max`, and `ultra` as effort
   suffixes.
 - Malformed TOML, unknown keys, wrong types, empty model strings, missing model
@@ -88,12 +92,12 @@ Configuration smoke expectations:
   `subagent_model`, or a spawn failure must stop the affected workflow without
   silently substituting a partial batch.
 - Without `review_model2`, and when it equals `review_model`, verify the single
-  primary reviewer path. With distinct `review_model2`, verify plan review uses
-  two concurrent read-only reviewers and requires both approvals. Verify final
-  review collects two initial read-only reports from the same verified snapshot,
-  synthesizes them, and authorizes only the primary to make in-scope fixes; the
-  secondary is never a concurrent writer. A reviewer dispatch failure must stop
-  the review checkpoint rather than downgrade to one report.
+  primary plan-reviewer path. With distinct `review_model2`, verify plan review
+  uses two concurrent read-only reviewers and requires both approvals; a
+  reviewer dispatch failure must stop that checkpoint rather than downgrade to
+  one report. Verify final review always dispatches exactly one review+fix
+  agent using `final_review_model` when present and fully resolved
+  `review_model` when absent.
 - Every optional and mandatory Simple Power dispatch passes
   `fork_turns="none"` with self-contained context. Explicit current-session
   user instructions override file configuration.

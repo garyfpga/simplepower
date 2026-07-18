@@ -63,23 +63,26 @@ The resulting assignments are REVIEW = `gpt-5.6-sol`/`high`, BEST =
 The environment can override only these four tiers, with non-empty
 `SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_BEST_MODEL`,
 `SIMPLEPOWER_NORMAL_MODEL`, and `SIMPLEPOWER_FAST_MODEL` values. There is no
-`SIMPLEPOWER_REVIEW_MODEL2`. Root and nested `AGENTS.md` files do not provide
-model assignments.
+`SIMPLEPOWER_REVIEW_MODEL2` or `SIMPLEPOWER_FINAL_REVIEW_MODEL`. Root and nested `AGENTS.md` files do not provide model assignments.
 
-`review_model2` is optional and is not a fifth mandatory tier. It has no
-built-in default and no environment override. If absent or exactly equal to
-the resolved `review_model`, it leaves one primary reviewer. A distinct value
-enables a read-only secondary reviewer: plan review has two concurrent read-only
-reviewers, and final review has two initial read-only reports before synthesis
-and primary-only in-scope fixes. The secondary is an extra pair of eyes, never
-a concurrent writer. If either reviewer cannot dispatch, the review checkpoint
-stops rather than silently downgrading to one reviewer.
+`final_review_model` is optional and is not a fifth mandatory tier. It has no
+independent built-in default and no environment override. When absent, it uses
+the resolved `review_model`; when present, it selects the one final review+fix
+agent.
 
-Use REVIEW for the primary plan reviewer and final review+fix agent. Use BEST for
-broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or hard-to-test
-work. Use NORMAL for routine low-risk implementation work that used to fit the
-old FAST tier, especially localized edits. Use FAST for obvious repetitive
-work, mechanical edits across many files, large static text sweeps, simple
+`review_model2` is an optional read-only plan-review secondary. If absent or
+exactly equal to resolved `review_model`, plan review has one primary reviewer;
+a distinct value enables two concurrent read-only plan reviewers. If either
+reviewer cannot dispatch, the plan-review checkpoint stops rather than silently
+downgrading to one reviewer. The secondary never writes files or participates
+in final review.
+
+Use REVIEW for the primary plan reviewer. Use `final_review_model` for the one
+final review+fix agent, falling back to REVIEW when absent. Use BEST for broad,
+cross-cutting, ambiguous, behavior-shaping, high-risk, or hard-to-test work.
+Use NORMAL for routine low-risk implementation work that used to fit the old
+FAST tier, especially localized edits. Use FAST for obvious repetitive work,
+mechanical edits across many files, large static text sweeps, simple
 fixture/assertion churn, and quick verification.
 
 ## Configuration
@@ -97,7 +100,8 @@ See [simplepower.toml.example](../simplepower.toml.example) for a copyable full
 example; the example itself is not active repository configuration.
 
 The supported TOML schema is the six base keys below plus optional
-`review_model2`. The six base keys have these exact defaults:
+`review_model2` and `final_review_model`. The six base keys have these exact
+defaults:
 
 ```toml
 use_subagent = false
@@ -109,16 +113,18 @@ fast_model = "gpt-5.3-codex-spark-xhigh"
 ```
 
 `use_subagent` must be a TOML Boolean. Every present model key, including
-optional `review_model2`, must be a nonempty TOML string and is parsed at its
-final dash into a nonempty model prefix and a reasoning-effort suffix. Valid
-suffixes are `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`. Malformed
-TOML, unknown keys, wrong types, empty model strings, missing model prefixes,
-and invalid effort suffixes are fatal. Every present file, every explicit
-current-session configuration value, and every non-empty environment override
-is validated even if a higher layer would replace its value; missing files and
-keys inherit instead of failing. Only empty model-tier environment variables
-are ignored. The environment does not configure `use_subagent`,
-`subagent_model`, or `review_model2`.
+optional `review_model2` and `final_review_model`, must be a nonempty TOML
+string and is parsed at its final dash into a nonempty model prefix and a
+reasoning-effort suffix. Valid suffixes are `low`, `medium`, `high`, `xhigh`,
+`max`, and `ultra`. Malformed TOML, unknown keys, wrong types, empty model
+strings, missing model prefixes, and invalid effort suffixes are fatal. Every
+present file, every explicit current-session configuration value, and every
+non-empty environment override is validated even if a higher layer would
+replace its value; missing files and keys inherit instead of failing. An absent
+`final_review_model` uses the fully resolved `review_model`. Only empty
+model-tier environment variables are ignored. The environment does not
+configure `use_subagent`, `subagent_model`, `review_model2`, or
+`final_review_model`.
 
 `use_subagent` is a hard gate for optional read-only exploration:
 
@@ -157,11 +163,8 @@ one step. If the user approves, the coordinator creates the accepted plan
 checkpoint commit and immediately invokes
 `simplepower:subagent-driven-development` with the approved allocation. The
 implementation skill then uses plan-first parallel implementation, quick
-verification with the FAST tier by default, one primary REVIEW-tier review+fix
-pass, and final verification. With a distinct `review_model2`, it first
-collects two initial read-only final-review reports against the same verified
-snapshot, synthesizes them, and authorizes only the primary to make in-scope
-fixes. The secondary never edits.
+verification with the FAST tier by default, one final review+fix pass using
+`final_review_model` (or REVIEW when absent), and final verification.
 For revised plans and review/fix work, Simple Power also writes temporary local
 Git scratch refs as diff anchors so reviewers can compare before/after changes;
 the accepted checkpoint history stays at the usual three coordinator commits,
@@ -174,7 +177,7 @@ After the reviewed plan and model/task allocation are approved,
 the implementation path directly.
 
 ```text
-Use `simplepower:subagent-driven-development` to execute `<PLAN_PATH>` in the current session with plan-first parallel implementation. Use the approved FAST/NORMAL/BEST allocation for `sp-impl` workers and REVIEW for the primary review+fix agent. Dispatch all non-conflicting `sp-impl` file-edit workers, run the quick FAST-tier verifier with lint/build/tests and timeouts, commit the quick-verified implementation, then run the primary REVIEW-tier review+fix phase; only a distinct `review_model2` adds a concurrent read-only secondary report before primary-only fixes. Finish with final verification and the final commit.
+Use `simplepower:subagent-driven-development` to execute `<PLAN_PATH>` in the current session with plan-first parallel implementation. Use the approved FAST/NORMAL/BEST allocation for `sp-impl` workers, REVIEW for the primary plan reviewer, and `final_review_model` (falling back to REVIEW) for the one final review+fix agent. Dispatch all non-conflicting `sp-impl` file-edit workers, run the quick FAST-tier verifier with lint/build/tests and timeouts, commit the quick-verified implementation, then run the one final review+fix phase. Finish with final verification and the final commit.
 ```
 
 ## Usage
