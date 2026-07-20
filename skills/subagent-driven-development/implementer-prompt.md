@@ -59,8 +59,7 @@ Rules:
 - Do not broaden scope, shrink scope, invent substitute work, make docs-only
   substitutes, create stubs in place of real behavior, skip required
   verification, or switch execution route.
-- Do not create, update, delete, or inspect scratch refs unless explicitly
-  asked only for read-only diagnostics by the coordinator.
+- Do not create, update, delete, inspect, or manage scratch refs.
 - Do not commit, stage unrelated files, manage refs, create branches, merge,
   rebase, push, or open PRs.
 - Do not spawn subagents, run Codex CLI, invoke Simple Power workflow skills,

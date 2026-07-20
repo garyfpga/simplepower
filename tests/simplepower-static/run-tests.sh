@@ -255,7 +255,7 @@ require_contains "README.md" "approved plan" "README documents the approved plan
 require_contains "README.md" "final reviewed/verified implementation" "README documents the final implementation checkpoint"
 require_contains "README.md" "simplepower:subagent-driven-development" "README documents current-session auto-dispatch"
 require_contains "README.md" "temporary localhost visual companion" "README distinguishes the brainstorming visual companion"
-require_contains "README.md" "temporary local scratch refs as diff anchors" "README documents local scratch refs as diff anchors"
+require_contains "README.md" "quick-verifier scratch refs as temporary local diff anchors" "README documents local scratch refs as diff anchors"
 require_contains "README.md" "quick-verifier" "README scopes scratch refs to quick verifier"
 require_contains "README.md" "and they are cleaned up after" "README documents scratch cleanup after success"
 require_not_contains "README.md" "git clone https://github.com/garyfpga/simplepower.git ~/.codex/simplepower" "README does not document the manual clone install flow"
@@ -283,7 +283,8 @@ require_contains "AGENTS.md" "docs/simplepower" "AGENTS.md points generated docs
 require_contains "AGENTS.md" 'Root or nested `AGENTS.md` files' "AGENTS.md documents AGENTS-model assignment retirement"
 require_contains "AGENTS.md" 'do not provide model assignments' "AGENTS.md documents AGENTS-model assignment retirement"
 require_contains "AGENTS.md" "refs/simplepower/scratch/<run-id>/..." "AGENTS.md documents the scratch ref namespace"
-require_contains "AGENTS.md" "allowed only as local review diff" "AGENTS.md limits scratch refs to local review diff anchors"
+require_contains "AGENTS.md" "allowed only as local" "AGENTS.md limits scratch refs to local quick-verifier diff anchors"
+require_contains "AGENTS.md" "quick-verifier diff anchors" "AGENTS.md scopes scratch refs to quick-verifier diff anchors"
 require_contains "AGENTS.md" "not commits in accepted history" "AGENTS.md keeps scratch refs out of accepted history"
 require_contains "AGENTS.md" "reported for manual cleanup on" "AGENTS.md preserves scratch refs for cleanup reporting on blockers"
 
@@ -665,6 +666,7 @@ require_contains_all "skills/subagent-driven-development/implementer-prompt.md" 
     "do not edit the out-of-scope file" \
     "make docs-only" \
     "create stubs" \
+    "inspect, or manage scratch refs" \
     "spawn subagents" \
     "workflow skills"
 require_file "skills/subagent-driven-development/quick-verifier-prompt.md" "quick verifier prompt file exists"
@@ -749,7 +751,7 @@ require_contains "skills/using-simplepower/references/codex-tools.md" "refs/simp
 require_contains "skills/using-simplepower/references/codex-tools.md" "coordinator-owned" "Codex tool mapping keeps scratch refs coordinator-owned"
 require_contains "skills/using-simplepower/references/codex-tools.md" "quick-verifier" "Codex tool mapping scopes scratch refs to the quick verifier"
 require_contains "skills/using-simplepower/references/codex-tools.md" "not branches, accepted checkpoints, pushed refs, or subagent commits" "Codex tool mapping excludes branch/checkpoint/pushed/subagent semantics"
-require_contains "skills/using-simplepower/references/codex-tools.md" "must not create, update, delete, or commit them" "Codex tool mapping forbids worker scratch ref ownership"
+require_contains "skills/using-simplepower/references/codex-tools.md" "must not create, update, delete, inspect, or manage them" "Codex tool mapping forbids worker scratch ref ownership"
 require_contains "skills/using-simplepower/references/codex-tools.md" "plan's approved FAST/NORMAL/BEST allocation" "Codex tool mapping keeps sp-impl dispatch on the three implementation tiers"
 require_not_contains "skills/using-simplepower/references/codex-tools.md" "Dispatch one" "Codex tool mapping removes final review dispatch routing"
 require_contains "skills/using-simplepower/references/codex-tools.md" '| FAST | `fast_model` | `SIMPLEPOWER_FAST_MODEL` | `gpt-5.3-codex-spark-xhigh` |' "Codex tool mapping defaults FAST to Spark xhigh"

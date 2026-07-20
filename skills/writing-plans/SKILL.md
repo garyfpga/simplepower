@@ -282,10 +282,10 @@ The canonical scratch namespace and mechanics live in
 `skills/subagent-driven-development/scratch-ref-workflow.md`, under
 `refs/simplepower/scratch/<run-id>/`; generated plans
 must reference that file instead of copying ref creation, diff, and cleanup
-commands. Scratch refs are not accepted history commits. Workers and quick
-verifiers must not commit or manage refs. No worker commits or per-task commits.
-No per-task commits are permitted.
-Workers and quick verifiers must not commit.
+commands. Scratch refs are not accepted history commits.
+Workers and quick verifiers must not commit, inspect, or manage refs.
+No worker commits or per-task commits. No per-task commits includes task-local
+`git commit` commands.
 
 ## Current-Session Execution Handoff
 

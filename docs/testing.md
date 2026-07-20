@@ -120,8 +120,8 @@ Configuration smoke expectations:
   should participate in the normal chain.
 - Verify `review_model`, `review_model2`, `final_review_model`, and
   `skip_final_review` remain accepted and validated compatibility keys, but are
-  documented as deprecated no-ops for normal execution. `SIMPLEPOWER_REVIEW_MODEL2`
-  remains unsupported.
+  documented as deprecated no-ops for normal execution.
+  `SIMPLEPOWER_REVIEW_MODEL2` remains unsupported.
 - Every optional and retained mandatory Simple Power dispatch passes
   `fork_turns="none"` with self-contained context. Explicit current-session
   user instructions override file configuration.
@@ -137,6 +137,7 @@ Configuration smoke expectations:
 - `tests/codex-plugin-sync/test-sync-to-codex-plugin.sh` verifies the Codex
   plugin sync flow, the packaged plugin metadata, and marketplace metadata.
 - Static checks cover adaptive Main agent and Grouped workers routes, optional plan visual guidance,
-  brainstorming visual companion behavior, and marketplace install/version metadata.
+  brainstorming visual companion behavior, and
+  marketplace install/version metadata.
 - Generated implementation plans live under `docs/simplepower/plans/`. The
   normal active workflow does not create standalone specs.

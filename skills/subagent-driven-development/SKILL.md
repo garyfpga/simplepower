@@ -30,9 +30,8 @@ never mark capacity queuing as serialization.
 The accepted plan is authoritative. Do not use a backup plan, escape plan,
 fallback implementation, reduced-scope substitute, docs-only substitute, stub
 substitute, skipped verification, skipped review, execution-mode switch,
-execution-route switch, or
-alternate implementation strategy unless the user gives fresh explicit approval
-at the moment the deviation is needed.
+execution-route switch, or alternate implementation strategy unless the user
+gives fresh explicit approval at the moment the deviation is needed.
 
 At each lifecycle boundary, compare actual work against the approved plan,
 `Implementation Route`, exact changed-file list, implementation steps, risks,
@@ -182,9 +181,9 @@ exceptions.
      allocation, unclear route, or unclear serialization condition.
 6. Stop for user direction if any package is blocked in a way that is not an
    implied-scope omission.
-7. Build the complete ready set of non-conflicting contract-ready grouped packages.
-   Put ready packages that do not fit current child-agent capacity into a
-   queued ready list; do not split them and do not mark them serialized merely
+7. Build the complete ready set of non-conflicting contract-ready grouped
+   packages. Put ready packages that do not fit current child-agent capacity
+   into a queued ready list; do not split them and do not mark them serialized merely
    because capacity is full.
 8. Dispatch ready grouped packages with `fork_turns="none"` until all
    child-agent slots are full or no ready package remains. Never leave an
@@ -325,7 +324,8 @@ At each checkpoint:
 4. Close it by default.
 5. If keeping it open, record a written reason tied to current plan execution.
 6. Close it as soon as that reason is resolved.
-7. If queued ready grouped work remains and capacity is available, dispatch the next queued ready package into the freed slot immediately after closure.
+7. If queued ready grouped work remains and capacity is available, dispatch the next queued ready package into the freed slot.
+   Do so immediately after closure.
 
 Do not close a subagent that is still running, blocked, or awaiting input. Do
 not reach final completion while finished subagents remain open without an

@@ -47,7 +47,7 @@ preserves the legacy secondary-reviewer compatibility result.
 Scratch refs under `refs/simplepower/scratch/<run-id>/` are coordinator-owned
 local refs used to provide concrete quick-verifier diff anchors. They are
 not branches, accepted checkpoints, pushed refs, or subagent commits; workers
-and quick verifiers must not create, update, delete, or commit them.
+and quick verifiers must not create, update, delete, inspect, or manage them.
 
 Resolve the active tiers and validate the deprecated compatibility REVIEW value
 before dispatch:

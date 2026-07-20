@@ -324,9 +324,8 @@ the complete plan or repeated global boilerplate; every grouped `sp-impl`
 dispatch passes `fork_turns="none"`.
 Every route runs the mandatory FAST quick verifier. The quick verifier may make
 only tiny typo-level fixes; non-trivial failures return to the main agent for
-diagnosis and in-scope repair. The normal workflow keeps only quick-verifier
-scratch refs: temporary local scratch refs as diff anchors, and they are cleaned up after
-the successful final checkpoint. There are no plan-review or review-fix
+diagnosis and in-scope repair. The normal workflow keeps only quick-verifier scratch refs as temporary local diff anchors,
+and they are cleaned up after the successful final checkpoint. There are no plan-review or review-fix
 scratch refs. The main agent performs the final diff review, applies in-scope
 fixes, runs final verification, and creates the final reviewed/verified
 implementation checkpoint. The normal workflow uses exactly two coordinator checkpoints.

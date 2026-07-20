@@ -21,11 +21,10 @@ skill handoffs focused on Codex.
   the mandatory FAST quick verifier, and any optional explorers must receive
   exact `fork_turns="none"` dispatches and must not commit.
 - Coordinator-owned temporary scratch refs under
-  `refs/simplepower/scratch/<run-id>/...` are allowed only as local review diff
-  anchors for the quick verifier in the normal workflow. Scratch refs are not commits in accepted history,
+  `refs/simplepower/scratch/<run-id>/...` are allowed only as local
+  quick-verifier diff anchors in the normal workflow. Scratch refs are not commits in accepted history,
   and they must be deleted after successful
-  checkpoints or reported for manual cleanup on blockers or failed
-  checkpoints.
+  checkpoints or reported for manual cleanup on blockers or failed checkpoints.
 - The normal workflow has no plan-review agent, secondary plan reviewer, final
   review agent, review-fix phase, worker-owned commits, or per-task commits.
   The main agent self-reviews plans, performs the final diff review, and makes
