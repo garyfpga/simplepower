@@ -1,8 +1,9 @@
 I have my implementation plan ready at docs/simplepower/plans/auth-system.md.
 
-I want to use simplepower:subagent-driven-development to execute it with plan-first parallel implementation. That means:
-- Dispatch non-conflicting sp-impl file-edit workers according to the approved plan
-- Run the quick verifier with lint/build/tests and timeouts
-- Run one configured final review+fix pass before final verification
+I want to use simplepower:subagent-driven-development to execute it with the approved adaptive route. That means:
+- Implement directly as the main agent when the plan selects one cohesive package
+- Dispatch grouped non-conflicting sp-impl workers only when the plan selects independent packages or specialized work
+- Run the mandatory FAST quick verifier with lint/build/tests and timeouts
+- Have the coordinator perform final diff review, in-scope fixes, and final verification
 
 Let's start.

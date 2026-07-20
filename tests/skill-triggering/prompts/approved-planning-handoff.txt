@@ -1,2 +1,2 @@
-The reviewed plan and FAST/NORMAL/BEST/REVIEW model allocation are approved.
-simplepower:subagent-driven-development, please execute it with plan-first parallel implementation.
+The self-reviewed plan, Implementation Route, file scope, verification commands, and FAST/NORMAL/BEST allocation are approved.
+simplepower:subagent-driven-development, please execute it with the approved adaptive route: Main agent for one cohesive package, or Grouped workers only for independent non-overlapping packages or specialized work.

@@ -2,7 +2,13 @@
 
 This reference is the operational configuration contract for active Simple
 Power workflows. Resolve and validate it when an affected skill starts, before
-making any configuration-controlled dispatch.
+making any configuration-controlled dispatch. The normal
+brainstorming-to-implementation chain actively uses `best_model`,
+`normal_model`, and `fast_model` for implementation and the mandatory quick
+verifier. `review_model`, `review_model2`, `final_review_model`, and
+`skip_final_review` remain recognized and strictly validated compatibility
+settings, but they are deprecated no-ops for the normal chain's plan review and
+final review phases.
 
 ## Resolve Configuration Per Key
 
@@ -90,29 +96,26 @@ inherits the value already resolved from lower-priority layers.
 empty supported environment variables are ignored rather than treated as
 overrides.
 
-## Final Review Model
+## Deprecated Compatibility Review Settings
 
 Resolve `review_model` first. Then resolve a present `final_review_model` from
 the home file, repository file, `SIMPLEPOWER_FINAL_REVIEW_MODEL`, and explicit
 current-session instructions. If `final_review_model` is absent, use the fully
-resolved `review_model` for final review. Validate the effective value even when
-`skip_final_review=true`.
+resolved `review_model` for compatibility. Validate the effective value even
+though the normal chain does not dispatch a final review+fix agent.
 
-When effective `skip_final_review=false`, the effective final-review value
-selects exactly one final review+fix agent. When effective
-`skip_final_review=true`, skip final-review scratch-ref creation and final
-review+fix dispatch, but still run final verification, apply the final
-checkpoint/commit condition, check scratch cleanup, and report the configured
-skip. `final_review_model` is not a fifth mandatory tier.
-
-## Optional Plan-Review Secondary
+`skip_final_review` keeps its default and supported environment behavior, and
+all non-empty values remain strictly validated. In the normal chain it is a
+deprecated no-op: final verification and main-agent final diff review always
+run, and no final-review scratch refs or final review+fix agent are created.
+`final_review_model` is not a fifth mandatory tier.
 
 Compare fully resolved `review_model2` and `review_model` strings exactly.
-An absent `review_model2`, or one exactly equal to `review_model`, disables the
-secondary reviewer. Any distinct valid `review_model2` enables that read-only
-plan-review route. It is optional and is not a fifth mandatory model tier.
-When enabled by `skip_final_review=false`, final review dispatches exactly one
-review+fix agent and never uses `review_model2`.
+An absent `review_model2`, or one exactly equal to `review_model`, preserves the
+single-reviewer compatibility resolution result. Any distinct valid
+`review_model2` preserves the legacy secondary-reviewer resolution result, but
+the normal chain does not dispatch plan reviewers. It is optional and is not a
+mandatory model tier.
 
 ## Optional Explorer Fan-Out
 
@@ -144,10 +147,10 @@ selected batch cannot dispatch because multi-agent support, the configured
 model, or spawning is unavailable, stop the affected workflow and report the
 precise blocker; a partial batch is not a substitute.
 
-The switch and `subagent_model` do not govern mandatory plan reviewers,
-`sp-impl` workers, quick verifiers, review+fix agents, or their
-FAST/NORMAL/BEST/REVIEW allocation. They also do not govern explicitly invoked
-general delegation skills.
+The switch and `subagent_model` do not govern approved grouped `sp-impl`
+workers, quick verifiers, or their FAST/NORMAL/BEST allocation. They also do
+not govern explicitly invoked general delegation skills.
+The deprecated review compatibility settings do not govern normal brainstorming-to-implementation execution.
 
 ## Universal Dispatch Isolation
 

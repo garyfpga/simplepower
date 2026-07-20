@@ -4,7 +4,7 @@ Simple Power skills may mention generic skill tool names. When you encounter the
 
 | Skill references | Codex equivalent |
 |-----------------|------------------|
-| `Task` tool (dispatch subagent) | `spawn_agent(fork_turns="none", message=...)` (see [Review prompt dispatch](#review-prompt-dispatch)) |
+| `Task` tool (dispatch subagent) | `spawn_agent(fork_turns="none", message=...)` (see [Prompt dispatch](#prompt-dispatch)) |
 | Multiple `Task` calls (parallel) | Multiple `spawn_agent(fork_turns="none", message=...)` calls |
 | Task returns result | `wait` |
 | Task completes automatically | `close_agent` to free slot |
@@ -12,15 +12,14 @@ Simple Power skills may mention generic skill tool names. When you encounter the
 | `Skill` tool (invoke a skill) | Skills load natively — just follow the instructions |
 | `Read`, `Write`, `Edit` (files) | Use your native file tools |
 | `Bash` (run commands) | Use your native shell tools |
+| Main agent direct implementation | No spawn. The main agent edits the cohesive package directly, then runs the mandatory quick verifier and final diff review. |
 | sp-impl file-edit worker | `spawn_agent(agent_type="worker", model=<FAST_or_NORMAL_or_BEST_model>, reasoning_effort=<FAST_or_NORMAL_or_BEST_effort>, fork_turns="none", message=...)` |
 | quick verifier | `spawn_agent(agent_type="worker", model=<FAST_model>, reasoning_effort=<FAST_effort>, fork_turns="none", message=...)` Default resolves to Spark xhigh unless overridden. |
-| primary plan reviewer | `spawn_agent(agent_type="worker", model=<REVIEW_model>, reasoning_effort=<REVIEW_effort>, fork_turns="none", message=...)` |
-| conditional secondary plan reviewer | Only when fully resolved `review_model2` is distinct from `review_model`: `spawn_agent(agent_type="worker", model=<review_model2_model>, reasoning_effort=<review_model2_effort>, fork_turns="none", message=...)`; read-only and concurrent with the primary plan reviewer. |
-| final review+fix agent | When `skip_final_review=false`, `spawn_agent(agent_type="worker", model=<resolved_final_review_model>, reasoning_effort=<resolved_final_review_effort>, fork_turns="none", message=...)`; it is the only final-review agent and writer. Do not dispatch it when `skip_final_review=true`. |
-| multiple independent file-edit tasks | Multiple `spawn_agent(fork_turns="none", message=...)` calls, one per non-conflicting ownership unit, before `wait` |
+| Grouped workers with independent file-edit packages | Multiple `spawn_agent(fork_turns="none", message=...)` calls, one per cohesive non-conflicting worker package whose delegation has clear value, before `wait` |
 
-The role mappings are mandatory Simple Power dispatches and are independent of
-`use_subagent`. Before resolving them, validate the seven base keys plus optional
+The grouped worker and quick verifier mappings are normal Simple Power
+dispatches and are independent of `use_subagent`. Before resolving them,
+validate the seven base keys plus optional
 `review_model2` and `final_review_model` by following
 `skills/using-simplepower/references/simplepower-config.md`. Every present TOML
 file must validate in full before overlays; a higher layer must not hide
@@ -37,22 +36,25 @@ The seven base keys are `use_subagent`, `skip_final_review`, `subagent_model`,
 `review_model2` and `final_review_model` after the primary `review_model`.
 There is no `SIMPLEPOWER_REVIEW_MODEL2`; `final_review_model` supports
 `SIMPLEPOWER_FINAL_REVIEW_MODEL`. An absent `final_review_model` uses the fully
-resolved `review_model`. When `skip_final_review=false`, dispatch exactly one
-final review+fix agent; when true, skip that dispatch but not final verification.
+resolved `review_model` for compatibility. In the normal chain,
+`review_model`, `review_model2`, `final_review_model`, and `skip_final_review`
+are deprecated compatibility/no-op settings: they are recognized and strictly
+validated, but do not dispatch plan reviewers or final review+fix agents.
 An absent `review_model2`, or an exact match with the fully resolved
-primary, disables the optional read-only plan-review secondary; a distinct
-value enables it only for plan review.
+primary, preserves the single-reviewer compatibility result; a distinct value
+preserves the legacy secondary-reviewer compatibility result.
 
 Scratch refs under `refs/simplepower/scratch/<run-id>/` are coordinator-owned
-local refs used to provide concrete `git diff` commands to reviewers. They are
+local refs used to provide concrete quick-verifier diff anchors. They are
 not branches, accepted checkpoints, pushed refs, or subagent commits; workers
-and review agents must not create, update, delete, or commit them.
+and quick verifiers must not create, update, delete, or commit them.
 
-Resolve all four tiers before dispatch:
+Resolve the active tiers and validate the deprecated compatibility REVIEW value
+before dispatch:
 
 | Tier | TOML key | Environment value | Built-in default |
 |------|----------|-------------------|------------------|
-| REVIEW | `review_model` | `SIMPLEPOWER_REVIEW_MODEL` | `gpt-5.6-sol-high` |
+| REVIEW (deprecated compatibility/no-op) | `review_model` | `SIMPLEPOWER_REVIEW_MODEL` | `gpt-5.6-sol-high` |
 | BEST | `best_model` | `SIMPLEPOWER_BEST_MODEL` | `gpt-5.6-sol-high` |
 | NORMAL | `normal_model` | `SIMPLEPOWER_NORMAL_MODEL` | `gpt-5.6-luna-max` |
 | FAST | `fast_model` | `SIMPLEPOWER_FAST_MODEL` | `gpt-5.3-codex-spark-xhigh` |
@@ -64,13 +66,10 @@ guessing. With the built-in defaults, FAST resolves to model
 `gpt-5.3-codex-spark` with `xhigh`, NORMAL to model `gpt-5.6-luna` with `max`,
 and BEST and REVIEW to model `gpt-5.6-sol` with `high`.
 
-Use the plan's approved FAST/NORMAL/BEST allocation for `sp-impl` file-edit
-workers. Always dispatch the primary plan reviewer with REVIEW. Dispatch one
-final review+fix agent with resolved `final_review_model` only when effective
-`skip_final_review=false`. When the optional
-secondary is enabled, dispatch it with the parsed distinct `review_model2`
-value only as a read-only plan reviewer; it never replaces the primary or gains
-fix authority.
+Use the plan's approved FAST/NORMAL/BEST allocation for grouped `sp-impl`
+file-edit workers. Main agent direct implementation has no spawn. Do not
+dispatch plan reviewers or final review+fix agents in the normal chain; the
+main agent performs plan self-review, final diff review, and in-scope fixes.
 
 ## Subagent dispatch requires multi-agent support
 
@@ -83,31 +82,25 @@ multi_agent = true
 
 This enables `spawn_agent`, `wait`, and `close_agent` for skills like `simplepower:dispatching-parallel-agents` and `simplepower:subagent-driven-development`.
 
-## Review prompt dispatch
+## Prompt dispatch
 
 Codex does not use a named Simple Power agent registry. When a skill needs a
-file-edit worker, quick verifier, plan reviewer, or final review+fix agent, use
-the skill-local prompt template and dispatch a generic subagent from a built-in
-role (`default`, `explorer`, `worker`).
+grouped file-edit worker or quick verifier, use the skill-local prompt template
+and dispatch a generic subagent from a built-in role (`default`, `explorer`,
+`worker`). Main agent direct implementation, plan self-review, final diff
+review, and in-scope fixes use no spawn.
 
 When a skill says to dispatch a Simple Power worker:
 
 1. Find the skill-local prompt template, such as
    `skills/requesting-code-review/code-reviewer.md` or one of the role prompts
    used by `simplepower:subagent-driven-development`:
-   `skills/subagent-driven-development/implementer-prompt.md`,
-   `skills/subagent-driven-development/quick-verifier-prompt.md`, or
-   `skills/subagent-driven-development/review-fix-prompt.md`
+   `skills/subagent-driven-development/implementer-prompt.md` or
+   `skills/subagent-driven-development/quick-verifier-prompt.md`
 2. Read the prompt content
 3. Fill any template placeholders from the current task, working tree status,
    diff, and verification results
 4. Spawn a `worker` agent with the filled content as the `message`
-
-For final review, first resolve `skip_final_review`. When false, fill
-`review-fix-prompt.md` with the quick-verified snapshot and dispatch exactly one
-self-contained review+fix agent using resolved `final_review_model` and
-`fork_turns="none"`. When true, omit the prompt and dispatch and continue with
-final verification.
 
 | Skill instruction | Codex equivalent |
 |-------------------|------------------|
@@ -143,9 +136,9 @@ specified in the instructions above.
 - Every Simple Power dispatch must pass `fork_turns="none"`. Its prompt must be
   self-contained with the exact task, scope, constraints, evidence or contracts,
   required output, and verification commands and expectations.
-- A secondary plan-review prompt must additionally state its same-snapshot,
-  read-only/no-file-creation/no-ref/no-commit/no-subagent/no-skill/no-reroute
-  restrictions. When enabled, final review uses one direct review+fix prompt.
+- Grouped implementation prompts include only the relevant design, contract,
+  scope, verification, and package context for that cohesive worker package,
+  not the complete plan or repeated global boilerplate.
 
 ### When this workaround can be removed
 

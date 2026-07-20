@@ -97,11 +97,19 @@ still mandatory before implementation.
    relevant architecture, components, data flow, error handling, and testing.
    In existing codebases, follow current patterns; include targeted cleanup only
    when it serves the approved goal; avoid unrelated refactors. Design units
-   with clear purposes, interfaces, dependencies, and testable boundaries.
+   with clear purposes, interfaces, dependencies, and testable boundaries. Also
+   capture the route-relevant design facts needed by planning: whether the work
+   is one cohesive package or multiple independent packages, whether any
+   specialization materially benefits from delegation, hard constraints, and
+   observable success criteria.
 7. **Hand off only to implementation planning.** After approval, invoke
-   `simplepower:writing-plans` and pass the approved design summary,
-   constraints, decisions, and success criteria forward in the current
-   conversation. The plan file is the authoritative implementation artifact.
+   `simplepower:writing-plans` and pass only the approved design context needed
+   for adaptive planning: design summary, cohesion assessment, specialization or
+   delegation value, constraints, decisions, exact known file areas, risks, and
+   success criteria. The plan file selects `Implementation Route: Main agent` or
+   `Implementation Route: Grouped workers`, keeps the FAST quick verifier, and
+   defines the two coordinator checkpoint conditions. The plan file is the
+   authoritative implementation artifact.
 
 The terminal state is invoking `simplepower:writing-plans`. Do not write a
 standalone spec document, ask the user to review a written spec, create a

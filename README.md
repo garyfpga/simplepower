@@ -34,8 +34,8 @@ SimplePower 是 Jesse Vincent / Prime Radiant 的 [Superpowers](https://github.c
 | 阶段 | SuperPower | SimplePower |
 |---|---:|---:|
 | Spec / Plan | brainstorming -> <br> approve spec -> <br> spec.md (commit) -> <br> plan.md (approve and commit) | brainstorming -> <br> approve spec -> <br> plan.md (approve and commit) <br> 懒得同时检查 spec.md 和 plan.md
-| Subagent Implementation <br><br> 这就是 SimplePower 快的原因 | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | 多个 subagent 并行处理多个文件 -> <br> FAST-tier 快速验证 subagent -> <br> primary REVIEW-tier reviewer + fixer；可选 distinct read-only secondary reviewer
-| Git Commits? | 每一步 | parallel subagent 之后一次性提交 + <br> review 之后最终提交
+| Subagent Implementation <br><br> 这就是 SimplePower 快的原因 | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | Main agent 直接处理一个 cohesive package；或者只在有清晰价值时使用 Grouped workers -> <br> mandatory FAST-tier quick verifier -> <br> main agent final diff review + in-scope fixes
+| Git Commits? | 每一步 | approved plan checkpoint + <br> final reviewed/verified implementation checkpoint
 
 ## 安装
 
@@ -56,27 +56,27 @@ codex plugin marketplace upgrade garyfpga-codex-plugins
 
 ## 模型分配
 
-Simple Power 使用四个强制模型层级（four mandatory model tiers）。它们的内建默认值也是当前 session 已批准的值：
+Simple Power 的正常 brainstorming-to-implementation chain 使用三个主动模型层级：BEST、NORMAL 和 FAST。旧的 REVIEW 配置仍被识别和严格验证，方便已有配置继续工作，但在正常流程里已经是 deprecated compatibility/no-op。
 
 ```toml
-review_model = "gpt-5.6-sol-high"
 best_model = "gpt-5.6-sol-high"
 normal_model = "gpt-5.6-luna-max"
 fast_model = "gpt-5.3-codex-spark-xhigh"
+# Deprecated compatibility/no-op in the normal chain:
+review_model = "gpt-5.6-sol-high"
 ```
 
-最终分配为 REVIEW = `gpt-5.6-sol`/`high`、BEST = `gpt-5.6-sol`/`high`、NORMAL = `gpt-5.6-luna`/`max`、FAST = `gpt-5.3-codex-spark`/`xhigh`。
+最终主动分配为 BEST = `gpt-5.6-sol`/`high`、NORMAL = `gpt-5.6-luna`/`max`、FAST = `gpt-5.3-codex-spark`/`xhigh`。
 
-环境变量可以覆盖 `use_subagent`、`subagent_model`、四个模型层级、`final_review_model` 和 `skip_final_review`，对应 `SIMPLEPOWER_USE_SUBAGENT`、`SIMPLEPOWER_SUBAGENT_MODEL`、`SIMPLEPOWER_REVIEW_MODEL`、`SIMPLEPOWER_BEST_MODEL`、`SIMPLEPOWER_NORMAL_MODEL`、`SIMPLEPOWER_FAST_MODEL`、`SIMPLEPOWER_FINAL_REVIEW_MODEL` 和 `SIMPLEPOWER_SKIP_FINAL_REVIEW`。不存在 `SIMPLEPOWER_REVIEW_MODEL2`。根目录或嵌套的 `AGENTS.md` 都不再提供模型赋值。
+环境变量可以覆盖 `use_subagent`、`subagent_model`、三个主动模型层级、deprecated compatibility `review_model`、`final_review_model` 和 `skip_final_review`，对应 `SIMPLEPOWER_USE_SUBAGENT`、`SIMPLEPOWER_SUBAGENT_MODEL`、`SIMPLEPOWER_REVIEW_MODEL`、`SIMPLEPOWER_BEST_MODEL`、`SIMPLEPOWER_NORMAL_MODEL`、`SIMPLEPOWER_FAST_MODEL`、`SIMPLEPOWER_FINAL_REVIEW_MODEL` 和 `SIMPLEPOWER_SKIP_FINAL_REVIEW`。不存在 `SIMPLEPOWER_REVIEW_MODEL2`。根目录或嵌套的 `AGENTS.md` 都不再提供模型赋值。
 
-`final_review_model` 是可选的 final review+fix 配置，不是第五个强制层级；它没有独立内建默认值。缺失时它等于已解析的 `review_model`；存在时 final review 使用它。`skip_final_review` 默认是 `false`：为 `false` 时 final review 只 dispatch 一个 review+fix agent；为 `true` 时不创建 final-review scratch refs，也不 dispatch 该 agent，但仍执行 final verification 和 final checkpoint/commit condition。
+`review_model`、`review_model2`、`final_review_model` 和 `skip_final_review` 是 deprecated compatibility settings。它们继续被支持、按原环境变量行为解析并严格验证，但正常 chain 不再 dispatch plan reviewers 或 final review+fix agent，也不再根据 `skip_final_review` 改变 final verification。`final_review_model` 缺失时仍按兼容规则等于已解析的 `review_model`；`skip_final_review` 默认仍是 `false`，但在正常 chain 中是 no-op。
 
-`review_model2` 是可选的 read-only plan-review secondary 配置；它没有内建默认值，也没有环境变量覆盖。缺失或与已解析的 `review_model` 完全相等时保持一个 primary plan reviewer。只有 distinct 的值才让 plan review 使用两个 read-only reviewers；secondary 永远不写文件，也不参加 final review。
+`review_model2` 是可选的兼容配置；它没有内建默认值，也没有环境变量覆盖。缺失或与已解析的 `review_model` 完全相等时保持兼容解析结果；distinct 的值仍必须是有效模型字符串，但正常 chain 中不会创建 secondary plan reviewer。
 
-REVIEW 用于 primary plan reviewer。final review+fix 使用 `final_review_model`，缺失时回退到 REVIEW。
 BEST 用于广泛、跨文件、含糊、会改变行为、高风险、难测试的工作。
 NORMAL 用于原来会放进旧 FAST 层的常规低风险实现工作，尤其是局部修改。
-FAST 是 Spark 层，用于明显重复的工作、多文件机械性修改、大量静态文本扫改、简单 fixture/assertion 变更，以及快速验证。
+FAST 是 Spark 层，用于明显重复的工作、多文件机械性修改、大量静态文本扫改、简单 fixture/assertion 变更，以及 mandatory quick verifier。
 
 ## 配置
 
@@ -84,7 +84,7 @@ Simple Power 按 key 独立解析配置：先使用内建默认值，再 overlay
 
 可复制的完整示例见 [simplepower.toml.example](simplepower.toml.example)；该文件本身不是 active repository configuration。
 
-支持的 TOML 顶层 key 是以下七个 base keys，加上没有独立默认值的可选 `review_model2` 和 `final_review_model`。七个 base key 的精确默认值如下：
+支持的 TOML 顶层 key 仍是以下七个 base keys，加上没有独立默认值的可选 `review_model2` 和 `final_review_model`。七个 base key 的精确默认值如下；review 相关 key 是正常 chain 的 deprecated compatibility/no-op：
 
 ```toml
 use_subagent = false
@@ -100,7 +100,7 @@ fast_model = "gpt-5.3-codex-spark-xhigh"
 
 `use_subagent` 是 brainstorming 和 `simplepower:ro` 的硬 gate：`false` 禁止所有可选 explorer；`true` 只是 permission，不是启动指令。两个 workflow 都先由 coordinator 进行 initial triage，不会在启动时自动 dispatch explorer。只有 triage 判断 investigation 属于 large、cross-cutting、complex 或 stalled 时，coordinator 才能在 runtime capacity 内 fan-out 一个或多个具有 distinct investigation angles 的 read-only explorers。每个 explorer 都使用自包含 brief 和 `fork_turns="none"`，只能读取和运行只读命令；coordinator 会综合所有报告。选定的 explorer batch 如果无法完整派发，流程会停止，不会用 partial batch 静默替代。
 
-当 `review_model2` distinct 时，plan review 会并行运行两个 read-only reviewers，并要求两者都批准；如果任一 reviewer 无法派发，plan-review checkpoint 会停止，不会降级为单 reviewer。`skip_final_review=false` 时，final review 在 verified snapshot 上只使用一个由 `final_review_model` 解析出的 review+fix agent；为 `true` 时跳过该阶段。
+正常 implementation route 是自适应的：`Implementation Route: Main agent` 用于一个 cohesive package 且没有实质 specialization benefit 的工作；`Implementation Route: Grouped workers` 只用于至少两个 independent non-overlapping packages，或确实因专业化 delegation 明显受益的工作。Main-agent plans 保持紧凑，包含 design summary、route、exact files、implementation steps、risks、timed quick/final verification，以及两个 checkpoint conditions。Grouped-worker plans 额外包含 Interface Contract、File Ownership、cohesive Worker Packages、serialization decisions，以及 FAST/NORMAL/BEST allocation。Closely related code and tests stay in one package；capacity 只能 queue package，不能造成 tiny-task splitting。
 
 这次变更不会创建或 track repository-level `simplepower.toml`；如果该文件存在，系统会支持它并按 key overlay home 文件。
 
@@ -110,10 +110,10 @@ Simple Power skills 使用 `simplepower:*` namespace。当你想让 Codex 使用
 
 brainstorming skill 可以使用临时的 localhost visual companion 来处理 mockups、diagrams 和其他视觉问题。生成的 implementation plans 会保存到 `docs/simplepower/plans/`。
 
-在 `simplepower:writing-plans` 完成 plan review 之后，Simple Power 会一次性询问你是否批准已审阅的 plan、模型分配，以及立刻在当前 session 里启动 `simplepower:subagent-driven-development`。最终 review 使用由 `final_review_model` 解析出的一个 review+fix agent；缺失时使用 REVIEW。
+在 `simplepower:writing-plans` 完成 main-agent plan self-review 之后，Simple Power 会一次性询问你是否批准 plan、route/model allocation，以及立刻在当前 session 里启动 `simplepower:subagent-driven-development`。
 你确认后，coordinator 会创建 accepted plan checkpoint commit，并立即调用 `simplepower:subagent-driven-development` 执行已批准的 plan。
-为了让 reviewer 更容易对 revised plan 和 review/fix 变化做 diff，coordinator 会在本地创建临时 scratch refs 作为 diff anchors；这些 refs 只是审阅辅助，不是 branch 或 accepted checkpoint，成功后会清理。
-如果 REVIEW-tier reviewer 提出问题，coordinator 会修正 plan、重新跑相关自检，再把 revised plan 送回原 reviewer；distinct `review_model2` 启用时，会把同一份 concrete diff 送回两个原 read-only reviewers。reviewer 会一直保持打开，直到通过、发生不可恢复中断，或你明确要求停止。
+如果 route 是 Main agent，coordinator 直接编辑一个 cohesive package，不 dispatch `sp-impl` worker。如果 route 是 Grouped workers，coordinator 只把相关 design/contract/scope/verification context 发送给各个 cohesive package worker，而不是完整 plan 和重复的全局 boilerplate；每个 grouped `sp-impl` dispatch 都必须使用 `fork_turns="none"`。
+所有 route 都必须运行 mandatory FAST quick verifier。Quick verifier 只能做 tiny typo-level fixes；non-trivial failures 回到 main agent 诊断和 in-scope 修复。正常 workflow 只保留 quick-verifier scratch refs，不再有 plan-review 或 review-fix scratch refs。最后由 main agent 做 final diff review、in-scope fixes 和 final verification，然后创建 final reviewed/verified implementation checkpoint。
 
 ## 如何使用 Simple Power
 
@@ -159,8 +159,8 @@ This table explains what SimplePower is trying to achieve (times are just estima
 | Pharse | SuperPower | SimplePower |
 |---|---:|---:|
 | Spec / Plan | brainstorming -> <br> approve spec -> <br> spec.md (commit) -> <br> plan.md (approve and commit) | brainstorming -> <br> approve spec -> <br> plan.md (approve and commit) <br> too lazy to check spec.md and plan.md
-| Subagent Implementation <br><br> this is why SimplePower is fast | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | Many subagents in parallel for multiple files -> <br> FAST-tier quick verifier subagent -> <br> Primary REVIEW-tier reviewer + fixer, with an optional distinct read-only secondary reviewer
-| Git Commits? | every steps | all at once after parallel subagent + <br> final after review
+| Subagent Implementation <br><br> this is why SimplePower is fast | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | Main agent directly edits one cohesive package; or Grouped workers only when delegation has clear value -> <br> mandatory FAST-tier quick verifier -> <br> main agent final diff review + in-scope fixes
+| Git Commits? | every steps | approved plan checkpoint + <br> final reviewed/verified implementation checkpoint
 
 ## Installation
 
@@ -182,50 +182,53 @@ immediately.
 
 ## Model Allocation
 
-Simple Power uses four mandatory model tiers. Their built-in defaults are also
-the approved current-session values:
+The normal Simple Power brainstorming-to-implementation chain actively uses
+three model tiers: BEST, NORMAL, and FAST. The legacy REVIEW configuration is
+still recognized and strictly validated for existing configs, but it is a
+deprecated compatibility/no-op setting in the normal chain.
 
 ```toml
-review_model = "gpt-5.6-sol-high"
 best_model = "gpt-5.6-sol-high"
 normal_model = "gpt-5.6-luna-max"
 fast_model = "gpt-5.3-codex-spark-xhigh"
+# Deprecated compatibility/no-op in the normal chain:
+review_model = "gpt-5.6-sol-high"
 ```
 
-The resulting assignments are REVIEW = `gpt-5.6-sol`/`high`, BEST =
-`gpt-5.6-sol`/`high`, NORMAL = `gpt-5.6-luna`/`max`, and FAST =
+The active assignments are BEST = `gpt-5.6-sol`/`high`, NORMAL =
+`gpt-5.6-luna`/`max`, and FAST =
 `gpt-5.3-codex-spark`/`xhigh`.
 
-The environment can override `use_subagent`, `subagent_model`, all four model
-tiers, `final_review_model`, and `skip_final_review` through
+The environment can override `use_subagent`, `subagent_model`, the three active
+model tiers, deprecated compatibility `review_model`, `final_review_model`, and
+`skip_final_review` through
 `SIMPLEPOWER_USE_SUBAGENT`, `SIMPLEPOWER_SUBAGENT_MODEL`,
 `SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_BEST_MODEL`,
 `SIMPLEPOWER_NORMAL_MODEL`, `SIMPLEPOWER_FAST_MODEL`,
 `SIMPLEPOWER_FINAL_REVIEW_MODEL`, and `SIMPLEPOWER_SKIP_FINAL_REVIEW`. There is
 no `SIMPLEPOWER_REVIEW_MODEL2`. Root and nested `AGENTS.md` files do not provide model assignments.
 
-`final_review_model` is optional and is not a fifth mandatory tier. It has no
-independent built-in default. When absent, it uses the resolved `review_model`;
-when present, it selects the final review+fix agent. `skip_final_review`
-defaults to `false`: false dispatches exactly one review+fix agent, while true
-omits final-review scratch refs and dispatch but retains final verification and
-the final checkpoint/commit condition.
+`review_model`, `review_model2`, `final_review_model`, and `skip_final_review`
+are deprecated compatibility settings. They remain supported, preserve their
+environment behavior, and are strictly validated so existing configs keep
+working, but the normal chain no longer dispatches plan reviewers or a final
+review+fix agent, and `skip_final_review` no longer changes final verification.
+When absent, `final_review_model` still resolves to `review_model` for
+compatibility; `skip_final_review` still defaults to `false` but is a no-op in
+the normal chain.
 
-`review_model2` is an optional read-only plan-review secondary. It has no
-built-in default and no environment override. If it is absent or exactly equal
-to the resolved `review_model`, Simple Power keeps one primary plan reviewer.
-A distinct value enables an additional read-only plan reviewer. The secondary
-never writes files or participates in final review.
+`review_model2` is an optional compatibility key. It has no built-in default
+and no environment override. If present and distinct from `review_model`, it
+must still be a valid model string, but the normal chain does not create a
+secondary plan reviewer.
 
-REVIEW is for the primary plan reviewer. Final review+fix uses
-`final_review_model`, falling back to REVIEW when it is absent.
 BEST is for broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or
 hard-to-test work.
 NORMAL is for routine low-risk implementation work that used to fit the old
 FAST tier, especially localized edits.
 FAST is the Spark tier for obvious repetitive work, mechanical edits across
-many files, large static text sweeps, simple fixture/assertion churn, and quick
-verification.
+many files, large static text sweeps, simple fixture/assertion churn, and the
+mandatory quick verifier.
 
 ## Configuration
 
@@ -241,8 +244,10 @@ is skipped.
 See [simplepower.toml.example](simplepower.toml.example) for a copyable full
 example; the example itself is not active repository configuration.
 
-The supported TOML schema is these seven base keys plus optional `review_model2`
-and `final_review_model`. The seven base keys have the following exact defaults:
+The supported TOML schema is still these seven base keys plus optional
+`review_model2` and `final_review_model`. The seven base keys have the
+following exact defaults; review-related keys are deprecated compatibility
+no-ops in the normal chain:
 
 ```toml
 use_subagent = false
@@ -278,19 +283,19 @@ large, cross-cutting, complex, or stalled investigation may the coordinator
 fan-out one or more distinct read-only explorers within runtime capacity. Each
 explorer receives a self-contained brief and uses `fork_turns="none"`; the
 coordinator synthesizes the reports. A selected batch that cannot fully
-dispatch stops the workflow rather than silently using a partial batch. This
-is separate from the four mandatory model tiers and does not control the
-mandatory plan reviewer, implementation, quick verifier, or review+fix agents;
-those continue to use the FAST/NORMAL/BEST/REVIEW allocation.
+dispatch stops the workflow rather than silently using a partial batch. This is
+separate from the active implementation and verification model tiers.
 
-When `review_model2` is distinct, plan review runs two read-only reviewers
-concurrently and requires both approvals. If either reviewer cannot dispatch,
-the plan-review checkpoint stops instead of downgrading to one reviewer. An
-absent or equal `review_model2` keeps the single primary plan-reviewer path.
-With `skip_final_review=false`, final review uses exactly one review+fix agent
-with the resolved `final_review_model` (or `review_model` when absent). With
-`true`, Simple Power omits that phase but still runs final verification and the
-final checkpoint condition.
+The normal implementation route is adaptive. `Implementation Route: Main
+agent` is for one cohesive package with no material specialization benefit.
+`Implementation Route: Grouped workers` is only for at least two independent,
+non-overlapping packages or specialized work that materially benefits from
+delegation. Main-agent plans stay compact with design summary, route, exact
+files, implementation steps, risks, timed quick/final verification, and two
+checkpoint conditions. Grouped-worker plans add Interface Contract, File
+Ownership, cohesive Worker Packages, serialization decisions, and
+FAST/NORMAL/BEST allocation. Closely related code and tests stay in one
+package; capacity queues packages but must not create tiny-task splitting.
 
 This change does not create or track a repository-level `simplepower.toml`.
 When one is present, it is supported and overlays the home file per key.
@@ -304,23 +309,27 @@ The brainstorming skill can use a temporary localhost visual companion for
 mockups, diagrams, and other visual questions. Generated implementation plans
 are saved under `docs/simplepower/plans/`.
 
-After `simplepower:writing-plans` finishes reviewing a plan, Simple Power asks
-for combined approval of the reviewed plan, the model allocation, and
+After `simplepower:writing-plans` finishes main-agent plan self-review, Simple
+Power asks for combined approval of the plan, route/model allocation, and
 immediate execution in the current session with
 `simplepower:subagent-driven-development`.
 Once you approve, the coordinator creates the accepted plan checkpoint commit
 and immediately invokes `simplepower:subagent-driven-development` in the
 current session.
-To make revised plans and review/fix changes easier to diff, the coordinator
-creates temporary local scratch refs as diff anchors; they are review-only
-artifacts, not branches or accepted checkpoints, and they are cleaned up after
-success.
-If a REVIEW-tier reviewer reports issues, the coordinator fixes the plan,
-reruns focused self-review checks for the changed categories, and sends the
-revised plan back to the original reviewer. When a distinct `review_model2` is
-enabled, the same concrete diff goes to both original read-only reviewers.
-The reviewers stay open until approval, an unrecoverable interruption, or
-explicit user direction.
+For `Implementation Route: Main agent`, the coordinator directly edits the one
+cohesive package and does not dispatch an `sp-impl` worker. For
+`Implementation Route: Grouped workers`, each worker receives only the relevant
+design, contract, scope, and verification context for its cohesive package, not
+the complete plan or repeated global boilerplate; every grouped `sp-impl`
+dispatch passes `fork_turns="none"`.
+Every route runs the mandatory FAST quick verifier. The quick verifier may make
+only tiny typo-level fixes; non-trivial failures return to the main agent for
+diagnosis and in-scope repair. The normal workflow keeps only quick-verifier
+scratch refs: temporary local scratch refs as diff anchors, and they are cleaned up after
+the successful final checkpoint. There are no plan-review or review-fix
+scratch refs. The main agent performs the final diff review, applies in-scope
+fixes, runs final verification, and creates the final reviewed/verified
+implementation checkpoint. The normal workflow uses exactly two coordinator checkpoints.
 
 ## How To Use Simple Power
 

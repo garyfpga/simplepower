@@ -1,7 +1,7 @@
 {
   "name": "simplepower",
   "version": "1.1.0",
-  "description": "Simple Power is a Codex-only skills workflow for brainstorming, plan-first planning, parallel implementation, and read-only code discussion.",
+  "description": "Simple Power is a Codex-only skills workflow for brainstorming, adaptive direct/grouped implementation, mandatory quick verification, and read-only code discussion.",
   "homepage": "https://github.com/garyfpga/simplepower",
   "repository": "https://github.com/garyfpga/simplepower",
   "license": "MIT",
@@ -18,8 +18,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Simple Power",
-    "shortDescription": "Codex-only brainstorming, planning, and parallel implementation workflows",
-    "longDescription": "Use Simple Power to guide Codex through brainstorming, authoritative implementation planning, coordinator-led on-demand read-only explorer fan-out, plan-first parallel file edits with temporary local scratch refs as diff anchors for revised plans and review/fix passes, quick verification, a configurable final-review model and optional final-review skip, an optional distinct read-only secondary plan reviewer, final verification, and an explicit read-only code discussion mode.",
+    "shortDescription": "Codex-only brainstorming, planning, adaptive implementation, and quick verification",
+    "longDescription": "Use Simple Power to guide Codex through brainstorming, authoritative implementation planning, coordinator-led on-demand read-only explorer fan-out, adaptive Main agent or Grouped workers implementation, cohesive worker packages when delegation has clear value, a mandatory FAST quick verifier with temporary local scratch refs as diff anchors, main-agent final diff review and in-scope fixes, two coordinator checkpoints, deprecated no-op compatibility validation for legacy review settings, final verification, and an explicit read-only code discussion mode.",
     "developerName": "Simple Power maintainers",
     "category": "Coding",
     "capabilities": [

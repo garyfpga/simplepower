@@ -13,7 +13,9 @@ bash tests/codex-plugin-sync/test-sync-to-codex-plugin.sh
 ```
 
 Run those in that order when you want a quick signal on the active Codex
-workflow.
+workflow. The static suite is the contract check for the adaptive
+implementation route, including both direct main-agent execution and grouped
+worker execution.
 
 For focused configuration-contract documentation coverage, run:
 
@@ -22,17 +24,21 @@ timeout 30s rg -n 'use_subagent|skip_final_review|subagent_model|review_model|re
 timeout 30s git diff --check -- AGENTS.md README.md docs/README.codex.md docs/testing.md skills/using-simplepower/references/simplepower-config.md
 ```
 
-The first command should find all four mandatory tier keys, all eight supported
+The first command should find FAST/NORMAL/BEST active routing, all supported
 environment overrides, and per-key home/repository layering. Also confirm the
-seven base-key schema includes `use_subagent`, `skip_final_review`, and `subagent_model`, while the
-optional `review_model2` and `final_review_model` keys have no independent
-built-in defaults and only `review_model2` lacks an environment override. Confirm exact defaults, final-dash
-parsing, and fatal validation. Separate negative searches for retired
-`AGENTS.md` model assignments, declarations that treat
-`SIMPLEPOWER_REVIEW_MODEL2` as a supported environment override, and whole-file
-repository replacement wording should produce no active-contract matches.
-References that explicitly say it is unsupported are expected. The final
-command should report no whitespace errors.
+seven base-key schema includes `use_subagent`, `skip_final_review`,
+`subagent_model`, and `review_model`, while the optional `review_model2` and
+`final_review_model` keys have no independent built-in defaults and only
+`review_model2` lacks an environment override. Confirm exact defaults,
+final-dash parsing, and fatal validation. `review_model`, `review_model2`,
+`final_review_model`, and `skip_final_review` must remain recognized and
+validated compatibility settings, but the normal brainstorming-to-implementation
+chain documents them as deprecated no-ops rather than active plan/final reviewer
+routing. Separate negative searches for retired `AGENTS.md` model assignments,
+declarations that treat `SIMPLEPOWER_REVIEW_MODEL2` as a supported environment
+override, and whole-file repository replacement wording should produce no
+active-contract matches. References that explicitly say it is unsupported are
+expected. The final command should report no whitespace errors.
 
 ## Manual Codex smoke test
 
@@ -95,16 +101,28 @@ Configuration smoke expectations:
 - If an explorer batch is selected, missing multi-agent support, an unavailable
   `subagent_model`, or a spawn failure must stop the affected workflow without
   silently substituting a partial batch.
-- Without `review_model2`, and when it equals `review_model`, verify the single
-  primary plan-reviewer path. With distinct `review_model2`, verify plan review
-  uses two concurrent read-only reviewers and requires both approvals; a
-  reviewer dispatch failure must stop that checkpoint rather than downgrade to
-  one report. With `skip_final_review=false`, verify final review dispatches
-  exactly one review+fix agent using `final_review_model` when present and fully
-  resolved `review_model` when absent. With `skip_final_review=true`, verify no
-  review+fix scratch refs or agent are created, while final verification, the
-  final checkpoint condition, cleanup checks, and skip reporting still occur.
-- Every optional and mandatory Simple Power dispatch passes
+- For `Implementation Route: Main agent`, verify the coordinator directly edits
+  the one cohesive approved package, runs the mandatory FAST quick verifier,
+  performs final diff review and in-scope fixes itself, runs final verification,
+  and uses exactly two coordinator checkpoint conditions: approved plan and
+  final reviewed/verified implementation.
+- For `Implementation Route: Grouped workers`, verify the plan contains the
+  Interface Contract, File Ownership, cohesive Worker Packages, serialization
+  decisions, and FAST/NORMAL/BEST allocation. Dispatch only independent
+  non-overlapping packages or specialized work that materially benefits from
+  delegation. Closely related code and tests should stay in one package, and
+  capacity should queue whole packages rather than split tiny tasks.
+- Verify the FAST quick verifier is mandatory on both routes. It may make only
+  tiny typo-level fixes; non-trivial failures return to the main agent for
+  diagnosis and in-scope repair.
+- Verify scratch refs are limited to quick-verifier before/optional-after refs.
+  No plan-review or review-fix prompt, dispatch, scratch phase, or checkpoint
+  should participate in the normal chain.
+- Verify `review_model`, `review_model2`, `final_review_model`, and
+  `skip_final_review` remain accepted and validated compatibility keys, but are
+  documented as deprecated no-ops for normal execution. `SIMPLEPOWER_REVIEW_MODEL2`
+  remains unsupported.
+- Every optional and retained mandatory Simple Power dispatch passes
   `fork_turns="none"` with self-contained context. Explicit current-session
   user instructions override file configuration.
 - This change must not create or track a repository-level `simplepower.toml`,
@@ -118,7 +136,7 @@ Configuration smoke expectations:
   reload behavior, branding, and `.simplepower/brainstorm` session paths.
 - `tests/codex-plugin-sync/test-sync-to-codex-plugin.sh` verifies the Codex
   plugin sync flow, the packaged plugin metadata, and marketplace metadata.
-- Static checks cover optional plan visual guidance, brainstorming visual
-  companion behavior, and marketplace install/version metadata.
+- Static checks cover adaptive Main agent and Grouped workers routes, optional plan visual guidance,
+  brainstorming visual companion behavior, and marketplace install/version metadata.
 - Generated implementation plans live under `docs/simplepower/plans/`. The
   normal active workflow does not create standalone specs.

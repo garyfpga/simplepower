@@ -27,8 +27,8 @@ immediately.
 ## Subagent Support
 
 `simplepower:subagent-driven-development` depends on Codex multi-agent support
-for `sp-impl` file-edit workers, the quick verifier, and the REVIEW-tier
-review+fix agent.
+when a plan chooses `Implementation Route: Grouped workers`, and always for the
+mandatory FAST quick verifier.
 Add this to your Codex config if it is not already present:
 
 ```toml
@@ -36,8 +36,8 @@ Add this to your Codex config if it is not already present:
 multi_agent = true
 ```
 
-That setting lets Simple Power dispatch the workers required by the approved
-plan and model allocation.
+That setting lets Simple Power dispatch grouped workers when the approved route
+has clear delegation value, and dispatch the quick verifier.
 
 It is also required when the coordinator selects one or more optional explorers
 described below. If a selected explorer cannot use multi-agent support or its
@@ -46,49 +46,52 @@ falling back to the coordinator.
 
 ## Model Allocation
 
-Simple Power uses four mandatory model tiers. Their built-in defaults are also
-the approved current-session values:
+The normal Simple Power brainstorming-to-implementation chain actively uses
+three model tiers: BEST, NORMAL, and FAST. The legacy REVIEW configuration is
+still recognized and strictly validated for existing configs, but it is a
+deprecated compatibility/no-op setting in the normal chain.
 
 ```toml
-review_model = "gpt-5.6-sol-high"
 best_model = "gpt-5.6-sol-high"
 normal_model = "gpt-5.6-luna-max"
 fast_model = "gpt-5.3-codex-spark-xhigh"
+# Deprecated compatibility/no-op in the normal chain:
+review_model = "gpt-5.6-sol-high"
 ```
 
-The resulting assignments are REVIEW = `gpt-5.6-sol`/`high`, BEST =
-`gpt-5.6-sol`/`high`, NORMAL = `gpt-5.6-luna`/`max`, and FAST =
+The active assignments are BEST = `gpt-5.6-sol`/`high`, NORMAL =
+`gpt-5.6-luna`/`max`, and FAST =
 `gpt-5.3-codex-spark`/`xhigh`.
 
-The environment can override `use_subagent`, `subagent_model`, all four tiers,
-`final_review_model`, and `skip_final_review` through
+The environment can override `use_subagent`, `subagent_model`, the three active
+tiers, deprecated compatibility `review_model`, `final_review_model`, and
+`skip_final_review` through
 `SIMPLEPOWER_USE_SUBAGENT`, `SIMPLEPOWER_SUBAGENT_MODEL`,
 `SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_BEST_MODEL`,
 `SIMPLEPOWER_NORMAL_MODEL`, `SIMPLEPOWER_FAST_MODEL`,
 `SIMPLEPOWER_FINAL_REVIEW_MODEL`, and `SIMPLEPOWER_SKIP_FINAL_REVIEW`. There is
 no `SIMPLEPOWER_REVIEW_MODEL2`. Root and nested `AGENTS.md` files do not provide model assignments.
 
-`final_review_model` is optional and is not a fifth mandatory tier. It has no
-independent built-in default. When absent, it uses the resolved `review_model`;
-when present, it selects the final review+fix model. `skip_final_review`
-defaults to `false`: false runs one review+fix agent, while true omits its
-scratch refs and dispatch but retains final verification and the final
-checkpoint/commit condition.
+`review_model`, `review_model2`, `final_review_model`, and `skip_final_review`
+are deprecated compatibility settings. They remain supported, preserve their
+environment behavior, and are strictly validated so existing configs keep
+working, but the normal chain no longer dispatches plan reviewers or a final
+review+fix agent, and `skip_final_review` no longer changes final verification.
+When absent, `final_review_model` still resolves to `review_model` for
+compatibility; `skip_final_review` still defaults to `false` but is a no-op in
+the normal chain.
 
-`review_model2` is an optional read-only plan-review secondary. If absent or
-exactly equal to resolved `review_model`, plan review has one primary reviewer;
-a distinct value enables two concurrent read-only plan reviewers. If either
-reviewer cannot dispatch, the plan-review checkpoint stops rather than silently
-downgrading to one reviewer. The secondary never writes files or participates
-in final review.
+`review_model2` is an optional compatibility key. It has no built-in default
+and no environment override. If present and distinct from `review_model`, it
+must still be a valid model string, but the normal chain does not create a
+secondary plan reviewer.
 
-Use REVIEW for the primary plan reviewer. Use `final_review_model` for the one
-final review+fix agent, falling back to REVIEW when absent. Use BEST for broad,
-cross-cutting, ambiguous, behavior-shaping, high-risk, or hard-to-test work.
+Use FAST/NORMAL/BEST as the active tiers. Use BEST for broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or
+hard-to-test work.
 Use NORMAL for routine low-risk implementation work that used to fit the old
 FAST tier, especially localized edits. Use FAST for obvious repetitive work,
 mechanical edits across many files, large static text sweeps, simple
-fixture/assertion churn, and quick verification.
+fixture/assertion churn, and the mandatory quick verifier.
 
 ## Configuration
 
@@ -104,9 +107,10 @@ is skipped.
 See [simplepower.toml.example](../simplepower.toml.example) for a copyable full
 example; the example itself is not active repository configuration.
 
-The supported TOML schema is the seven base keys below plus optional
+The supported TOML schema is still the seven base keys below plus optional
 `review_model2` and `final_review_model`. The seven base keys have these exact
-defaults:
+defaults; review-related keys are deprecated compatibility no-ops in the normal
+chain:
 
 ```toml
 use_subagent = false
@@ -148,15 +152,9 @@ and run read-only commands only. The coordinator synthesizes all reports. If a
 selected batch cannot fully dispatch, the workflow stops rather than treating a
 partial batch as a substitute.
 
-This gate does not govern the mandatory plan reviewer, implementation workers,
-quick verifier, or review+fix agent. Those remain assigned through the
-FAST/NORMAL/BEST/REVIEW tiers. Every Simple Power dispatch, optional or
+This gate does not govern the approved grouped implementation workers or the
+mandatory FAST quick verifier. Every Simple Power dispatch, optional or
 mandatory, passes `fork_turns="none"` and supplies self-contained context.
-
-When `skip_final_review=false`, final review dispatches exactly one review+fix
-agent using resolved `final_review_model` or the `review_model` fallback. When
-true, the workflow skips final-review scratch refs and agent dispatch, then
-continues with final verification and the final checkpoint condition.
 
 This change does not create or track a repository-level `simplepower.toml`.
 When a repository file is present, it is supported and overlays the home file
@@ -169,27 +167,30 @@ Simple Power keeps generated implementation plans in
 visual aids when they reduce ambiguity. This is separate from the
 `simplepower:brainstorming` visual companion, which uses a temporary localhost
 page during brainstorming instead of saved plan visuals. After
-`simplepower:writing-plans` saves a plan, it asks the user to approve the
-reviewed plan, model/task allocation, and immediate current-session execution in
-one step. If the user approves, the coordinator creates the accepted plan
-checkpoint commit and immediately invokes
-`simplepower:subagent-driven-development` with the approved allocation. The
-implementation skill then uses plan-first parallel implementation, quick
-verification with the FAST tier by default, the configured final review+fix
-phase using `final_review_model` (or REVIEW when absent), and final verification.
-For revised plans and review/fix work, Simple Power also writes temporary local
-Git scratch refs as diff anchors so reviewers can compare before/after changes;
-the accepted checkpoint history stays at the usual three coordinator commits,
-and the scratch refs are cleaned up after success.
+`simplepower:writing-plans` saves a plan, the main agent self-reviews it, then
+asks the user to approve the plan, route/model allocation, and immediate
+current-session execution in one step. If the user approves, the coordinator
+creates the accepted plan checkpoint commit and immediately invokes
+`simplepower:subagent-driven-development` with the approved allocation.
+`Implementation Route: Main agent` directly edits one cohesive package without
+spawning `sp-impl`. `Implementation Route: Grouped workers` dispatches only
+cohesive packages that are independent, non-overlapping, or materially benefit
+from specialization; workers receive only relevant design, contract, scope, and
+verification context. Every route runs the mandatory FAST quick verifier, then
+the main agent performs final diff review, in-scope fixes, final verification,
+and the final reviewed/verified implementation checkpoint. The normal workflow
+uses two coordinator checkpoints and keeps only quick-verifier Git scratch refs as diff anchors.
+Those scratch refs are cleaned up after success; on blockers or
+failed checkpoints they are preserved for manual cleanup reporting.
 
 ## Starting Implementation
 
-After the reviewed plan and model/task allocation are approved,
+After the main-agent reviewed plan and route/model allocation are approved,
 `simplepower:writing-plans` keeps execution in the current session and starts
 the implementation path directly.
 
 ```text
-Use `simplepower:subagent-driven-development` to execute `<PLAN_PATH>` in the current session with plan-first parallel implementation. Use the approved FAST/NORMAL/BEST allocation for `sp-impl` workers and REVIEW for the primary plan reviewer. Dispatch all non-conflicting `sp-impl` file-edit workers, run the quick FAST-tier verifier with lint/build/tests and timeouts, and commit the quick-verified implementation. Resolve `skip_final_review`; when false, run one final review+fix agent with `final_review_model` (falling back to REVIEW), and when true omit its scratch refs and dispatch. Finish with final verification and the final commit condition in either branch.
+Use `simplepower:subagent-driven-development` to execute `<PLAN_PATH>` in the current session. If the plan route is Main agent, implement the cohesive package directly with no `sp-impl` spawn. If the route is Grouped workers, dispatch only the approved cohesive non-overlapping worker packages with `fork_turns="none"` and their relevant design/contract/scope/verification context. Run the mandatory FAST quick verifier with lint/build/tests and timeouts; it may make only tiny typo-level fixes and must return non-trivial failures to the main agent. Finish with main-agent final diff review, in-scope fixes, final verification, and the final reviewed/verified implementation checkpoint.
 ```
 
 ## Usage
@@ -197,7 +198,7 @@ Use `simplepower:subagent-driven-development` to execute `<PLAN_PATH>` in the cu
 - Mention a skill by name, such as `simplepower:brainstorming`.
 - Use `simplepower:writing-plans` after a design is approved, or approve the
   `simplepower:brainstorming` handoff to it.
-- Use `simplepower:subagent-driven-development` for plan-first parallel
+- Use `simplepower:subagent-driven-development` for adaptive direct/grouped
   implementation after combined approval in the current session.
 - Use `simplepower:requesting-code-review` and
   `simplepower:verification-before-completion` to review and verify the work

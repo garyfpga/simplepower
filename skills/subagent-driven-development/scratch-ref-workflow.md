@@ -3,10 +3,10 @@
 Read this file before creating, diffing, deleting, or reporting Simple Power
 scratch refs.
 
-Scratch refs are coordinator-owned local review anchors. They are not branches,
-accepted checkpoint commits, pushed refs, merged refs, rebased refs, worker
-commits, or task commits. Workers, quick verifiers, review+fix agents, and
-plan reviewers must not create, update, or delete them.
+Scratch refs are coordinator-owned local quick-verifier anchors. They are not
+branches, accepted checkpoint commits, pushed refs, merged refs, rebased refs,
+worker commits, or task commits. Workers and quick verifiers must not create,
+update, delete, inspect, or manage them.
 
 All scratch refs for one run live under:
 
@@ -20,29 +20,21 @@ reporting whenever scratch refs are created.
 
 ## Phase Names
 
-- Plan review:
-  `refs/simplepower/scratch/<run-id>/plan-review/before`
-  and `refs/simplepower/scratch/<run-id>/plan-review/after-<n>`
 - Quick verifier:
   `refs/simplepower/scratch/<run-id>/quick-verifier/before`
   and `refs/simplepower/scratch/<run-id>/quick-verifier/after`
-- Review+fix:
-  `refs/simplepower/scratch/<run-id>/review-fix/before`
-  and `refs/simplepower/scratch/<run-id>/review-fix/after`
 
-A phase may omit an `after` ref only when no file changes happened in that
-phase.
+The `after` ref is omitted when the quick verifier changed no files.
 
 ## Create A Scratch Ref
 
 Use a temporary index so the real index and branch history are unchanged. Set
-`approved_files` to the approved file list for the phase, `phase` to
-`plan-review`, `quick-verifier`, or `review-fix`, and `label` to `before`,
-`after`, or `after-<n>` as appropriate.
+`approved_files` to the approved file list, and `label` to `before` or `after`
+as appropriate.
 
 ```bash
 approved_files=(path/to/file1 path/to/file2)
-phase="<phase>"
+phase="quick-verifier"
 label="<label>"
 run_id="${run_id:-$(date -u +%Y%m%d-%H%M%S)-$(git rev-parse --short HEAD)}"
 ref="refs/simplepower/scratch/${run_id}/${phase}/${label}"
@@ -60,33 +52,26 @@ rm -f "$tmp_index"
 trap - EXIT
 ```
 
-If scratch-ref creation fails, stop the review loop before relying on the
-missing anchor.
+If scratch-ref creation fails, stop the verification loop before relying on
+the missing anchor.
 
 ## Diff Scratch Refs
 
-Inspect the relevant scratch diff before creating the next accepted checkpoint
-whenever quick-verifier tiny fixes or review+fix edits changed files.
+Inspect the quick-verifier scratch diff before coordinator review whenever the
+quick verifier made tiny fixes.
 
 ```bash
-git diff refs/simplepower/scratch/<run-id>/<phase>/<before-label> refs/simplepower/scratch/<run-id>/<phase>/<after-label> -- "${approved_files[@]}"
+git diff refs/simplepower/scratch/<run-id>/quick-verifier/before refs/simplepower/scratch/<run-id>/quick-verifier/after -- "${approved_files[@]}"
 ```
 
-For revised plan review after blocking issues, provide the reviewer either this
-exact diff command or an explicit diff summary based on the relevant refs.
+## Cleanup After Successful Final Checkpoint
 
-## Cleanup After Successful Checkpoints
-
-Delete only the phase whose accepted checkpoint has succeeded:
-
-- delete `plan-review` refs after the accepted plan checkpoint succeeds;
-- delete `quick-verifier` refs after the quick-verified implementation
-  checkpoint succeeds, or after the no-empty-commit outcome is recorded as the
-  successful checkpoint;
-- delete `review-fix` refs after the final checkpoint succeeds, or after the
-  no-empty-final-commit outcome is recorded as successful.
+Delete the quick-verifier refs only after the final reviewed/verified
+implementation checkpoint succeeds or after the no-empty-final-commit outcome
+is recorded as successful.
 
 ```bash
+phase="quick-verifier"
 git for-each-ref --format='%(refname)' "refs/simplepower/scratch/${run_id}/${phase}" | while read -r ref; do
   git update-ref -d "$ref"
 done
@@ -101,7 +86,7 @@ git for-each-ref --format='%(refname)' "refs/simplepower/scratch/${run_id}/"
 ## Preserve Evidence On Blockers Or Failed Checkpoints
 
 On user direction, a blocker, scratch-ref creation failure after partial refs,
-or a failed checkpoint commit, preserve scratch refs as evidence and report this
+or a failed checkpoint, preserve scratch refs as evidence and report this
 manual cleanup command instead of deleting refs:
 
 ```bash
