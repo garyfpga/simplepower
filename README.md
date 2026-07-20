@@ -67,9 +67,9 @@ fast_model = "gpt-5.3-codex-spark-xhigh"
 
 最终分配为 REVIEW = `gpt-5.6-sol`/`high`、BEST = `gpt-5.6-sol`/`high`、NORMAL = `gpt-5.6-luna`/`max`、FAST = `gpt-5.3-codex-spark`/`xhigh`。
 
-环境变量只能覆盖这四个层级，并且只使用非空的 `SIMPLEPOWER_REVIEW_MODEL`、`SIMPLEPOWER_BEST_MODEL`、`SIMPLEPOWER_NORMAL_MODEL` 和 `SIMPLEPOWER_FAST_MODEL`。不存在 `SIMPLEPOWER_REVIEW_MODEL2` 或 `SIMPLEPOWER_FINAL_REVIEW_MODEL`。根目录或嵌套的 `AGENTS.md` 都不再提供模型赋值。
+环境变量可以覆盖 `use_subagent`、`subagent_model`、四个模型层级、`final_review_model` 和 `skip_final_review`，对应 `SIMPLEPOWER_USE_SUBAGENT`、`SIMPLEPOWER_SUBAGENT_MODEL`、`SIMPLEPOWER_REVIEW_MODEL`、`SIMPLEPOWER_BEST_MODEL`、`SIMPLEPOWER_NORMAL_MODEL`、`SIMPLEPOWER_FAST_MODEL`、`SIMPLEPOWER_FINAL_REVIEW_MODEL` 和 `SIMPLEPOWER_SKIP_FINAL_REVIEW`。不存在 `SIMPLEPOWER_REVIEW_MODEL2`。根目录或嵌套的 `AGENTS.md` 都不再提供模型赋值。
 
-`final_review_model` 是可选的 final review+fix 配置，不是第五个强制层级；它没有独立内建默认值，也没有环境变量覆盖。缺失时它等于已解析的 `review_model`；存在时 final review 使用它。final review 始终只 dispatch 一个 review+fix agent。
+`final_review_model` 是可选的 final review+fix 配置，不是第五个强制层级；它没有独立内建默认值。缺失时它等于已解析的 `review_model`；存在时 final review 使用它。`skip_final_review` 默认是 `false`：为 `false` 时 final review 只 dispatch 一个 review+fix agent；为 `true` 时不创建 final-review scratch refs，也不 dispatch 该 agent，但仍执行 final verification 和 final checkpoint/commit condition。
 
 `review_model2` 是可选的 read-only plan-review secondary 配置；它没有内建默认值，也没有环境变量覆盖。缺失或与已解析的 `review_model` 完全相等时保持一个 primary plan reviewer。只有 distinct 的值才让 plan review 使用两个 read-only reviewers；secondary 永远不写文件，也不参加 final review。
 
@@ -80,14 +80,15 @@ FAST 是 Spark 层，用于明显重复的工作、多文件机械性修改、�
 
 ## 配置
 
-Simple Power 按 key 独立解析配置：先使用内建默认值，再 overlay `~/.codex/simplepower.toml` 中出现的 key；在 Git 仓库内，再 overlay `<git-root>/simplepower.toml` 中出现的 key；然后 overlay 上述四个非空模型环境变量；最后应用当前 session 的显式指示。较高层缺失的 key 会继承较低层的值，因此 repository 文件不会整体替代 home 文件。在 Git 仓库外跳过 repository 文件这一层。
+Simple Power 按 key 独立解析配置：先使用内建默认值，再 overlay `~/.codex/simplepower.toml` 中出现的 key；在 Git 仓库内，再 overlay `<git-root>/simplepower.toml` 中出现的 key；然后 overlay 上述非空环境变量；最后应用当前 session 的显式指示。较高层缺失的 key 会继承较低层的值，因此 repository 文件不会整体替代 home 文件。在 Git 仓库外跳过 repository 文件这一层。
 
 可复制的完整示例见 [simplepower.toml.example](simplepower.toml.example)；该文件本身不是 active repository configuration。
 
-支持的 TOML 顶层 key 是以下六个 base keys，加上没有独立默认值的可选 `review_model2` 和 `final_review_model`。下面六个 key 的精确默认值保持不变：
+支持的 TOML 顶层 key 是以下七个 base keys，加上没有独立默认值的可选 `review_model2` 和 `final_review_model`。七个 base key 的精确默认值如下：
 
 ```toml
 use_subagent = false
+skip_final_review = false
 subagent_model = "gpt-5.6-luna-xhigh"
 review_model = "gpt-5.6-sol-high"
 best_model = "gpt-5.6-sol-high"
@@ -95,11 +96,11 @@ normal_model = "gpt-5.6-luna-max"
 fast_model = "gpt-5.3-codex-spark-xhigh"
 ```
 
-`use_subagent` 必须是 TOML Boolean。每个存在的模型 key（包括可选的 `review_model2` 和 `final_review_model`）都必须是非空 TOML string，并按最后一个 dash 拆成非空 model prefix 与 reasoning-effort suffix；合法 suffix 只有 `low`、`medium`、`high`、`xhigh`、`max` 和 `ultra`。格式错误的 TOML、未知 key、错误类型、空模型字符串、缺失 model prefix 或非法 effort 都是 fatal error。每个存在的文件、每个显式 current-session 配置值，以及每个非空环境 override 都必须验证，即使更高层随后会覆盖同一 key；缺失文件或 key 则继承。`final_review_model` 缺失时使用完全解析后的 `review_model`。只有空的模型环境变量会被忽略。环境变量不会配置 `use_subagent`、`subagent_model`、`review_model2` 或 `final_review_model`。
+`use_subagent` 和 `skip_final_review` 必须是 TOML Boolean。对应的环境变量仅接受不区分大小写的 `true` 或 `false`，所以 `true`、`True`、`TRUE` 等价；其他非空值是 fatal error。每个存在的模型 key（包括可选的 `review_model2` 和 `final_review_model`）都必须是非空 TOML string，并按最后一个 dash 拆成非空 model prefix 与 reasoning-effort suffix；合法 suffix 只有 `low`、`medium`、`high`、`xhigh`、`max` 和 `ultra`。格式错误的 TOML、未知 key、错误类型、空模型字符串、缺失 model prefix 或非法 effort 都是 fatal error。每个存在的文件、每个显式 current-session 配置值，以及每个非空环境 override 都必须验证，即使更高层随后会覆盖同一 key；缺失文件或 key 则继承。`final_review_model` 缺失时使用完全解析后的 `review_model`。所有空的受支持环境变量都会被忽略。只有 `review_model2` 没有环境变量覆盖。
 
 `use_subagent` 是 brainstorming 和 `simplepower:ro` 的硬 gate：`false` 禁止所有可选 explorer；`true` 只是 permission，不是启动指令。两个 workflow 都先由 coordinator 进行 initial triage，不会在启动时自动 dispatch explorer。只有 triage 判断 investigation 属于 large、cross-cutting、complex 或 stalled 时，coordinator 才能在 runtime capacity 内 fan-out 一个或多个具有 distinct investigation angles 的 read-only explorers。每个 explorer 都使用自包含 brief 和 `fork_turns="none"`，只能读取和运行只读命令；coordinator 会综合所有报告。选定的 explorer batch 如果无法完整派发，流程会停止，不会用 partial batch 静默替代。
 
-当 `review_model2` distinct 时，plan review 会并行运行两个 read-only reviewers，并要求两者都批准；如果任一 reviewer 无法派发，plan-review checkpoint 会停止，不会降级为单 reviewer。final review 始终在 verified snapshot 上只使用一个由 `final_review_model` 解析出的 review+fix agent。
+当 `review_model2` distinct 时，plan review 会并行运行两个 read-only reviewers，并要求两者都批准；如果任一 reviewer 无法派发，plan-review checkpoint 会停止，不会降级为单 reviewer。`skip_final_review=false` 时，final review 在 verified snapshot 上只使用一个由 `final_review_model` 解析出的 review+fix agent；为 `true` 时跳过该阶段。
 
 这次变更不会创建或 track repository-level `simplepower.toml`；如果该文件存在，系统会支持它并按 key overlay home 文件。
 
@@ -195,15 +196,20 @@ The resulting assignments are REVIEW = `gpt-5.6-sol`/`high`, BEST =
 `gpt-5.6-sol`/`high`, NORMAL = `gpt-5.6-luna`/`max`, and FAST =
 `gpt-5.3-codex-spark`/`xhigh`.
 
-The environment can override only these four tiers, with non-empty
+The environment can override `use_subagent`, `subagent_model`, all four model
+tiers, `final_review_model`, and `skip_final_review` through
+`SIMPLEPOWER_USE_SUBAGENT`, `SIMPLEPOWER_SUBAGENT_MODEL`,
 `SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_BEST_MODEL`,
-`SIMPLEPOWER_NORMAL_MODEL`, and `SIMPLEPOWER_FAST_MODEL` values. There is no
-`SIMPLEPOWER_REVIEW_MODEL2` or `SIMPLEPOWER_FINAL_REVIEW_MODEL`. Root and nested `AGENTS.md` files do not provide model assignments.
+`SIMPLEPOWER_NORMAL_MODEL`, `SIMPLEPOWER_FAST_MODEL`,
+`SIMPLEPOWER_FINAL_REVIEW_MODEL`, and `SIMPLEPOWER_SKIP_FINAL_REVIEW`. There is
+no `SIMPLEPOWER_REVIEW_MODEL2`. Root and nested `AGENTS.md` files do not provide model assignments.
 
 `final_review_model` is optional and is not a fifth mandatory tier. It has no
-independent built-in default and no environment override. When absent, it uses
-the resolved `review_model`; when present, it selects the final review+fix
-agent. Final review always dispatches exactly one review+fix agent.
+independent built-in default. When absent, it uses the resolved `review_model`;
+when present, it selects the final review+fix agent. `skip_final_review`
+defaults to `false`: false dispatches exactly one review+fix agent, while true
+omits final-review scratch refs and dispatch but retains final verification and
+the final checkpoint/commit condition.
 
 `review_model2` is an optional read-only plan-review secondary. It has no
 built-in default and no environment override. If it is absent or exactly equal
@@ -226,7 +232,7 @@ verification.
 Simple Power resolves every configuration key independently. Start with the
 built-in defaults, overlay keys from `~/.codex/simplepower.toml`, overlay keys
 from `<git-root>/simplepower.toml` when inside a Git repository, overlay the
-four non-empty model-tier environment variables named above, then apply
+supported non-empty environment variables named above, then apply
 explicit current-session instructions last. Missing higher-layer keys inherit
 the lower-layer value. In particular, a repository file overlays the home file
 per key; it does not replace it as a whole. Outside Git, the repository layer
@@ -235,11 +241,12 @@ is skipped.
 See [simplepower.toml.example](simplepower.toml.example) for a copyable full
 example; the example itself is not active repository configuration.
 
-The supported TOML schema is these six base keys plus optional `review_model2`
-and `final_review_model`. The six base keys have the following exact defaults:
+The supported TOML schema is these seven base keys plus optional `review_model2`
+and `final_review_model`. The seven base keys have the following exact defaults:
 
 ```toml
 use_subagent = false
+skip_final_review = false
 subagent_model = "gpt-5.6-luna-xhigh"
 review_model = "gpt-5.6-sol-high"
 best_model = "gpt-5.6-sol-high"
@@ -247,8 +254,10 @@ normal_model = "gpt-5.6-luna-max"
 fast_model = "gpt-5.3-codex-spark-xhigh"
 ```
 
-`use_subagent` must be a TOML Boolean. Every present model key, including
-optional `review_model2` and `final_review_model`, must be a nonempty TOML
+`use_subagent` and `skip_final_review` must be TOML Booleans. Their environment
+values accept only case-insensitive `true` or `false`, so `true`, `True`, and
+`TRUE` are equivalent; every other non-empty value is fatal. Every present
+model key, including optional `review_model2` and `final_review_model`, must be a nonempty TOML
 string and is parsed at its final dash into a nonempty model prefix and a
 reasoning-effort suffix. Valid suffixes are `low`, `medium`, `high`, `xhigh`,
 `max`, and `ultra`. Malformed TOML, unknown keys, wrong types, empty model
@@ -256,10 +265,9 @@ strings, missing model prefixes, and invalid effort suffixes are fatal. Every
 present file, every explicit current-session configuration value, and every
 non-empty environment override is validated even if a higher layer would
 replace its value; missing files and keys inherit instead of failing. An absent
-`final_review_model` uses the fully resolved `review_model`. Only empty
-model-tier environment variables are ignored. The environment does not
-configure `use_subagent`, `subagent_model`, `review_model2`, or
-`final_review_model`.
+`final_review_model` uses the fully resolved `review_model`. Empty supported
+environment variables are ignored. Only `review_model2` has no environment
+override.
 
 `use_subagent` is a hard gate for brainstorming and `simplepower:ro`: `false`
 prohibits every optional explorer; `true` permits optional exploration but does
@@ -279,8 +287,10 @@ When `review_model2` is distinct, plan review runs two read-only reviewers
 concurrently and requires both approvals. If either reviewer cannot dispatch,
 the plan-review checkpoint stops instead of downgrading to one reviewer. An
 absent or equal `review_model2` keeps the single primary plan-reviewer path.
-Final review always uses exactly one review+fix agent with the resolved
-`final_review_model` (or `review_model` when absent).
+With `skip_final_review=false`, final review uses exactly one review+fix agent
+with the resolved `final_review_model` (or `review_model` when absent). With
+`true`, Simple Power omits that phase but still runs final verification and the
+final checkpoint condition.
 
 This change does not create or track a repository-level `simplepower.toml`.
 When one is present, it is supported and overlays the home file per key.

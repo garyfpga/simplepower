@@ -13,9 +13,9 @@ current Codex session. The plan is authoritative and must contain an
 `Serialization required`, verification commands, and model allocation.
 
 This skill is the coordinator workflow for `sp-impl` workers, the FAST quick
-verifier, and exactly one final review+fix agent. `review_model2` can add a
-read-only second plan reviewer during planning, but never affects final review
-or adds a writer or checkpoint. This skill uses capacity-aware rolling aggregate
+verifier, and a configuration-controlled final review+fix phase. `review_model2`
+can add a read-only second plan reviewer during planning, but never affects
+final review or adds a writer or checkpoint. This skill uses capacity-aware rolling aggregate
 scheduling: build the complete ready set, fill every available child agent slot
 with ready non-conflicting work, and immediately dispatch the next queued ready
 task whenever a worker finishes and is lifecycle-closed.
@@ -96,20 +96,21 @@ malformed TOML, unknown keys, wrong types, or invalid model values in a lower
 layer.
 
 Resolution order is: built-in defaults, `~/.codex/simplepower.toml`,
-repository `<git-root>/simplepower.toml`, the four non-empty
-`SIMPLEPOWER_*_MODEL` environment overrides, then explicit current-session
+repository `<git-root>/simplepower.toml`, the supported non-empty
+`SIMPLEPOWER_*` environment overrides, then explicit current-session
 instructions. Missing higher-layer keys inherit. Do not read model assignments
 from any `AGENTS.md` file. Parse the final dash-delimited segment as
 `reasoning_effort`; valid suffixes are `low`, `medium`, `high`, `xhigh`,
 `max`, and `ultra`.
 
-The six base keys are `use_subagent`, `subagent_model`, `review_model`,
-`best_model`, `normal_model`, and `fast_model`; `review_model2` and
-`final_review_model` are optional keys, not mandatory tiers. Resolve the
+The seven base keys are `use_subagent`, `skip_final_review`, `subagent_model`,
+`review_model`, `best_model`, `normal_model`, and `fast_model`; `review_model2`
+and `final_review_model` are optional keys, not mandatory tiers. Resolve the
 primary `review_model` first. Then resolve a present `final_review_model` from
-the home file, repository file, and explicit current-session instructions only;
-it has no environment variable, and an absent value falls back to fully
-resolved `review_model`. Validate and parse it with the same rules. Resolve
+the home file, repository file, `SIMPLEPOWER_FINAL_REVIEW_MODEL`, and explicit
+current-session instructions; an absent value falls back to fully resolved
+`review_model`. Validate and parse it with the same rules even when final review
+is skipped. Resolve
 `review_model2` the same way: it has no environment variable, and an absent
 value or exact match with fully resolved `review_model` disables the optional
 read-only plan-review secondary.
@@ -122,9 +123,12 @@ Routing decisions:
   hard to verify. Record the reason.
 - Quick verifier: use FAST. With built-in defaults this resolves to
   `model="gpt-5.3-codex-spark"` and `reasoning_effort="xhigh"`.
-- Final review+fix: use the effective `final_review_model`. Exactly one final
-  review+fix agent is the only final-review agent and writer after the
-  quick-verified implementation checkpoint.
+- Final review+fix: when `skip_final_review=false`, use the effective
+  `final_review_model`. Exactly one final review+fix agent is the only
+  final-review agent and writer after the quick-verified implementation
+  checkpoint. When `skip_final_review=true`, do not create final-review scratch
+  refs or dispatch that agent; continue with final verification and the final
+  checkpoint condition.
 - Plan-review secondary: a distinct parsed optional `review_model2` is
   read-only and applies only to plan review; it does not affect this final
   review flow.
@@ -184,18 +188,19 @@ prompt. There are no conversation-history inheritance exceptions.
     If no uncommitted implementation changes remain, record the no-empty-commit
     outcome as the successful checkpoint. No worker commits. Delete
     quick-verifier scratch refs only after this checkpoint succeeds.
-15. Create `refs/simplepower/scratch/<run-id>/review-fix/before` from the
-    quick-verified checkpoint state for the approved file list. If this fails,
-    stop before review+fix.
-16. Resolve `review_model`, then the optional `final_review_model`. Dispatch
-    exactly one final review+fix agent from `review-fix-prompt.md` with the
-    effective final model, whole diff, approved plan, ownership, worker reports,
-    verification evidence, scratch context, and `fork_turns="none"`. It has
-    direct in-scope review+fix authority.
-17. After the final review+fix agent returns, lifecycle-close it by default,
-    inspect its report and actual diff, validate changed files, create
-    `review-fix/after` only if it changed files, and inspect the scratch diff
-    before final verification.
+15. Resolve and validate `skip_final_review`, `review_model`, and the optional
+    `final_review_model`.
+16. When `skip_final_review=false`, create
+    `refs/simplepower/scratch/<run-id>/review-fix/before` from the quick-verified
+    checkpoint state for the approved file list. If this fails, stop before
+    review+fix. Dispatch exactly one final review+fix agent from
+    `review-fix-prompt.md` with the effective final model, whole diff, approved
+    plan, ownership, worker reports, verification evidence, scratch context,
+    and `fork_turns="none"`. It has direct in-scope review+fix authority.
+17. When that agent runs, lifecycle-close it by default, inspect its report and
+    actual diff, validate changed files, create `review-fix/after` only if it
+    changed files, and inspect the scratch diff before final verification. When
+    `skip_final_review=true`, skip steps 16-17 without creating review+fix refs.
 18. Run final verification from the approved plan and any repo-required checks
     for the changed files.
 19. Inspect `git status --short`. Create a final commit only if uncommitted
@@ -206,8 +211,9 @@ prompt. There are no conversation-history inheritance exceptions.
     when created, changed files, dispatch decisions, capacity queue behavior,
     any serialized tasks and reasons, lifecycle status, scratch run id when
     refs were created, scratch-ref cleanup status or cleanup commands for
-    preserved refs, and whether `final_review_model` was explicitly selected or
-    fell back to `review_model`.
+    preserved refs, whether final review ran or was skipped, and, when it ran,
+    whether `final_review_model` was explicitly selected or fell back to
+    `review_model`.
 
 ## Dispatch Rules
 
@@ -263,8 +269,9 @@ Phase ownership and timing:
   fixes changed files. Delete quick-verifier refs only after the
   quick-verified implementation checkpoint succeeds or the no-empty-commit
   outcome is recorded as successful.
-- Review+fix `before` is created after the quick-verified implementation
-  checkpoint and before the one final review+fix dispatch. Review+fix `after`
+- Review+fix `before` is created only when `skip_final_review=false`, after the
+  quick-verified implementation checkpoint and before the one final review+fix
+  dispatch. Review+fix `after`
   is created only when that agent changes files. Delete review+fix refs only
   after the final checkpoint succeeds or the no-empty-final-commit outcome is
   recorded as successful.
@@ -331,8 +338,9 @@ Never:
   plan unless that edit is explicitly assigned.
 - Let a worker read the plan file instead of receiving the task text and
   context.
-- Skip quick verification, the quick-verified implementation checkpoint, the
-  one final review+fix pass, final verification, or the final commit condition.
+- Skip quick verification, the quick-verified implementation checkpoint, final
+  verification, or the final commit condition. Skip the final review+fix pass
+  only when effective `skip_final_review=true`.
 - Skip required scratch-ref creation, scratch diff inspection, phase cleanup,
   preserved-ref reporting, or final cleanup checks.
 - Leave a finished subagent open without a written reason tied to the current
@@ -387,7 +395,7 @@ Final reporting must include:
 - changed files;
 - scratch run id when refs were created;
 - scratch-ref cleanup status or cleanup commands for preserved refs;
-- final-review model outcome: explicit `final_review_model` or fallback to
-  `review_model`; and
+- final-review outcome: skipped by effective `skip_final_review=true`, or run
+  with explicit `final_review_model` or fallback to `review_model`; and
 - confirmation that all finished subagents were closed or have an active
   written reason to remain open.

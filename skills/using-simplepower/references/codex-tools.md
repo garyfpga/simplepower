@@ -16,29 +16,30 @@ Simple Power skills may mention generic skill tool names. When you encounter the
 | quick verifier | `spawn_agent(agent_type="worker", model=<FAST_model>, reasoning_effort=<FAST_effort>, fork_turns="none", message=...)` Default resolves to Spark xhigh unless overridden. |
 | primary plan reviewer | `spawn_agent(agent_type="worker", model=<REVIEW_model>, reasoning_effort=<REVIEW_effort>, fork_turns="none", message=...)` |
 | conditional secondary plan reviewer | Only when fully resolved `review_model2` is distinct from `review_model`: `spawn_agent(agent_type="worker", model=<review_model2_model>, reasoning_effort=<review_model2_effort>, fork_turns="none", message=...)`; read-only and concurrent with the primary plan reviewer. |
-| final review+fix agent | `spawn_agent(agent_type="worker", model=<resolved_final_review_model>, reasoning_effort=<resolved_final_review_effort>, fork_turns="none", message=...)`; it is the only final-review agent and writer. |
+| final review+fix agent | When `skip_final_review=false`, `spawn_agent(agent_type="worker", model=<resolved_final_review_model>, reasoning_effort=<resolved_final_review_effort>, fork_turns="none", message=...)`; it is the only final-review agent and writer. Do not dispatch it when `skip_final_review=true`. |
 | multiple independent file-edit tasks | Multiple `spawn_agent(fork_turns="none", message=...)` calls, one per non-conflicting ownership unit, before `wait` |
 
 The role mappings are mandatory Simple Power dispatches and are independent of
-`use_subagent`. Before resolving them, validate the six base keys plus optional
+`use_subagent`. Before resolving them, validate the seven base keys plus optional
 `review_model2` and `final_review_model` by following
 `skills/using-simplepower/references/simplepower-config.md`. Every present TOML
 file must validate in full before overlays; a higher layer must not hide
 malformed TOML, unknown keys, wrong types, or invalid model values in a lower
 layer. Resolve model settings by starting with the built-in defaults, then
 overlaying `/home/gary/.codex/simplepower.toml`, repository
-`<git-root>/simplepower.toml`, the four non-empty `SIMPLEPOWER_*_MODEL` process
+`<git-root>/simplepower.toml`, the supported non-empty `SIMPLEPOWER_*` process
 environment values, and explicit current-session instructions last. Each later
-layer replaces only the tier values it supplies. Missing higher-layer keys
+layer replaces only the keys it supplies. Missing higher-layer keys
 inherit. Do not read model assignments from any `AGENTS.md` file.
 
-The six base keys are `use_subagent`, `subagent_model`, `review_model`,
-`best_model`, `normal_model`, and `fast_model`. Resolve the optional
+The seven base keys are `use_subagent`, `skip_final_review`, `subagent_model`,
+`review_model`, `best_model`, `normal_model`, and `fast_model`. Resolve the optional
 `review_model2` and `final_review_model` after the primary `review_model`.
-Neither has an environment variable: there is no `SIMPLEPOWER_REVIEW_MODEL2`
-or `SIMPLEPOWER_FINAL_REVIEW_MODEL`. An absent `final_review_model` uses the
-fully resolved `review_model` and dispatches exactly one final review+fix
-agent. An absent `review_model2`, or an exact match with the fully resolved
+There is no `SIMPLEPOWER_REVIEW_MODEL2`; `final_review_model` supports
+`SIMPLEPOWER_FINAL_REVIEW_MODEL`. An absent `final_review_model` uses the fully
+resolved `review_model`. When `skip_final_review=false`, dispatch exactly one
+final review+fix agent; when true, skip that dispatch but not final verification.
+An absent `review_model2`, or an exact match with the fully resolved
 primary, disables the optional read-only plan-review secondary; a distinct
 value enables it only for plan review.
 
@@ -64,8 +65,9 @@ guessing. With the built-in defaults, FAST resolves to model
 and BEST and REVIEW to model `gpt-5.6-sol` with `high`.
 
 Use the plan's approved FAST/NORMAL/BEST allocation for `sp-impl` file-edit
-workers. Always dispatch the primary plan reviewer with REVIEW and one final
-review+fix agent with resolved `final_review_model`. When the optional
+workers. Always dispatch the primary plan reviewer with REVIEW. Dispatch one
+final review+fix agent with resolved `final_review_model` only when effective
+`skip_final_review=false`. When the optional
 secondary is enabled, dispatch it with the parsed distinct `review_model2`
 value only as a read-only plan reviewer; it never replaces the primary or gains
 fix authority.
@@ -101,9 +103,11 @@ When a skill says to dispatch a Simple Power worker:
    diff, and verification results
 4. Spawn a `worker` agent with the filled content as the `message`
 
-For final review, fill `review-fix-prompt.md` with the quick-verified snapshot
-and dispatch exactly one self-contained review+fix agent using resolved
-`final_review_model` and `fork_turns="none"`.
+For final review, first resolve `skip_final_review`. When false, fill
+`review-fix-prompt.md` with the quick-verified snapshot and dispatch exactly one
+self-contained review+fix agent using resolved `final_review_model` and
+`fork_turns="none"`. When true, omit the prompt and dispatch and continue with
+final verification.
 
 | Skill instruction | Codex equivalent |
 |-------------------|------------------|
@@ -141,7 +145,7 @@ specified in the instructions above.
   required output, and verification commands and expectations.
 - A secondary plan-review prompt must additionally state its same-snapshot,
   read-only/no-file-creation/no-ref/no-commit/no-subagent/no-skill/no-reroute
-  restrictions. Final review always uses one direct review+fix prompt.
+  restrictions. When enabled, final review uses one direct review+fix prompt.
 
 ### When this workaround can be removed
 

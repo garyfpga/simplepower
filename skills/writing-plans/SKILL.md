@@ -31,8 +31,9 @@ Simple Power uses four configurable model tiers when planning implementation,
 review, and verification work. These mandatory tiers are independent of
 `use_subagent`.
 
-Before allocating models or dispatching a reviewer, validate the full six-base-key
-configuration plus its optional `review_model2` and `final_review_model` keys by following
+Before allocating models or dispatching a reviewer, validate the full
+seven-base-key configuration plus its optional `review_model2` and
+`final_review_model` keys by following
 `skills/using-simplepower/references/simplepower-config.md`. Every present TOML
 file must validate in full before overlays; a higher layer must not hide
 malformed TOML, unknown keys, wrong types, or invalid model values in a lower
@@ -45,11 +46,10 @@ layer.
 | NORMAL | `normal_model` | `SIMPLEPOWER_NORMAL_MODEL` | `gpt-5.6-luna-max` |
 | FAST | `fast_model` | `SIMPLEPOWER_FAST_MODEL` | `gpt-5.3-codex-spark-xhigh` |
 
-The six base keys are `use_subagent`, `subagent_model`, `review_model`,
-`best_model`, `normal_model`, and `fast_model`. `review_model2` and
-`final_review_model` are optional: neither has an independent built-in default
-or environment variable, and both are resolved only through the home file,
-repository file, and explicit current-session instructions. First fully resolve
+The seven base keys are `use_subagent`, `skip_final_review`, `subagent_model`,
+`review_model`, `best_model`, `normal_model`, and `fast_model`. `review_model2`
+and `final_review_model` are optional; neither has an independent built-in
+default. `review_model2` has no environment variable. First fully resolve
 the primary `review_model`; then resolve and validate a present optional value
 with the same final-dash parsing. An absent `final_review_model` falls back to
 the fully resolved `review_model`. An absent `review_model2`, or an exact match
@@ -57,11 +57,11 @@ with the fully resolved primary, keeps the one-primary plan-review route. Only
 a distinct fully resolved `review_model2` enables the conditional read-only
 plan-review route. Neither optional key changes the four mandatory tiers above.
 
-Resolve all tier settings by starting with the built-in defaults, then
+Resolve all configuration by starting with the built-in defaults, then
 overlaying `/home/gary/.codex/simplepower.toml`, repository
-`<git-root>/simplepower.toml`, the four non-empty `SIMPLEPOWER_*_MODEL` process
+`<git-root>/simplepower.toml`, the supported non-empty `SIMPLEPOWER_*` process
 environment values, and explicit current-session instructions last. Each later
-layer replaces only the tier values it supplies, and missing higher-layer keys
+layer replaces only the keys it supplies, and missing higher-layer keys
 inherit. Do not read model assignments from any `AGENTS.md` file.
 
 Interpret the final dash-delimited segment of the resolved value as
@@ -72,8 +72,10 @@ FAST to model `gpt-5.3-codex-spark` with `xhigh`, NORMAL to model
 `gpt-5.6-luna` with `max`, and BEST and REVIEW to model `gpt-5.6-sol` with
 `high`.
 
-Use REVIEW for the primary plan reviewer. Use effective `final_review_model`
-for the one final review+fix agent, falling back to REVIEW when absent. A
+Use REVIEW for the primary plan reviewer. When `skip_final_review=false`, use
+effective `final_review_model` for the one final review+fix agent, falling back
+to REVIEW when absent. When `skip_final_review=true`, omit that phase while
+retaining final verification and the final checkpoint condition. A
 distinct optional `review_model2` supplies only a read-only secondary
 plan-review route; it never supplies review+fix authority.
 Use BEST for broad, cross-cutting, ambiguous, behavior-shaping, high-risk, or
@@ -92,9 +94,10 @@ verify.
 
 The approved brainstorming design and accepted implementation plan are
 authoritative. Do not authorize backup routes, scope reduction, docs-only
-substitutes, placeholder implementations, skipped verification, skipped review,
-or execution-route changes unless the user gives fresh explicit approval at the
-moment the deviation is needed.
+substitutes, placeholder implementations, skipped verification, final review
+skipped without effective `skip_final_review=true`, or execution-route changes
+unless the user gives fresh explicit approval at the moment the deviation is
+needed.
 
 A stub substitute or execution-mode switch is an approved-path deviation and
 requires fresh explicit user approval before work continues.
@@ -190,7 +193,7 @@ git for-each-ref --format='%(refname)' "refs/simplepower/scratch/<run-id>" | whi
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use `simplepower:subagent-driven-development` for aggregate parallel implementation. Dispatch all non-conflicting `sp-impl` file-edit workers whose coordination needs are satisfied by the approved Interface Contract, run the quick verifier after all workers finish, commit the quick-verified implementation, then run exactly one final review+fix agent using `final_review_model` (or `review_model` when absent) before final verification and final commit.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `simplepower:subagent-driven-development` for aggregate parallel implementation. Dispatch all non-conflicting `sp-impl` file-edit workers whose coordination needs are satisfied by the approved Interface Contract, run the quick verifier after all workers finish, and commit the quick-verified implementation. Unless effective `skip_final_review=true`, run exactly one final review+fix agent using `final_review_model` (or `review_model` when absent). Always run final verification and apply the final commit condition.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -200,7 +203,7 @@ git for-each-ref --format='%(refname)' "refs/simplepower/scratch/<run-id>" | whi
 
 **Tech Stack:** [Key technologies/libraries]
 
-**Model Allocation:** FAST/NORMAL/BEST/REVIEW tiers are assigned below and are independent of `use_subagent`. Resolve and validate the six base keys—`use_subagent`, `subagent_model`, `review_model`, `best_model`, `normal_model`, and `fast_model`—plus optional `review_model2` and `final_review_model` in `skills/using-simplepower/references/simplepower-config.md`: built-in defaults, then per-key overlays from `/home/gary/.codex/simplepower.toml`, repository `<git-root>/simplepower.toml`, the four non-empty `SIMPLEPOWER_*_MODEL` environment values, and explicit current-session instructions last. Missing higher-layer keys inherit, and every present TOML file is fatal if invalid even when a higher layer overrides its values. Do not read model assignments from `AGENTS.md`. The optional keys have no environment variables; `final_review_model` falls back to fully resolved `review_model` when absent, while a distinct `review_model2` enables only a read-only secondary plan reviewer. FAST defaults to `gpt-5.3-codex-spark-xhigh`, NORMAL defaults to `gpt-5.6-luna-max`, and BEST and REVIEW default to `gpt-5.6-sol-high`. Parse the final dash as reasoning effort; valid suffixes are `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`. The primary plan reviewer uses REVIEW, and exactly one final review+fix agent uses effective `final_review_model`. The quick verifier uses FAST. With built-in defaults, FAST resolves to model `gpt-5.3-codex-spark` with `xhigh`, NORMAL to model `gpt-5.6-luna` with `max`, and BEST/REVIEW to model `gpt-5.6-sol` with `high`.
+**Model Allocation:** FAST/NORMAL/BEST/REVIEW tiers are assigned below and are independent of `use_subagent`. Resolve and validate the seven base keys—`use_subagent`, `skip_final_review`, `subagent_model`, `review_model`, `best_model`, `normal_model`, and `fast_model`—plus optional `review_model2` and `final_review_model` in `skills/using-simplepower/references/simplepower-config.md`: built-in defaults, then per-key overlays from `/home/gary/.codex/simplepower.toml`, repository `<git-root>/simplepower.toml`, supported non-empty `SIMPLEPOWER_*` environment values, and explicit current-session instructions last. Missing higher-layer keys inherit, and every present TOML file is fatal if invalid even when a higher layer overrides its values. Do not read model assignments from `AGENTS.md`. `review_model2` has no environment variable; `final_review_model` falls back to fully resolved `review_model` when absent, while a distinct `review_model2` enables only a read-only secondary plan reviewer. FAST defaults to `gpt-5.3-codex-spark-xhigh`, NORMAL defaults to `gpt-5.6-luna-max`, and BEST and REVIEW default to `gpt-5.6-sol-high`. Parse the final dash as reasoning effort; valid suffixes are `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`. The primary plan reviewer uses REVIEW. Effective `skip_final_review=false` runs exactly one final review+fix agent using effective `final_review_model`; `true` skips that phase but not final verification. The quick verifier uses FAST. With built-in defaults, FAST resolves to model `gpt-5.3-codex-spark` with `xhigh`, NORMAL to model `gpt-5.6-luna` with `max`, and BEST/REVIEW to model `gpt-5.6-sol` with `high`.
 
 **Commit Policy:** The coordinator commits after the reviewed plan, allocation, and immediate current-session execution receive combined approval, after all file edits and quick verification complete before final review, and after final review/fix plus final verification. Workers, primary and secondary plan reviewers, quick verifiers, and final review+fix agents must not commit. No per-task commits. Coordinator-owned temporary scratch refs under `refs/simplepower/scratch/<run-id>/...` may be created only as local review diff anchors; they are not accepted history commits, not pushed, not merged, not rebased, and must be cleaned up after successful checkpoints or reported for manual cleanup on blockers or failed checkpoints.
 
@@ -326,8 +329,9 @@ Rules:
   `SIMPLEPOWER_BEST_MODEL` overrides it at the corresponding layer).
 - REVIEW defaults to `gpt-5.6-sol-high` (`review_model` or
   `SIMPLEPOWER_REVIEW_MODEL` overrides it at the corresponding layer).
-- `final_review_model` is optional, has no independent built-in default or
-  environment value, and is not a fifth tier. Resolve it after `review_model`;
+- `final_review_model` is optional, has no independent built-in default,
+  supports `SIMPLEPOWER_FINAL_REVIEW_MODEL`, and is not a fifth tier. Resolve it
+  after `review_model`;
   an absent value falls back to fully resolved `review_model` for exactly one
   final review+fix agent.
 - `review_model2` is optional, has no built-in default or
@@ -337,7 +341,7 @@ Rules:
   read-only plan-review secondary only.
 - Resolve all tiers from built-in defaults, then overlay
   `/home/gary/.codex/simplepower.toml`, repository
-  `<git-root>/simplepower.toml`, the four non-empty `SIMPLEPOWER_*_MODEL`
+  `<git-root>/simplepower.toml`, the supported non-empty `SIMPLEPOWER_*`
   process environment values, and explicit current-session instructions last.
 - Validate every present TOML file in full before overlaying values; a higher
   layer cannot hide a broken lower-precedence file. Missing higher-layer keys
@@ -359,8 +363,10 @@ Rules:
 - The primary plan reviewer uses REVIEW. A distinct `review_model2` adds a
   concurrent read-only secondary plan reviewer; both plan reviewers must
   approve the current plan revision.
-- The one final review+fix agent uses effective `final_review_model`, falling
-  back to REVIEW when it is absent. It directly owns in-scope fixes.
+- When `skip_final_review=false`, the one final review+fix agent uses effective
+  `final_review_model`, falling back to REVIEW when it is absent. It directly
+  owns in-scope fixes. When `skip_final_review=true`, the phase is omitted but
+  final verification and the final checkpoint condition remain mandatory.
 - The quick verifier uses the FAST tier by default, resolving to
   `model="gpt-5.3-codex-spark"` and `reasoning_effort="xhigh"` unless
   `SIMPLEPOWER_FAST_MODEL` is overridden.
@@ -387,14 +393,15 @@ Self-review checklist:
 - Model allocation: FAST/NORMAL/BEST/REVIEW choices match risk and mechanics,
   all four configurable defaults and overlay layers are documented, no model
   assignments are read from `AGENTS.md`, mandatory tiers are independent of
-  `use_subagent`, and optional `review_model2` and `final_review_model` have
-  no environment variables. An absent `final_review_model` falls back to
+  `use_subagent`, `skip_final_review`, `subagent_model`, and
+  `final_review_model` use their documented environment variables;
+  `review_model2` does not. An absent `final_review_model` falls back to
   resolved `review_model`; a distinct `review_model2` is read-only and applies
   only to plan review; the quick verifier uses FAST by default.
 - Review allocation: absent `review_model2` or an exact match has one primary
   plan reviewer; a distinct value has concurrent read-only plan reviewers that
-  both approve. Final review always dispatches one agent using effective
-  `final_review_model`.
+  both approve. Final review dispatches one agent using effective
+  `final_review_model` unless effective `skip_final_review=true`.
 - Commit policy: exactly three coordinator checkpoints are present and no
   non-coordinator role commits; scratch refs are local review anchors, not
   accepted checkpoint commits.
@@ -518,13 +525,18 @@ preserve the refs and report the manual cleanup command.
 
 ## Final Review And Fix
 
-Before dispatching the review+fix agent, the coordinator creates
-`refs/simplepower/scratch/<run-id>/review-fix/before` for the approved
-implementation file list. Resolve `review_model` first, then a present optional
-`final_review_model`. The latter has no environment variable and falls back to
-fully resolved `review_model` when absent.
+Resolve and validate `skip_final_review`, `review_model`, and optional
+`final_review_model`, including their environment overrides. An absent
+`final_review_model` falls back to fully resolved `review_model`; validate it
+even when final review is skipped.
 
-Dispatch exactly one final review+fix agent with direct in-scope fix authority.
+When `skip_final_review=false`, before dispatching the review+fix agent the
+coordinator creates
+`refs/simplepower/scratch/<run-id>/review-fix/before` for the approved
+implementation file list.
+
+In that branch, dispatch exactly one final review+fix agent with direct in-scope
+fix authority.
 It reviews the whole implementation against the accepted plan, file ownership,
 approved path enforcement, aggregate parallel dispatch semantics, and
 verification requirements:
@@ -552,6 +564,12 @@ workflow. If no final-review file changes happen during review+fix, omit the
 `review-fix` scratch refs. If the checkpoint fails or the workflow stops before
 the checkpoint, preserve the refs and report the manual cleanup command.
 
+When `skip_final_review=true`, do not create either review+fix scratch ref and
+do not dispatch the final review+fix agent. Proceed directly from the
+quick-verified implementation checkpoint to final verification, the final
+checkpoint/commit condition, and scratch cleanup checks. Report that final
+review was skipped by resolved configuration.
+
 ## Commit Checkpoints
 
 Every plan must define exactly three future coordinator commit checkpoints:
@@ -561,8 +579,9 @@ Every plan must define exactly three future coordinator commit checkpoints:
    execution, and before invoking `simplepower:subagent-driven-development`.
 2. Quick-verified implementation checkpoint: after all `sp-impl` file edits
    complete and the quick verifier passes.
-3. Final checkpoint: after the one final review+fix lifecycle completes and
-   final verification passes.
+3. Final checkpoint: after the configured final review+fix lifecycle completes,
+   or is skipped by effective `skip_final_review=true`, and final verification
+   passes.
 
 Workers, primary and secondary plan reviewers, quick verifiers, and final
 review+fix agents must not commit. Do not include worker-owned commits or
@@ -601,7 +620,7 @@ commit, deletes the successful `plan-review` scratch refs, then immediately invo
 this instruction:
 
 ```text
-Execute `<PLAN_PATH>` with aggregate parallel implementation from the approved Interface Contract. Use the approved FAST/NORMAL/BEST allocation for `sp-impl` workers, REVIEW for plan review, and effective `final_review_model` for final review+fix. Dispatch all non-conflicting `sp-impl` file-edit workers whose coordination needs are satisfied by their Contract inputs, run the quick FAST-tier verifier with lint/build/tests and timeouts after all workers finish, and commit the quick-verified implementation. Then resolve `final_review_model` after `review_model`, falling back to the fully resolved REVIEW value when absent, and run exactly one final review+fix agent. Run final verification and the final commit condition without adding a checkpoint or concurrent writer.
+Execute `<PLAN_PATH>` with aggregate parallel implementation from the approved Interface Contract. Use the approved FAST/NORMAL/BEST allocation for `sp-impl` workers and REVIEW for plan review. Dispatch all non-conflicting `sp-impl` file-edit workers whose coordination needs are satisfied by their Contract inputs, run the quick FAST-tier verifier with lint/build/tests and timeouts after all workers finish, and commit the quick-verified implementation. Then resolve and validate `skip_final_review` and effective `final_review_model`. When `skip_final_review=false`, run exactly one final review+fix agent with effective `final_review_model`; when true, omit the review+fix scratch refs and agent. Always run final verification and the final commit condition without adding a checkpoint or concurrent writer.
 ```
 
 ## Verification
@@ -616,8 +635,9 @@ usually:
 - `timeout 120s <test command>`
 
 The final verification section must also say that the coordinator performs the
-final checkpoint only after the one final review+fix lifecycle has completed
-and the final commands pass.
+final checkpoint only after the configured final review+fix lifecycle has
+completed or been skipped by effective `skip_final_review=true`, and the final
+commands pass.
 
 Final reporting must include a cleanup check for any remaining scratch refs from
 the run:
@@ -666,7 +686,7 @@ failures:
   secondary route, and optional `final_review_model` selects final review+fix
 - Model resolution order is explicit: built-in defaults, home
   `/home/gary/.codex/simplepower.toml`, repository
-  `<git-root>/simplepower.toml`, the four non-empty `SIMPLEPOWER_*_MODEL`
+  `<git-root>/simplepower.toml`, the supported non-empty `SIMPLEPOWER_*`
   environment values, then explicit current-session instructions
 - Every present TOML file is validated before overlays, invalid lower layers
   are fatal, and missing higher-layer keys inherit
@@ -677,7 +697,8 @@ failures:
 - NORMAL for routine low-risk localized implementation work
 - BEST for broad, ambiguous, behavior-shaping, high-risk, or hard-to-test work
 - Resolve `final_review_model` and `review_model2` only after the primary
-  REVIEW value. Neither has an environment variable; absent
+  REVIEW value. `final_review_model` has an environment variable and
+  `review_model2` does not; absent
   `final_review_model` falls back to REVIEW, while an absent or exact-match
   `review_model2` keeps the single-primary plan-review route
 - Primary REVIEW-tier plan reviewer; when a distinct secondary exists, dispatch
@@ -705,8 +726,9 @@ failures:
   `refs/simplepower/scratch/<run-id>/`
 - Quick verifier uses the FAST tier by default, resolving to
   `gpt-5.3-codex-spark-xhigh` when unset
-- Exactly one final review+fix agent is the only final-review writer. It uses
-  `final_review_model`, falling back to REVIEW when absent
+- Unless effective `skip_final_review=true`, exactly one final review+fix agent
+  is the only final-review writer. It uses `final_review_model`, falling back
+  to REVIEW when absent. Skipping final review never skips final verification
 - No worker commits or per-task commits
 - Exactly three coordinator checkpoints
 - Ask for combined approval of the reviewed plan, model/task allocation, and

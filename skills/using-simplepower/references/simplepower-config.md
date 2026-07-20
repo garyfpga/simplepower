@@ -10,23 +10,24 @@ The exact filename is `simplepower.toml`.
 
 Resolve every supported key independently in this order:
 
-1. Start with the built-in defaults for the six base keys. `review_model2` and
+1. Start with the built-in defaults for the seven base keys. `review_model2` and
    `final_review_model` have no independent built-in defaults and start absent.
 2. If `~/.codex/simplepower.toml` exists, overlay the keys present there.
 3. When inside a Git repository, if `<git-root>/simplepower.toml` exists,
    overlay the keys present there. It does not replace the home file as a
    whole; missing repository keys retain home or default values.
-4. Overlay each non-empty model-tier environment variable onto its matching
-   key: `SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_BEST_MODEL`,
-   `SIMPLEPOWER_NORMAL_MODEL`, and `SIMPLEPOWER_FAST_MODEL`.
+4. Overlay each non-empty supported environment variable onto its matching
+   key: `SIMPLEPOWER_USE_SUBAGENT`, `SIMPLEPOWER_SUBAGENT_MODEL`,
+   `SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_FINAL_REVIEW_MODEL`,
+   `SIMPLEPOWER_BEST_MODEL`, `SIMPLEPOWER_NORMAL_MODEL`,
+   `SIMPLEPOWER_FAST_MODEL`, and `SIMPLEPOWER_SKIP_FINAL_REVIEW`.
 5. Apply explicit current-session instructions last.
 
 Outside Git, skip the repository-file layer. Root and nested `AGENTS.md` files
-are not configuration sources for model assignments. The environment configures
-only the four mandatory model tiers; it does not configure `use_subagent`,
-`subagent_model`, `review_model2`, or `final_review_model`. There is no
-`SIMPLEPOWER_REVIEW_MODEL2` or `SIMPLEPOWER_FINAL_REVIEW_MODEL` environment
-variable.
+are not configuration sources for model assignments. There is no
+`SIMPLEPOWER_REVIEW_MODEL2` environment variable; `review_model2` remains
+configurable only through the home file, repository file, or explicit
+current-session instructions.
 
 Do not create a default configuration file. Configuration is instruction-driven
 and requires no runtime parser dependency. This change does not create a
@@ -35,11 +36,12 @@ supported as the per-key overlay described above.
 
 ## Schema, Defaults, And Validation
 
-Only these six base top-level keys plus optional `review_model2` and
+Only these seven base top-level keys plus optional `review_model2` and
 `final_review_model` are supported:
 
 ```toml
 use_subagent = false
+skip_final_review = false
 subagent_model = "gpt-5.6-luna-xhigh"
 review_model = "gpt-5.6-sol-high"
 best_model = "gpt-5.6-sol-high"
@@ -51,7 +53,8 @@ fast_model = "gpt-5.3-codex-spark-xhigh"
 # review_model2 = "gpt-5.6-luna-max"
 ```
 
-`use_subagent` must be a TOML Boolean and defaults to `false` when missing.
+`use_subagent` and `skip_final_review` must be TOML Booleans and default to
+`false` when missing.
 The five base model keys must be nonempty TOML strings and default to the exact
 values shown above when missing from all higher-priority layers.
 `review_model2` has no built-in default: it remains absent unless a home,
@@ -60,6 +63,11 @@ repository, or explicit current-session configuration supplies it.
 absent from all allowed layers, its effective value is the fully resolved
 `review_model`. When either optional key is present in a TOML file or explicit
 current-session configuration, it must be a nonempty model/effort string.
+
+For `SIMPLEPOWER_USE_SUBAGENT` and `SIMPLEPOWER_SKIP_FINAL_REVIEW`, accept only
+case-insensitive `true` or `false` after confirming the value is non-empty.
+Values such as `true`, `True`, and `TRUE` are equivalent, as are the matching
+forms of `false`. Any other non-empty Boolean environment value is invalid.
 
 Parse every present model value by splitting on its final dash. The nonempty
 prefix is the `model`, and the suffix is the `reasoning_effort`. The only valid
@@ -79,15 +87,23 @@ source plus the precise problem. A missing file or key is not an error; it
 inherits the value already resolved from lower-priority layers.
 `review_model2` remains absent when no allowed layer supplies it;
 `final_review_model` then falls back to fully resolved `review_model`. Only
-empty model environment variables are ignored rather than treated as overrides.
+empty supported environment variables are ignored rather than treated as
+overrides.
 
 ## Final Review Model
 
 Resolve `review_model` first. Then resolve a present `final_review_model` from
-the home file, repository file, and explicit current-session instructions. If
-the latter is absent, use the fully resolved `review_model` for final review.
-The effective final-review value selects exactly one final review+fix agent;
-it is not a fifth mandatory tier and does not add an environment override.
+the home file, repository file, `SIMPLEPOWER_FINAL_REVIEW_MODEL`, and explicit
+current-session instructions. If `final_review_model` is absent, use the fully
+resolved `review_model` for final review. Validate the effective value even when
+`skip_final_review=true`.
+
+When effective `skip_final_review=false`, the effective final-review value
+selects exactly one final review+fix agent. When effective
+`skip_final_review=true`, skip final-review scratch-ref creation and final
+review+fix dispatch, but still run final verification, apply the final
+checkpoint/commit condition, check scratch cleanup, and report the configured
+skip. `final_review_model` is not a fifth mandatory tier.
 
 ## Optional Plan-Review Secondary
 
@@ -95,8 +111,8 @@ Compare fully resolved `review_model2` and `review_model` strings exactly.
 An absent `review_model2`, or one exactly equal to `review_model`, disables the
 secondary reviewer. Any distinct valid `review_model2` enables that read-only
 plan-review route. It is optional and is not a fifth mandatory model tier.
-Final review always dispatches exactly one review+fix agent and never uses
-`review_model2`.
+When enabled by `skip_final_review=false`, final review dispatches exactly one
+review+fix agent and never uses `review_model2`.
 
 ## Optional Explorer Fan-Out
 
