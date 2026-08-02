@@ -21,6 +21,13 @@ Both routes preserve the mandatory FAST quick verifier, coordinator-owned final
 diff review, final verification, `approved-path`, `no-worker-commit`, and
 `final commit condition` safeguards.
 
+The accepted plan's combined approval authorizes both coordinator checkpoint
+commits. When execution remains on the approved path and final verification
+passes, create the final reviewed/verified implementation commit for remaining
+uncommitted in-scope changes without requesting another approval. Fresh user
+approval is still required for the deviations defined below, not for the
+already-approved final checkpoint commit.
+
 Capacity is only a scheduling constraint. Queue whole cohesive packages when
 capacity is full; never split a small package into artificial tiny tasks and
 never mark capacity queuing as serialization.
@@ -67,6 +74,11 @@ the compact core required for both routes:
 - timed final-verification commands with expected results;
 - exactly two coordinator checkpoint conditions: approved plan and final
   reviewed/verified implementation.
+
+Also confirm that the accepted plan records combined user approval for both
+coordinator checkpoint commits. If that authorization is absent or ambiguous,
+stop before edits and request it; do not reinterpret implementation-only
+approval as commit authorization.
 
 For `Implementation Route: Main agent`, also validate that the work is one
 cohesive package and that the plan states there is no material specialization
@@ -229,9 +241,10 @@ exceptions.
 18. Run final verification from the approved plan and any repository-required
     checks for the changed files.
 19. Apply the final reviewed/verified implementation checkpoint condition.
-    Create a final commit only when that condition calls for one and
-    uncommitted in-scope changes remain; do not create an empty commit. There
-    is no intermediate quick-verified implementation checkpoint.
+    The accepted combined approval already authorizes this checkpoint. The
+    coordinator must create a final commit when uncommitted in-scope changes
+    remain, without requesting another approval; do not create an empty commit.
+    There is no intermediate quick-verified implementation checkpoint.
 20. Delete quick-verifier scratch refs only after the final checkpoint condition
     succeeds, then run the final cleanup check for
     `refs/simplepower/scratch/<run-id>/`.
@@ -415,8 +428,9 @@ checks for the changed files. Inspect the final diff and working tree state
 within the approved scope. Apply the final commit condition only after
 coordinator review and final verification pass.
 
-Create a final commit only if uncommitted in-scope changes remain. No worker
-commits. No per-task commits.
+The accepted combined approval authorizes the final checkpoint commit. Create
+it whenever uncommitted in-scope changes remain, without requesting another
+approval; do not create an empty commit. No worker commits. No per-task commits.
 
 Final reporting must include:
 

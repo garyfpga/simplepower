@@ -127,10 +127,14 @@ core with concrete content and no placeholders:
    agent's final diff review requirement.
 10. `Checkpoint Conditions`: exactly two coordinator checkpoints:
     - Accepted plan checkpoint after combined user approval of the plan, route,
-      any grouped-worker allocation, and immediate current-session execution.
+      any grouped-worker allocation, immediate current-session execution, the
+      accepted-plan checkpoint commit, and the final reviewed/verified
+      implementation checkpoint commit.
     - Final reviewed/verified implementation checkpoint after implementation,
       the FAST quick verifier, main-agent final review and in-scope fixes, and
-      final verification pass.
+      final verification pass. When uncommitted in-scope changes remain, this
+      checkpoint creates the final commit without requesting another approval;
+      it does not create an empty commit.
 
 Normal plans must not copy global configuration resolution, commit policy, or
 dispatch boilerplate. Reference canonical global rules and record only values
@@ -245,13 +249,20 @@ for approval. Check:
   unapproved scope changes.
 
 Then ask for one combined approval covering the plan, selected route, any
-grouped-worker allocation, and immediate current-session execution. If the user
-requests changes, revise the plan and rerun the focused self-review checks. Do
-not create the accepted-plan checkpoint until the user gives combined approval.
+grouped-worker allocation, immediate current-session execution, the
+accepted-plan checkpoint commit, and the
+final reviewed/verified implementation checkpoint commit. State that compliant
+in-scope execution creates the final commit without a second approval prompt
+when uncommitted changes remain. If the user requests changes, revise the plan
+and rerun the focused self-review checks. Do not create the accepted-plan
+checkpoint until the user gives combined approval.
 
 After combined approval, the coordinator creates the accepted-plan checkpoint
 and immediately invokes `simplepower:subagent-driven-development` for
-current-session auto-dispatch with the approved plan path and route.
+current-session auto-dispatch with the approved plan path and route. That
+accepted combined approval remains the authorization for the final checkpoint
+commit; do not ask for separate commit approval unless execution requires a
+fresh approved-path decision.
 
 ## Quick Verifier And Final Review
 
@@ -305,7 +316,8 @@ For Grouped workers routes, dispatch only the approved cohesive packages whose w
 Run the mandatory FAST quick verifier after implementation edits.
 Return non-trivial quick-verifier failures to the main agent.
 Have the main agent perform final diff review, in-scope fixes, and final verification.
-Use the two coordinator checkpoint conditions in the accepted plan.
+Use the combined approval as authorization for both coordinator checkpoint commits.
+After compliant final verification, create the final commit without another approval when uncommitted in-scope changes remain; do not create an empty commit.
 ```
 
 ## No Placeholders
@@ -333,6 +345,8 @@ failures:
 - Capacity queues packages; it does not split tiny tasks.
 - Compact plans need design summary, route, exact files, steps, risks, timed
   quick/final verification, and two coordinator checkpoint conditions.
+- Combined approval explicitly authorizes both coordinator checkpoint commits;
+  compliant in-scope execution does not request a second final-commit approval.
 - Grouped plans add Interface Contract, File Ownership, cohesive Worker
   Packages, serialization decisions, and FAST/NORMAL/BEST allocation.
 - Main-agent plan self-review replaces active plan-review dispatch.

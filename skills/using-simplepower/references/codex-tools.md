@@ -160,6 +160,13 @@ BRANCH=$(git branch --show-current)
 - `GIT_DIR != GIT_COMMON` → already in a linked worktree
 - `BRANCH` empty → detached HEAD
 
-Simple Power does not automatically commit, merge, push, or open PRs. Use these
-signals only to explain repository state and verification limits in the final
-handoff.
+An accepted normal Simple Power plan uses one combined approval to authorize
+its two coordinator checkpoint commits: the accepted-plan commit and the final
+reviewed/verified implementation commit. After compliant in-scope execution and
+successful final verification, the coordinator creates the final commit when
+uncommitted changes remain without requesting another approval; it does not
+create an empty commit. Simple Power does not otherwise automatically create
+commits, merge, push, or open PRs. Those operations require a separate user
+request unless they are explicitly included in the accepted plan. Use the
+repository signals above only to explain state and verification limits in the
+final handoff.

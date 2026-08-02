@@ -546,6 +546,10 @@ require_contains "skills/writing-plans/SKILL.md" "directly implements" "writing-
 require_contains "skills/writing-plans/SKILL.md" "gpt-5.3-codex-spark" "writing-plans documents the default FAST Spark model"
 require_contains "skills/writing-plans/SKILL.md" "current-session auto-dispatch" "writing-plans documents current-session auto-dispatch"
 require_contains "skills/writing-plans/SKILL.md" "combined approval" "writing-plans documents combined approval"
+require_contains_all "skills/writing-plans/SKILL.md" "writing-plans combined approval authorizes both coordinator commits" \
+    "accepted-plan checkpoint commit" \
+    "final reviewed/verified implementation checkpoint commit" \
+    "without a second approval prompt"
 require_contains "skills/writing-plans/SKILL.md" "approved plan" "writing-plans documents the approved plan checkpoint condition"
 require_contains "skills/writing-plans/SKILL.md" "final reviewed/verified implementation" "writing-plans documents the final implementation checkpoint condition"
 require_not_contains "skills/writing-plans/SKILL.md" "sends the revised plan and the concrete diff to the same original reviewer" "writing-plans removes the reusable reviewer loop"
@@ -629,11 +633,15 @@ require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD keeps li
     "No worker commits." \
     "No per-task commits." \
     "final reviewed/verified implementation" \
-    "Create a final commit only if uncommitted" \
+    "must create a final commit when uncommitted" \
     "refs/simplepower/scratch/<run-id>/" \
     "quick-verifier/before" \
     "quick-verifier/after" \
     "scratch-ref cleanup status or cleanup commands"
+require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD treats accepted combined approval as final commit authorization" \
+    "combined approval authorizes both coordinator checkpoint" \
+    "without requesting another approval" \
+    "do not create an empty commit"
 require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD requires coordinator final review and fixes" \
     "main agent" \
     "final diff review" \
@@ -757,6 +765,12 @@ require_not_contains "skills/using-simplepower/references/codex-tools.md" "Dispa
 require_contains "skills/using-simplepower/references/codex-tools.md" '| FAST | `fast_model` | `SIMPLEPOWER_FAST_MODEL` | `gpt-5.3-codex-spark-xhigh` |' "Codex tool mapping defaults FAST to Spark xhigh"
 require_contains "skills/using-simplepower/references/codex-tools.md" "quick verifier" "Codex tool mapping includes the quick verifier"
 require_contains "skills/using-simplepower/references/codex-tools.md" "Default resolves to Spark xhigh" "Codex tool mapping describes the quick verifier FAST default"
+require_contains_all "skills/using-simplepower/references/codex-tools.md" "Codex tool mapping documents the checkpoint commit authorization exception" \
+    "combined approval" \
+    "two coordinator checkpoint commits" \
+    "without requesting another approval" \
+    "does not otherwise automatically create"
+require_not_contains "skills/using-simplepower/references/codex-tools.md" "Simple Power does not automatically commit, merge, push, or open PRs." "Codex tool mapping removes the contradictory blanket no-auto-commit rule"
 
 require_contains "tests/skill-triggering/run-all.sh" "simplepower" "skill-triggering runner is Codex-focused"
 
