@@ -768,7 +768,9 @@ require_contains "skills/using-simplepower/references/codex-tools.md" '| FAST | 
 require_contains "skills/using-simplepower/references/codex-tools.md" "quick verifier" "Codex tool mapping includes the quick verifier"
 require_contains "skills/using-simplepower/references/codex-tools.md" "Default resolves to Spark xhigh" "Codex tool mapping describes the quick verifier FAST default"
 require_contains_all "skills/using-simplepower/references/codex-tools.md" "Codex tool mapping preserves the coordinator checkpoint commit exception" \
-    "does not otherwise automatically create"
+    "does not otherwise automatically create commits" \
+    "does not automatically merge, push, or open PRs" \
+    "Any other commit, merge, push, or PR action requires separate, explicit user authorization"
 require_not_contains "skills/using-simplepower/references/codex-tools.md" "Simple Power does not automatically commit, merge, push, or open PRs." "Codex tool mapping removes the contradictory blanket no-auto-commit statement"
 
 require_contains "tests/skill-triggering/run-all.sh" "simplepower" "skill-triggering runner is Codex-focused"
