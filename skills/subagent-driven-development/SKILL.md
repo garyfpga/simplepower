@@ -26,6 +26,11 @@ must exist first, or intentional sequential runtime/migration ordering.
 Stable report terms: `approved-path`, `no-worker-commit`, and
 `final commit condition`.
 
+The accepted combined approval authorizes all three coordinator checkpoint commits:
+accepted plan, quick-verified implementation, and final reviewed/verified
+implementation. Compliant execution uses that authorization through final
+verification; it does not seek a second approval for the final checkpoint.
+
 ## Lean Briefs, Reports, And Tests
 
 Keep briefs and reports concise, self-contained, and decision-complete. Reuse
@@ -202,10 +207,10 @@ prompt. There are no conversation-history inheritance exceptions.
     files changed, and inspect the scratch diff before final verification.
 18. Run final verification from the approved plan and any repo-required checks
     for the changed files.
-19. Inspect `git status --short`. Create a final commit only if uncommitted
-    changes remain after final verification; do not create an empty final
-    commit. Delete review+fix scratch refs after the final checkpoint succeeds,
-    then run the final cleanup check for `refs/simplepower/scratch/<run-id>/`.
+19. Inspect `git status --short`. The coordinator must create a final commit when uncommitted in-scope changes remain
+    after final verification, without requesting another approval; do not create an empty commit. Delete
+    review+fix scratch refs after the final checkpoint succeeds, then run the
+    final cleanup check for `refs/simplepower/scratch/<run-id>/`.
 20. Report verification results, coordinator checkpoint SHA, final commit SHA
     when created, changed files, dispatch decisions, capacity queue behavior,
     any serialized tasks and reasons, lifecycle status, scratch run id when
@@ -376,9 +381,10 @@ requires it.
 ## Final Completion
 
 Run final verification commands from the approved plan and any repo-required
-checks. Inspect `git status --short`. Create a final commit only if
-uncommitted changes remain after final verification; do not create an empty
-final commit.
+checks. Inspect `git status --short`. The accepted combined approval remains
+the authorization for the final checkpoint. The coordinator must create a final commit when uncommitted in-scope changes remain
+after final verification, without requesting another approval; do not create an empty commit. Workers,
+reviewers, verifiers, and individual tasks never commit.
 
 Final reporting must include:
 

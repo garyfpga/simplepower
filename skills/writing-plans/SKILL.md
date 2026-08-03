@@ -410,15 +410,19 @@ current worker. Do not run Codex CLI. Do not spawn subagents. Do not invoke
 Simple Power skills. Do not restart execution. Do not reroute the workflow.
 
 After the plan reviewer approves, ask the user for combined approval of the
-reviewed plan, model/task allocation, and immediate current-session execution.
-The accepted plan checkpoint commit happens only after that combined approval.
-Workers and reviewers must not create this commit.
+reviewed plan, model/task allocation, immediate current-session execution, and
+all three coordinator checkpoint commits. State that the combined approval
+authorizes all three coordinator checkpoint commits. The accepted plan checkpoint
+commit happens only after that approval. Workers and reviewers must not create
+this commit.
 
-After the user gives combined approval, the coordinator creates the accepted
-plan checkpoint commit and immediately invokes
-`simplepower:subagent-driven-development` to execute the accepted plan with the
-approved model allocation in the current session. Every future implementation,
-quick-verifier, and review+fix `spawn_agent` dispatch must pass
+After the user gives combined approval, the coordinator creates the accepted plan checkpoint commit and immediately invokes `simplepower:subagent-driven-development` to execute the accepted plan with the
+approved model allocation in the current session. This current-session handoff
+carries the authorization through the quick-verified and final checkpoints;
+after final verification, the coordinator must create a final commit when uncommitted in-scope changes remain
+without requesting another approval and
+must not create an empty commit. Every future implementation, quick-verifier,
+and review+fix `spawn_agent` dispatch must pass
 `fork_turns="none"` and a self-contained prompt containing the exact task,
 scope, constraints, evidence or Contract inputs, required output, and exact
 verification commands and expectations. After the accepted plan
@@ -512,6 +516,11 @@ Every plan must define exactly three future coordinator commit checkpoints:
 3. Final checkpoint: after the REVIEW-tier review+fix agent completes and final
    verification passes.
 
+The accepted combined approval authorizes all three coordinator checkpoint commits.
+After final verification, the coordinator must create a final commit when uncommitted in-scope changes remain
+without requesting another approval;
+do not create an empty commit.
+
 Workers, plan reviewers, quick verifiers, and review+fix agents must not commit.
 Do not include worker-owned commits or per-task commits.
 
@@ -534,6 +543,7 @@ covers:
 - The reviewed plan
 - The model/task allocation
 - Immediate current-session execution
+- All three coordinator checkpoint commits
 
 If the user requests changes, update the plan, rerun the focused self-review
 checks for the changed categories, create the next `plan-review/after-<n>`
@@ -543,8 +553,10 @@ Do not create the accepted plan checkpoint until the user gives combined
 approval.
 
 After combined approval, the coordinator creates the accepted plan checkpoint
-commit, deletes the successful `plan-review` scratch refs, then immediately invokes `simplepower:subagent-driven-development` in the current session with
-this instruction:
+commit, deletes the successful `plan-review` scratch refs, then immediately
+invokes `simplepower:subagent-driven-development` in the current session. The
+handoff retains authorization for the quick-verified and final checkpoint
+commits without another approval prompt. Use this instruction:
 
 ```text
 Execute `<PLAN_PATH>` with aggregate parallel implementation from the approved Interface Contract. Use the approved FAST/NORMAL/BEST/REVIEW model allocation. Dispatch all non-conflicting `sp-impl` file-edit workers whose coordination needs are satisfied by their Contract inputs, run the quick FAST-tier verifier with lint/build/tests and timeouts after all workers finish, commit the quick-verified implementation, then run one REVIEW-tier review+fix agent, final verification, and final commit.
