@@ -207,6 +207,8 @@ require_file "skills/using-simplepower/references/simplepower-config.md" "shared
 require_dir_absent "skills/using-superpowers" "using-superpowers skill directory is absent"
 require_path_untracked "simplepower.toml" "repository does not track a default Simple Power config"
 require_file "simplepower.toml.example" "simplepower.toml.example exists as a copyable example config"
+require_contains "simplepower.toml.example" '# plan_review_model = "gpt-5.6-luna-max"' "example config documents plan review as commented opt-in"
+require_regex_not_contains "simplepower.toml.example" '^[[:space:]]*plan_review_model[[:space:]]*=' "example config does not activate plan review by default"
 
 require_contains "README.md" "simplepower:*" "README uses the Simple Power namespace"
 require_not_contains "README.md" "author =" "README does not include an author line"
@@ -221,6 +223,8 @@ require_contains "README.md" "normal_model = \"gpt-5.6-luna-max\"" "README docum
 require_contains "README.md" "fast_model = \"gpt-5.3-codex-spark-xhigh\"" "README documents the FAST model default key"
 require_contains "README.md" "FAST is the Spark tier" "README documents FAST as the Spark tier"
 require_contains "README.md" "FAST/NORMAL/BEST" "README documents active FAST/NORMAL/BEST model routing"
+require_contains "README.md" "plan_review_model" "README documents optional plan review model"
+require_contains "README.md" "SIMPLEPOWER_PLAN_REVIEW_MODEL" "README documents the plan review environment override"
 require_contains "README.md" "review_model2" "README documents optional review_model2"
 require_contains "README.md" "final_review_model" "README documents optional final_review_model"
 require_contains "README.md" "no environment override" "README documents that review_model2 has no environment override"
@@ -275,6 +279,7 @@ require_contains ".codex-plugin/plugin.json" "Grouped workers" "plugin metadata 
 require_contains ".codex-plugin/plugin.json" "FAST quick verifier" "plugin metadata documents the FAST quick verifier"
 require_contains ".codex-plugin/plugin.json" "temporary local scratch refs as diff anchors" "plugin metadata documents scratch refs as diff anchors"
 require_contains ".codex-plugin/plugin.json" "deprecated no-op" "plugin metadata documents deprecated review compatibility settings"
+require_contains ".codex-plugin/plugin.json" "optional configured single-pass read-only plan reviewer" "plugin metadata documents optional plan review"
 require_not_contains ".codex-plugin/plugin.json" "one BEST-tier review+fix pass" "plugin metadata no longer documents BEST-tier review+fix"
 require_contains "package.json" '"version": "1.1.0"' "package.json version is 1.1.0"
 
@@ -295,6 +300,7 @@ require_contains "docs/README.codex.md" "codex plugin marketplace upgrade garyfp
 require_contains "docs/README.codex.md" "sp-impl" "Codex install guide mentions sp-impl"
 require_contains "docs/README.codex.md" "docs/simplepower" "Codex install guide points generated docs at docs/simplepower"
 require_contains "docs/README.codex.md" "SIMPLEPOWER_REVIEW_MODEL" "Codex install guide documents the REVIEW model env var"
+require_contains "docs/README.codex.md" "SIMPLEPOWER_PLAN_REVIEW_MODEL" "Codex install guide documents the plan-review model env var"
 require_contains "docs/README.codex.md" "SIMPLEPOWER_BEST_MODEL" "Codex install guide documents the BEST model env var"
 require_contains "docs/README.codex.md" "SIMPLEPOWER_NORMAL_MODEL" "Codex install guide documents the NORMAL model env var"
 require_contains "docs/README.codex.md" "SIMPLEPOWER_FAST_MODEL" "Codex install guide documents the FAST Spark model env var"
@@ -354,6 +360,8 @@ require_contains "docs/testing.md" "companion behavior" "testing docs cover brai
 require_contains "docs/testing.md" "marketplace metadata" "testing docs mention marketplace metadata coverage"
 require_contains "docs/testing.md" "review_model2" "testing docs mention review_model2"
 require_contains "docs/testing.md" "final_review_model" "testing docs mention final_review_model"
+require_contains "docs/testing.md" "plan_review_model" "testing docs mention optional plan_review_model"
+require_contains "docs/testing.md" 'SIMPLEPOWER_PLAN_REVIEW_MODEL' "testing docs cover the plan-review environment override"
 require_contains "docs/testing.md" 'SIMPLEPOWER_REVIEW_MODEL2' "testing docs reject a review_model2 environment override"
 require_contains "docs/testing.md" "Implementation Route: Main agent" "testing docs cover direct main-agent route"
 require_contains "docs/testing.md" "Implementation Route: Grouped workers" "testing docs cover grouped worker route"
@@ -373,6 +381,7 @@ require_contains "$config_reference" 'use_subagent =' "config reference defines 
 require_contains "$config_reference" 'skip_final_review =' "config reference defines skip_final_review"
 require_contains "$config_reference" 'subagent_model =' "config reference defines subagent_model"
 require_contains "$config_reference" 'review_model =' "config reference defines review_model"
+require_contains "$config_reference" 'plan_review_model =' "config reference defines optional plan_review_model"
 require_contains "$config_reference" 'review_model2 =' "config reference defines the optional review_model2"
 require_contains "$config_reference" 'final_review_model =' "config reference defines the optional final_review_model"
 require_contains "$config_reference" 'best_model =' "config reference defines best_model"
@@ -383,12 +392,14 @@ require_contains "$config_reference" 'skip_final_review = false' "config referen
 require_contains "$config_reference" 'subagent_model = "gpt-5.6-luna-xhigh"' "config reference gives the optional subagent model default"
 require_contains "$config_reference" 'review_model = "gpt-5.6-sol-high"' "config reference gives the default REVIEW model"
 require_contains "$config_reference" "no built-in default" "config reference marks review_model2 as optional with no built-in default"
+require_regex_not_contains "$config_reference" '^[[:space:]]*plan_review_model[[:space:]]*=' "config reference does not assign a default plan_review_model value"
 require_regex_not_contains "$config_reference" '^[[:space:]]*review_model2[[:space:]]*=' "config reference does not assign a default review_model2 value"
 require_regex_not_contains "$config_reference" '^[[:space:]]*final_review_model[[:space:]]*=' "config reference does not assign an independent default final_review_model value"
 require_contains "$config_reference" 'best_model = "gpt-5.6-sol-high"' "config reference gives the default BEST model"
 require_contains "$config_reference" 'normal_model = "gpt-5.6-luna-max"' "config reference gives the default NORMAL model"
 require_contains "$config_reference" 'fast_model = "gpt-5.3-codex-spark-xhigh"' "config reference gives the default FAST model"
 require_contains "$config_reference" '`SIMPLEPOWER_REVIEW_MODEL`' "config reference names the REVIEW environment override"
+require_contains "$config_reference" '`SIMPLEPOWER_PLAN_REVIEW_MODEL`' "config reference names the plan-review environment override"
 require_contains "$config_reference" '`SIMPLEPOWER_BEST_MODEL`' "config reference names the BEST environment override"
 require_contains "$config_reference" '`SIMPLEPOWER_NORMAL_MODEL`' "config reference names the NORMAL environment override"
 require_contains "$config_reference" '`SIMPLEPOWER_FAST_MODEL`' "config reference names the FAST environment override"
@@ -420,6 +431,15 @@ require_contains_all "$config_reference" "config reference marks review settings
     "skip_final_review" \
     "deprecated" \
     "no-op"
+require_contains_all "$config_reference" "config reference defines optional single-pass plan review" \
+    "Optional Single-Pass Plan Review" \
+    "Critical" \
+    "Must Fix" \
+    "without redispatching" \
+    "without retrying" \
+    "no built-in default or fallback" \
+    "cannot activate plan review by itself"
+require_contains "$config_reference" "Do not create a review loop or plan-review scratch refs" "config reference forbids plan-review loops and scratch refs"
 require_not_contains "$config_reference" "exactly one final review+fix agent" "config reference removes active final review dispatch"
 require_not_contains "$config_reference" "plan-review route" "config reference removes active plan-review secondary routing"
 require_contains "$config_reference" "coordinator-owned read-only initial triage" "config reference documents coordinator-led triage before optional exploration"
@@ -540,7 +560,29 @@ require_not_contains "skills/writing-plans/SKILL.md" "both plan reviewers concur
 require_not_contains "skills/writing-plans/SKILL.md" "Only the final review+fix agent may edit files within" "writing-plans removes final review agent writer"
 require_contains "skills/writing-plans/SKILL.md" "main agent" "writing-plans makes the coordinator responsible for review/fixes"
 require_contains "skills/writing-plans/SKILL.md" "canonical configuration reference" "writing-plans delegates config precedence and validation to the canonical reference"
-require_path_absent "skills/writing-plans/plan-document-reviewer-prompt.md" "retired plan-document reviewer prompt is absent"
+require_file "skills/writing-plans/plan-document-reviewer-prompt.md" "optional plan-document reviewer prompt exists"
+require_contains_all "skills/writing-plans/SKILL.md" "writing-plans defines one-pass optional review" \
+    "plan_review_model" \
+    "SIMPLEPOWER_PLAN_REVIEW_MODEL" \
+    "Critical" \
+    "Must Fix" \
+    "Do not resend" \
+    "Extra sections do not make the report unusable" \
+    "factually wrong" \
+    "approval message" \
+    "only pre-approval reviewer" \
+    "without retrying" \
+    'fork_turns="none"'
+require_contains_all "skills/writing-plans/plan-document-reviewer-prompt.md" "plan reviewer prompt enforces narrow read-only reporting" \
+    "single-pass plan review" \
+    "Status: <PASS or ISSUES_FOUND>" \
+    "Critical" \
+    "Must Fix" \
+    "Do not report minor issues" \
+    "Do not edit or create files" \
+    "Do not request a revised plan" \
+    'fork_turns="none"'
+require_not_contains "skills/writing-plans/plan-document-reviewer-prompt.md" "Recommendations" "plan reviewer prompt has no recommendation section"
 require_contains "skills/writing-plans/SKILL.md" "self-review" "writing-plans requires main-agent plan self-review"
 require_contains "skills/writing-plans/SKILL.md" "directly implements" "writing-plans allows direct coordinator implementation"
 require_contains "skills/writing-plans/SKILL.md" "gpt-5.3-codex-spark" "writing-plans documents the default FAST Spark model"
@@ -553,6 +595,7 @@ require_contains_all "skills/writing-plans/SKILL.md" "writing-plans combined app
 require_contains "skills/writing-plans/SKILL.md" "approved plan" "writing-plans documents the approved plan checkpoint condition"
 require_contains "skills/writing-plans/SKILL.md" "final reviewed/verified implementation" "writing-plans documents the final implementation checkpoint condition"
 require_not_contains "skills/writing-plans/SKILL.md" "sends the revised plan and the concrete diff to the same original reviewer" "writing-plans removes the reusable reviewer loop"
+require_not_contains "skills/writing-plans/SKILL.md" "send the revised plan back" "writing-plans does not resend plans for review"
 require_contains "skills/writing-plans/SKILL.md" 'immediately invokes `simplepower:subagent-driven-development`' "writing-plans documents immediate invocation after approval"
 require_contains "skills/writing-plans/SKILL.md" "docs/simplepower/plans" "writing-plans writes plans under docs/simplepower/plans"
 require_contains_all "skills/writing-plans/SKILL.md" "writing-plans forbids non-coordinator commits" \
@@ -617,6 +660,8 @@ require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD keeps ap
     "Do not read model assignments" \
     'fork_turns="none"'
 require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD keeps review compatibility settings validated but inactive" \
+    "plan_review_model" \
+    "validation-only during execution" \
     "review_model" \
     "review_model2" \
     "final_review_model" \
@@ -745,6 +790,7 @@ require_contains "skills/using-simplepower/references/codex-tools.md" "no-op" "C
 require_not_contains "skills/using-simplepower/references/codex-tools.md" "secondary-review-prompt.md" "Codex tool mapping removes the secondary final-review prompt"
 require_contains "skills/using-simplepower/references/codex-tools.md" "SIMPLEPOWER_BEST_MODEL" "Codex tool mapping documents the BEST model env var"
 require_contains "skills/using-simplepower/references/codex-tools.md" "SIMPLEPOWER_REVIEW_MODEL" "Codex tool mapping documents the REVIEW model env var"
+require_contains "skills/using-simplepower/references/codex-tools.md" "SIMPLEPOWER_PLAN_REVIEW_MODEL" "Codex tool mapping documents the plan-review model env var"
 require_contains "skills/using-simplepower/references/codex-tools.md" 'SIMPLEPOWER_REVIEW_MODEL2' "Codex tool mapping states that review_model2 has no environment variable"
 require_contains "skills/using-simplepower/references/codex-tools.md" "SIMPLEPOWER_NORMAL_MODEL" "Codex tool mapping documents the NORMAL model env var"
 require_contains "skills/using-simplepower/references/codex-tools.md" "SIMPLEPOWER_FAST_MODEL" "Codex tool mapping documents the FAST model env var"
@@ -764,6 +810,8 @@ require_contains "skills/using-simplepower/references/codex-tools.md" "plan's ap
 require_not_contains "skills/using-simplepower/references/codex-tools.md" "Dispatch one" "Codex tool mapping removes final review dispatch routing"
 require_contains "skills/using-simplepower/references/codex-tools.md" '| FAST | `fast_model` | `SIMPLEPOWER_FAST_MODEL` | `gpt-5.3-codex-spark-xhigh` |' "Codex tool mapping defaults FAST to Spark xhigh"
 require_contains "skills/using-simplepower/references/codex-tools.md" "quick verifier" "Codex tool mapping includes the quick verifier"
+require_contains "skills/using-simplepower/references/codex-tools.md" "optional plan reviewer" "Codex tool mapping includes optional plan review"
+require_contains "skills/using-simplepower/references/codex-tools.md" "plan-document-reviewer-prompt.md" "Codex tool mapping points at the plan-review prompt"
 require_contains "skills/using-simplepower/references/codex-tools.md" "Default resolves to Spark xhigh" "Codex tool mapping describes the quick verifier FAST default"
 require_contains_all "skills/using-simplepower/references/codex-tools.md" "Codex tool mapping documents the checkpoint commit authorization exception" \
     "combined approval" \
@@ -875,8 +923,8 @@ active_model_tier_paths=(
 )
 stale_model_tier_language='three configurable model[[:space:]]+tiers|four mandatory model[[:space:]]+tiers|FAST[/]NORMAL[/]BEST[/]REVIEW model allocation|BEST-tier plan reviewer|BEST-tier review\+fix|one BEST-tier review\+fix agent|one BEST-tier review\+fix pass|plan reviewer and final review\+fix agent use BEST|final review\+fix agent uses BEST|Always dispatch the review\+fix agent with BEST|review\+fix agent with BEST'
 require_no_active_match "$stale_model_tier_language" "active model docs do not retain stale BEST-for-review routing language" "${active_model_tier_paths[@]}"
-retired_reviewer_dispatch_language='plan-document-reviewer-prompt[.]md|review-fix-prompt[.]md|spawn_agent.*plan reviewer|spawn_agent.*review[+]fix|plan-review/before|plan-review/after|review-fix/before|review-fix/after'
-require_no_active_match "$retired_reviewer_dispatch_language" "active workflow files do not reference retired plan/final reviewer dispatches" "${active_plan_first_paths[@]}"
+retired_reviewer_dispatch_language='review-fix-prompt[.]md|secondary-review-prompt[.]md|spawn_agent.*review[+]fix|plan-review/before|plan-review/after|review-fix/before|review-fix/after'
+require_no_active_match "$retired_reviewer_dispatch_language" "active workflow files do not reference retired final/secondary reviewers or review scratch refs" "${active_plan_first_paths[@]}"
 old_marketplace_repo='prime-radiant-inc/openai-codex''-plugins'
 require_no_active_match "$old_marketplace_repo" "active docs and sync scripts do not target the old marketplace repo" README.md AGENTS.md .codex/INSTALL.md .codex-plugin/plugin.json docs/README.codex.md docs/testing.md scripts
 require_no_active_match "$old_plan_flow_language" "active plan-first files do not contain old flow routing language" "${active_plan_first_paths[@]}"

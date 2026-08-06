@@ -18,17 +18,22 @@ skill handoffs focused on Codex.
   implementation. The main agent implements one cohesive package directly, or
   uses grouped workers only for at least two independent non-overlapping
   packages or specialized work with clear delegation value. Grouped workers,
-  the mandatory FAST quick verifier, and any optional explorers must receive
-  exact `fork_turns="none"` dispatches and must not commit.
+  the optional single-pass plan reviewer, the mandatory FAST quick verifier,
+  and any optional explorers must receive exact `fork_turns="none"` dispatches
+  and must not commit.
 - Coordinator-owned temporary scratch refs under
   `refs/simplepower/scratch/<run-id>/...` are allowed only as local
   quick-verifier diff anchors in the normal workflow. Scratch refs are not commits in accepted history,
   and they must be deleted after successful
   checkpoints or reported for manual cleanup on blockers or failed checkpoints.
-- The normal workflow has no plan-review agent, secondary plan reviewer, final
-  review agent, review-fix phase, worker-owned commits, or per-task commits.
-  The main agent self-reviews plans, performs the final diff review, and makes
-  in-scope fixes before final verification.
+- The normal workflow has at most one optional read-only plan-review agent,
+  activated only by `plan_review_model` in a supported `simplepower.toml` or a
+  non-empty `SIMPLEPOWER_PLAN_REVIEW_MODEL`. The main agent applies accepted
+  Critical and Must Fix findings once without redispatch. There is no plan
+  review loop, secondary plan reviewer, plan-review scratch phase, final review
+  agent, review-fix phase, worker-owned commit, or per-task commit. The main
+  agent self-reviews plans, performs the final diff review, and makes in-scope
+  fixes before final verification.
 - Active configuration docs must use the per-key Simple Power resolution
   order: built-in defaults, `~/.codex/simplepower.toml`,
   `<git-root>/simplepower.toml`, supported non-empty environment overrides,

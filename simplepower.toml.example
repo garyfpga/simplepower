@@ -14,6 +14,11 @@ best_model = "gpt-5.6-sol-high"
 normal_model = "gpt-5.6-luna-max"
 fast_model = "gpt-5.3-codex-spark-xhigh"
 
+# Optional active single-pass plan reviewer. Leave commented to keep the
+# self-review-only planning flow. A non-empty SIMPLEPOWER_PLAN_REVIEW_MODEL can
+# also activate and supply this model.
+# plan_review_model = "gpt-5.6-luna-max"
+
 # Deprecated compatibility/no-op in the normal chain. Optional legacy
 # final-review model; absent still means use review_model for compatibility.
 final_review_model = "gpt-5.6-sol-high"

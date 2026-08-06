@@ -147,8 +147,10 @@ the final dash-delimited segment as `reasoning_effort`; valid suffixes are
 `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`.
 
 The seven base keys are `use_subagent`, `skip_final_review`, `subagent_model`,
-`review_model`, `best_model`, `normal_model`, and `fast_model`; `review_model2`
-and `final_review_model` are optional compatibility keys. `review_model`,
+`review_model`, `best_model`, `normal_model`, and `fast_model`;
+`plan_review_model`, `review_model2`, and `final_review_model` are optional.
+`plan_review_model` controls only the completed planning phase and is
+validation-only during execution. `review_model`,
 `review_model2`, `final_review_model`, and `skip_final_review` remain
 recognized and validated so existing configuration files continue to parse, but
 they are deprecated no-ops in the normal execution chain described here.
@@ -178,8 +180,8 @@ exceptions.
 2. Validate route, exact files, implementation steps, risks, timed quick and
    final verification, and the two checkpoint conditions.
 3. Validate model configuration before any grouped-worker or quick-verifier
-   dispatch. Treat deprecated review settings as validation-only compatibility
-   keys.
+   dispatch. Treat `plan_review_model` and deprecated review settings as
+   validation-only keys during execution.
 4. If `Implementation Route: Main agent`, implement the approved cohesive
    package directly in the coordinator session. Do not dispatch an `sp-impl`
    worker for the package.

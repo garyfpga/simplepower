@@ -5,10 +5,11 @@ Power workflows. Resolve and validate it when an affected skill starts, before
 making any configuration-controlled dispatch. The normal
 brainstorming-to-implementation chain actively uses `best_model`,
 `normal_model`, and `fast_model` for implementation and the mandatory quick
-verifier. `review_model`, `review_model2`, `final_review_model`, and
-`skip_final_review` remain recognized and strictly validated compatibility
-settings, but they are deprecated no-ops for the normal chain's plan review and
-final review phases.
+verifier. It also uses optional `plan_review_model` for one single-pass plan
+review when that key is activated by a supported TOML file or non-empty
+`SIMPLEPOWER_PLAN_REVIEW_MODEL`. `review_model`, `review_model2`,
+`final_review_model`, and `skip_final_review` remain recognized and strictly
+validated compatibility settings, but they are deprecated no-ops.
 
 ## Resolve Configuration Per Key
 
@@ -16,24 +17,33 @@ The exact filename is `simplepower.toml`.
 
 Resolve every supported key independently in this order:
 
-1. Start with the built-in defaults for the seven base keys. `review_model2` and
-   `final_review_model` have no independent built-in defaults and start absent.
+1. Start with the built-in defaults for the seven base keys.
+   `plan_review_model`, `review_model2`, and `final_review_model` have no
+   independent built-in defaults and start absent.
 2. If `~/.codex/simplepower.toml` exists, overlay the keys present there.
 3. When inside a Git repository, if `<git-root>/simplepower.toml` exists,
    overlay the keys present there. It does not replace the home file as a
    whole; missing repository keys retain home or default values.
 4. Overlay each non-empty supported environment variable onto its matching
    key: `SIMPLEPOWER_USE_SUBAGENT`, `SIMPLEPOWER_SUBAGENT_MODEL`,
-   `SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_FINAL_REVIEW_MODEL`,
+   `SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_PLAN_REVIEW_MODEL`,
+   `SIMPLEPOWER_FINAL_REVIEW_MODEL`,
    `SIMPLEPOWER_BEST_MODEL`, `SIMPLEPOWER_NORMAL_MODEL`,
    `SIMPLEPOWER_FAST_MODEL`, and `SIMPLEPOWER_SKIP_FINAL_REVIEW`.
-5. Apply explicit current-session instructions last.
+5. Apply explicit current-session instructions last. An explicit
+   `plan_review_model` may override an already-active plan-review model, but it
+   cannot activate plan review by itself.
 
 Outside Git, skip the repository-file layer. Root and nested `AGENTS.md` files
 are not configuration sources for model assignments. There is no
 `SIMPLEPOWER_REVIEW_MODEL2` environment variable; `review_model2` remains
 configurable only through the home file, repository file, or explicit
 current-session instructions.
+
+Plan review is active only when `plan_review_model` is present in either
+supported TOML file or `SIMPLEPOWER_PLAN_REVIEW_MODEL` is non-empty. A missing
+key in both files plus an empty or missing environment value leaves it inactive,
+even if a current-session instruction names a plan-review model.
 
 Do not create a default configuration file. Configuration is instruction-driven
 and requires no runtime parser dependency. This change does not create a
@@ -42,8 +52,8 @@ supported as the per-key overlay described above.
 
 ## Schema, Defaults, And Validation
 
-Only these seven base top-level keys plus optional `review_model2` and
-`final_review_model` are supported:
+Only these seven base top-level keys plus optional `plan_review_model`,
+`review_model2`, and `final_review_model` are supported:
 
 ```toml
 use_subagent = false
@@ -55,6 +65,7 @@ normal_model = "gpt-5.6-luna-max"
 fast_model = "gpt-5.3-codex-spark-xhigh"
 
 # Optional: no built-in default.
+# plan_review_model = "gpt-5.6-luna-max"
 # final_review_model = "gpt-5.6-luna-max"
 # review_model2 = "gpt-5.6-luna-max"
 ```
@@ -63,12 +74,17 @@ fast_model = "gpt-5.3-codex-spark-xhigh"
 `false` when missing.
 The five base model keys must be nonempty TOML strings and default to the exact
 values shown above when missing from all higher-priority layers.
+`plan_review_model` has no built-in default or fallback to `review_model`. It
+remains inactive unless a home or repository TOML key or non-empty
+`SIMPLEPOWER_PLAN_REVIEW_MODEL` activates it. Once active, normal per-key
+precedence applies and an explicit current-session value may override it.
 `review_model2` has no built-in default: it remains absent unless a home,
 repository, or explicit current-session configuration supplies it.
 `final_review_model` likewise has no independent built-in default. When it is
 absent from all allowed layers, its effective value is the fully resolved
-`review_model`. When either optional key is present in a TOML file or explicit
-current-session configuration, it must be a nonempty model/effort string.
+`review_model`. When any optional model key is present in a TOML file or
+explicit current-session configuration, it must be a nonempty model/effort
+string.
 
 For `SIMPLEPOWER_USE_SUBAGENT` and `SIMPLEPOWER_SKIP_FINAL_REVIEW`, accept only
 case-insensitive `true` or `false` after confirming the value is non-empty.
@@ -84,8 +100,8 @@ REVIEW = `gpt-5.6-sol`/`high`, BEST = `gpt-5.6-sol`/`high`, NORMAL =
 
 Malformed TOML, unknown top-level keys, wrong types, empty model strings,
 missing model prefixes, and unknown effort suffixes are errors. This includes
-any present `review_model2` or `final_review_model` without a nonempty model
-prefix and final supported effort suffix. Every present file, every explicit
+any present `plan_review_model`, `review_model2`, or `final_review_model`
+without a nonempty model prefix and final supported effort suffix. Every present file, every explicit
 current-session configuration value, and every non-empty environment override
 must be validated even if a higher layer would override the same key. On any
 configuration error, stop the affected skill before dispatch and name the
@@ -94,7 +110,27 @@ inherits the value already resolved from lower-priority layers.
 `review_model2` remains absent when no allowed layer supplies it;
 `final_review_model` then falls back to fully resolved `review_model`. Only
 empty supported environment variables are ignored rather than treated as
-overrides.
+overrides or activation sources.
+
+## Optional Single-Pass Plan Review
+
+When `plan_review_model` is active, `simplepower:writing-plans` dispatches one
+read-only reviewer after the saved plan passes main-agent self-review. Parse the
+resolved value into the dispatch model and reasoning effort. This route is
+independent of `use_subagent` and is not a fourth implementation tier.
+
+The reviewer returns only `Critical` and `Must Fix` findings. The main agent
+accepts only factually applicable findings that meet the prompt's severity
+threshold, applies those fixes, records reasons for dismissed findings, and
+performs focused self-review of changed sections. Extra report sections are
+ignored when the required status and finding sections remain usable. It then
+treats the plan as reviewed without redispatching the reviewer. Do not create a review loop or plan-review scratch refs.
+
+If multi-agent support, model availability, spawning, waiting, or report shape
+prevents a usable review, disclose the failure in the combined approval message
+and continue through the existing main-agent self-review path without retrying.
+Do not write the failure into the plan. Configuration validation errors remain
+fatal and do not use this fallback.
 
 ## Deprecated Compatibility Review Settings
 
@@ -114,8 +150,8 @@ Compare fully resolved `review_model2` and `review_model` strings exactly.
 An absent `review_model2`, or one exactly equal to `review_model`, preserves the
 single-reviewer compatibility resolution result. Any distinct valid
 `review_model2` preserves the legacy secondary-reviewer resolution result, but
-the normal chain does not dispatch plan reviewers. It is optional and is not a
-mandatory model tier.
+the normal chain does not dispatch any reviewer from this compatibility key.
+It is optional and is not a mandatory model tier.
 
 ## Optional Explorer Fan-Out
 

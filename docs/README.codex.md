@@ -28,7 +28,8 @@ immediately.
 
 `simplepower:subagent-driven-development` depends on Codex multi-agent support
 when a plan chooses `Implementation Route: Grouped workers`, and always for the
-mandatory FAST quick verifier.
+mandatory FAST quick verifier. `simplepower:writing-plans` also needs it when
+optional `plan_review_model` is active.
 Add this to your Codex config if it is not already present:
 
 ```toml
@@ -37,7 +38,8 @@ multi_agent = true
 ```
 
 That setting lets Simple Power dispatch grouped workers when the approved route
-has clear delegation value, and dispatch the quick verifier.
+has clear delegation value, dispatch the optional plan reviewer when configured,
+and dispatch the quick verifier.
 
 It is also required when the coordinator selects one or more optional explorers
 described below. If a selected explorer cannot use multi-agent support or its
@@ -47,14 +49,17 @@ falling back to the coordinator.
 ## Model Allocation
 
 The normal Simple Power brainstorming-to-implementation chain actively uses
-three model tiers: BEST, NORMAL, and FAST. The legacy REVIEW configuration is
-still recognized and strictly validated for existing configs, but it is a
-deprecated compatibility/no-op setting in the normal chain.
+three model tiers: BEST, NORMAL, and FAST. Optional `plan_review_model` adds one
+single-pass plan review when explicitly configured. The legacy REVIEW
+configuration is still recognized and strictly validated for existing configs,
+but it is a deprecated compatibility/no-op setting in the normal chain.
 
 ```toml
 best_model = "gpt-5.6-sol-high"
 normal_model = "gpt-5.6-luna-max"
 fast_model = "gpt-5.3-codex-spark-xhigh"
+# Optional; no built-in default:
+# plan_review_model = "gpt-5.6-luna-max"
 # Deprecated compatibility/no-op in the normal chain:
 review_model = "gpt-5.6-sol-high"
 ```
@@ -64,18 +69,28 @@ The active assignments are BEST = `gpt-5.6-sol`/`high`, NORMAL =
 `gpt-5.3-codex-spark`/`xhigh`.
 
 The environment can override `use_subagent`, `subagent_model`, the three active
-tiers, deprecated compatibility `review_model`, `final_review_model`, and
-`skip_final_review` through
+tiers, optional `plan_review_model`, deprecated compatibility `review_model`,
+`final_review_model`, and `skip_final_review` through
 `SIMPLEPOWER_USE_SUBAGENT`, `SIMPLEPOWER_SUBAGENT_MODEL`,
-`SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_BEST_MODEL`,
+`SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_PLAN_REVIEW_MODEL`,
+`SIMPLEPOWER_BEST_MODEL`,
 `SIMPLEPOWER_NORMAL_MODEL`, `SIMPLEPOWER_FAST_MODEL`,
 `SIMPLEPOWER_FINAL_REVIEW_MODEL`, and `SIMPLEPOWER_SKIP_FINAL_REVIEW`. There is
 no `SIMPLEPOWER_REVIEW_MODEL2`. Root and nested `AGENTS.md` files do not provide model assignments.
 
+`plan_review_model` has no built-in default and does not fall back to
+`review_model`. A key in the home or repository `simplepower.toml`, or a
+non-empty `SIMPLEPOWER_PLAN_REVIEW_MODEL`, activates one read-only plan review.
+A current-session instruction can override only an active model. The reviewer
+returns only Critical and Must Fix findings. The main agent fixes or explicitly
+dismisses them once, then treats the plan as reviewed without redispatch or
+plan-review scratch refs. A launch failure or unusable report falls back to the
+completed main-agent self-review without retrying.
+
 `review_model`, `review_model2`, `final_review_model`, and `skip_final_review`
 are deprecated compatibility settings. They remain supported, preserve their
 environment behavior, and are strictly validated so existing configs keep
-working, but the normal chain no longer dispatches plan reviewers or a final
+working, but they do not activate the optional plan reviewer or a final
 review+fix agent, and `skip_final_review` no longer changes final verification.
 When absent, `final_review_model` still resolves to `review_model` for
 compatibility; `skip_final_review` still defaults to `false` but is a no-op in
@@ -108,9 +123,9 @@ See [simplepower.toml.example](../simplepower.toml.example) for a copyable full
 example; the example itself is not active repository configuration.
 
 The supported TOML schema is still the seven base keys below plus optional
-`review_model2` and `final_review_model`. The seven base keys have these exact
-defaults; review-related keys are deprecated compatibility no-ops in the normal
-chain:
+`plan_review_model`, `review_model2`, and `final_review_model`. The seven base
+keys have these exact defaults; legacy review keys are deprecated compatibility
+no-ops in the normal chain:
 
 ```toml
 use_subagent = false
@@ -125,7 +140,8 @@ fast_model = "gpt-5.3-codex-spark-xhigh"
 `use_subagent` and `skip_final_review` must be TOML Booleans. Their environment
 values accept only case-insensitive `true` or `false`, including forms such as
 `True` and `TRUE`; every other non-empty value is fatal. Every present model
-key, including optional `review_model2` and `final_review_model`, must be a nonempty TOML
+key, including optional `plan_review_model`, `review_model2`, and
+`final_review_model`, must be a nonempty TOML
 string and is parsed at its final dash into a nonempty model prefix and a
 reasoning-effort suffix. Valid suffixes are `low`, `medium`, `high`, `xhigh`,
 `max`, and `ultra`. Malformed TOML, unknown keys, wrong types, empty model
@@ -134,7 +150,8 @@ present file, every explicit current-session configuration value, and every
 non-empty environment override is validated even if a higher layer would
 replace its value; missing files and keys inherit instead of failing. An absent
 `final_review_model` uses the fully resolved `review_model`. Empty supported
-environment variables are ignored. Only `review_model2` has no environment
+environment variables are ignored and do not activate plan review. Only
+`review_model2` has no environment
 override.
 
 `use_subagent` is a hard gate for optional read-only exploration:
@@ -167,8 +184,11 @@ Simple Power keeps generated implementation plans in
 visual aids when they reduce ambiguity. This is separate from the
 `simplepower:brainstorming` visual companion, which uses a temporary localhost
 page during brainstorming instead of saved plan visuals. After
-`simplepower:writing-plans` saves a plan, the main agent self-reviews it, then
-asks the user to approve the plan, route/model allocation, and immediate
+`simplepower:writing-plans` saves a plan and the main agent self-reviews it. If
+optional `plan_review_model` is active, it then runs one read-only review; the
+main agent handles only Critical and Must Fix findings in one fix pass and never
+resends the plan. Launch or report failures fall back to the completed
+self-review. It then asks the user to approve the final plan, route/model allocation, and immediate
 current-session execution in one step. If the user approves, the coordinator
 creates the accepted plan checkpoint commit and immediately invokes
 `simplepower:subagent-driven-development` with the approved allocation.
@@ -180,7 +200,8 @@ verification context. Every route runs the mandatory FAST quick verifier, then
 the main agent performs final diff review, in-scope fixes, final verification,
 and the final reviewed/verified implementation checkpoint. The normal workflow
 uses two coordinator checkpoints and keeps only quick-verifier Git scratch refs as diff anchors.
-Those scratch refs are cleaned up after success; on blockers or
+Optional plan review and final review have no scratch phase. Quick-verifier
+scratch refs are cleaned up after success; on blockers or
 failed checkpoints they are preserved for manual cleanup reporting.
 
 ## Starting Implementation

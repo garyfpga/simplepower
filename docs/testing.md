@@ -20,21 +20,22 @@ worker execution.
 For focused configuration-contract documentation coverage, run:
 
 ```bash
-timeout 30s rg -n 'use_subagent|skip_final_review|subagent_model|review_model|review_model2|final_review_model|best_model|normal_model|fast_model|SIMPLEPOWER_USE_SUBAGENT|SIMPLEPOWER_SKIP_FINAL_REVIEW|SIMPLEPOWER_SUBAGENT_MODEL|SIMPLEPOWER_REVIEW_MODEL2|SIMPLEPOWER_FINAL_REVIEW_MODEL|home.*repository|per-key|environment' README.md docs/README.codex.md docs/testing.md skills/using-simplepower/references/simplepower-config.md
+timeout 30s rg -n 'use_subagent|skip_final_review|subagent_model|plan_review_model|review_model|review_model2|final_review_model|best_model|normal_model|fast_model|SIMPLEPOWER_USE_SUBAGENT|SIMPLEPOWER_SKIP_FINAL_REVIEW|SIMPLEPOWER_SUBAGENT_MODEL|SIMPLEPOWER_PLAN_REVIEW_MODEL|SIMPLEPOWER_REVIEW_MODEL2|SIMPLEPOWER_FINAL_REVIEW_MODEL|home.*repository|per-key|environment' README.md docs/README.codex.md docs/testing.md skills/using-simplepower/references/simplepower-config.md
 timeout 30s git diff --check -- AGENTS.md README.md docs/README.codex.md docs/testing.md skills/using-simplepower/references/simplepower-config.md
 ```
 
 The first command should find FAST/NORMAL/BEST active routing, all supported
 environment overrides, and per-key home/repository layering. Also confirm the
 seven base-key schema includes `use_subagent`, `skip_final_review`,
-`subagent_model`, and `review_model`, while the optional `review_model2` and
-`final_review_model` keys have no independent built-in defaults and only
+`subagent_model`, and `review_model`, while optional `plan_review_model`,
+`review_model2`, and `final_review_model` have no independent built-in defaults.
+`plan_review_model` supports `SIMPLEPOWER_PLAN_REVIEW_MODEL`; only
 `review_model2` lacks an environment override. Confirm exact defaults,
 final-dash parsing, and fatal validation. `review_model`, `review_model2`,
 `final_review_model`, and `skip_final_review` must remain recognized and
 validated compatibility settings, but the normal brainstorming-to-implementation
-chain documents them as deprecated no-ops rather than active plan/final reviewer
-routing. Separate negative searches for retired `AGENTS.md` model assignments,
+chain documents them as deprecated no-ops rather than activation sources for
+the optional plan reviewer or a final reviewer. Separate negative searches for retired `AGENTS.md` model assignments,
 declarations that treat `SIMPLEPOWER_REVIEW_MODEL2` as a supported environment
 override, and whole-file repository replacement wording should produce no
 active-contract matches. References that explicitly say it is unsupported are
@@ -65,25 +66,27 @@ Configuration smoke expectations:
   `review_model = "gpt-5.6-sol-high"`,
   `best_model = "gpt-5.6-sol-high"`,
   `normal_model = "gpt-5.6-luna-max"`, and
-  `fast_model = "gpt-5.3-codex-spark-xhigh"`. Verify that `review_model2` and
-  `final_review_model` are absent by default rather than assigned independent
-  built-in values, and that effective final review falls back to `review_model`.
+  `fast_model = "gpt-5.3-codex-spark-xhigh"`. Verify that
+  `plan_review_model`, `review_model2`, and `final_review_model` are absent by
+  default rather than assigned independent built-in values, and that effective
+  final review falls back to `review_model`.
 - Resolve per key in this order: defaults, `~/.codex/simplepower.toml`,
   `<git-root>/simplepower.toml` inside Git, non-empty
   `SIMPLEPOWER_USE_SUBAGENT`, `SIMPLEPOWER_SKIP_FINAL_REVIEW`,
   `SIMPLEPOWER_SUBAGENT_MODEL`, `SIMPLEPOWER_REVIEW_MODEL`,
+  `SIMPLEPOWER_PLAN_REVIEW_MODEL`,
   `SIMPLEPOWER_FINAL_REVIEW_MODEL`, `SIMPLEPOWER_BEST_MODEL`,
   `SIMPLEPOWER_NORMAL_MODEL`, and `SIMPLEPOWER_FAST_MODEL`, then explicit
   current-session instructions. Missing higher-layer keys inherit; the
   repository file does not replace the home file as a whole.
-- Verify all eight environment values configure their matching keys and that
+- Verify all nine environment values configure their matching keys and that
   `SIMPLEPOWER_REVIEW_MODEL2` is not accepted or consulted. Root and nested
   `AGENTS.md` model assignments have no effect.
 - Verify Boolean environment values accept case-insensitive `true` and `false`,
   reject every other non-empty value, and ignore empty values. TOML Boolean
   values remain strictly typed.
-- Parse every present model, including `review_model2` and
-  `final_review_model`, at its final dash.
+- Parse every present model, including `plan_review_model`, `review_model2`,
+  and `final_review_model`, at its final dash.
   Accept only `low`, `medium`, `high`, `xhigh`, `max`, and `ultra` as effort
   suffixes.
 - Malformed TOML, unknown keys, wrong types, empty model strings, missing model
@@ -115,16 +118,28 @@ Configuration smoke expectations:
 - Verify the FAST quick verifier is mandatory on both routes. It may make only
   tiny typo-level fixes; non-trivial failures return to the main agent for
   diagnosis and in-scope repair.
+- With no file key and no non-empty environment value, verify no plan reviewer
+  dispatch occurs. A current-session value alone must not activate review.
+- Verify home or repository `plan_review_model`, or non-empty
+  `SIMPLEPOWER_PLAN_REVIEW_MODEL`, activates exactly one read-only reviewer
+  after main-agent self-review. Repository and environment overlays select the
+  expected model; an explicit session value may override only after activation.
+- Verify the reviewer reports only Critical and Must Fix findings. The main
+  agent applies or dismisses them once, reruns focused self-review, and proceeds
+  without redispatch, retry, a second reviewer, or a plan-review scratch ref.
+  Launch failures and unusable reports fall back to completed self-review;
+  invalid configuration remains fatal.
 - Verify scratch refs are limited to quick-verifier before/optional-after refs.
-  No plan-review or review-fix prompt, dispatch, scratch phase, or checkpoint
-  should participate in the normal chain.
+  No plan-review or review-fix scratch phase or extra checkpoint participates
+  in the normal chain.
 - Verify `review_model`, `review_model2`, `final_review_model`, and
   `skip_final_review` remain accepted and validated compatibility keys, but are
   documented as deprecated no-ops for normal execution.
   `SIMPLEPOWER_REVIEW_MODEL2` remains unsupported.
 - Every optional and retained mandatory Simple Power dispatch passes
   `fork_turns="none"` with self-contained context. Explicit current-session
-  user instructions override file configuration.
+  user instructions override file configuration, except they cannot activate
+  `plan_review_model` without file or environment activation.
 - This change must not create or track a repository-level `simplepower.toml`,
   but a present repository file must be supported as a per-key overlay.
 
