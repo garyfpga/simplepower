@@ -171,12 +171,23 @@ BRANCH=$(git branch --show-current)
 - `BRANCH` empty → detached HEAD
 
 An accepted normal Simple Power plan uses one combined approval to authorize
-its two coordinator checkpoint commits: the accepted-plan commit and the final
-reviewed/verified implementation commit. After compliant in-scope execution and
-successful final verification, the coordinator creates the final commit when
-uncommitted changes remain without requesting another approval; it does not
-create an empty commit. Simple Power does not otherwise automatically create
-commits, merge, push, or open PRs. Those operations require a separate user
-request unless they are explicitly included in the accepted plan. Use the
-repository signals above only to explain state and verification limits in the
-final handoff.
+two mandatory coordinator checkpoint types: the accepted-plan commit and the
+final reviewed/verified completion commit. During that active run, the same
+approval may also authorize a coordinator-owned execution commit when a
+concrete approved command or work step objectively requires committed state,
+or when the original plan's execution summary must be created or refreshed
+separately. Convenience and history-shaping commits do not qualify. Every
+execution commit contains only approved in-scope changes. Record each reason
+and every prior technical-prerequisite SHA in the plan summary; report the SHA
+of a commit containing that summary in the final handoff or a later follow-up.
+
+After the last summary edit and successful terminal verification, the newest
+verified commit is the final-completion checkpoint. The coordinator does not
+request another approval for these already-approved commits and does not create
+an empty commit. Authorization ends at final handoff; future commits require new
+authorization. Simple Power does not otherwise automatically create commits,
+merge, push, or open PRs. Those operations require a separate user request
+unless they are explicitly included in the accepted plan. Use the repository
+signals above to capture observed branch, pre-commit HEAD, and worktree state in
+the original plan's execution summary and to report the containing final SHA in
+the final handoff.

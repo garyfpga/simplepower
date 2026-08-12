@@ -107,8 +107,21 @@ Configuration smoke expectations:
 - For `Implementation Route: Main agent`, verify the coordinator directly edits
   the one cohesive approved package, runs the mandatory FAST quick verifier,
   performs final diff review and in-scope fixes itself, runs final verification,
-  and uses exactly two coordinator checkpoint conditions: approved plan and
-  final reviewed/verified implementation.
+  updates the original plan's concise execution summary, reruns terminal
+  verification without further file edits, and uses exactly two mandatory
+  coordinator checkpoint types: approved plan and final reviewed/verified
+  completion.
+- Verify both routes include the saved plan in execution write scope, refresh a
+  current summary snapshot plus labeled follow-up entries, and keep raw logs and
+  unrelated repository audits out of the summary.
+- Verify combined approval permits coordinator execution commits only during
+  the active run and only for an objective committed-state prerequisite or a
+  required separate/later summary update. Convenience, worker, and per-task
+  commits remain forbidden, and authorization ends at final handoff.
+- Verify an unexpected update or validation failure for a writable tracked plan
+  blocks completion and preserves evidence. A genuinely untracked, external, or
+  unwritable plan may omit the summary only when the final handoff gives the
+  exact reason.
 - For `Implementation Route: Grouped workers`, verify the plan contains the
   Interface Contract, File Ownership, cohesive Worker Packages, serialization
   decisions, and FAST/NORMAL/BEST allocation. Dispatch only independent

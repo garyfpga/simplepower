@@ -17,7 +17,9 @@ The main agent writes and self-reviews the plan. When optional
 apply only accepted `Critical` and `Must Fix` findings, and do not re-review the
 revised plan. The workflow has no plan-review loop, plan-review scratch refs,
 final-review agent, or final-review scratch refs. The FAST quick verifier
-remains mandatory.
+remains mandatory. The saved plan is also the coordinator-owned execution
+record and receives a concise completion summary before final handoff whenever
+it is a writable tracked file in the current repository.
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
@@ -130,24 +132,51 @@ core with concrete content and no placeholders:
 4. `Implementation Route`: exactly `Main agent` or `Grouped workers`, with the
    objective route-selection reason.
 5. `Exact Files`: every file that may be created, modified, deleted, or
-   generated. Use exact paths.
+   generated. Use exact paths and include the saved plan's own path as the
+   coordinator-owned execution record.
 6. `Implementation Steps`: ordered, executable steps with enough detail for the
    selected route.
 7. `Risks`: concrete risks and how the plan reduces them.
 8. `Quick Verification`: exact timed commands and expected results for the FAST
    quick verifier.
-9. `Final Verification`: exact timed commands, expected results, and the main
-   agent's final diff review requirement.
-10. `Checkpoint Conditions`: exactly two coordinator checkpoints:
+9. `Final Verification`: exact timed commands, expected results, the main
+   agent's final diff review requirement, and the terminal rerun required after
+   the last execution-summary edit.
+10. `Execution Record`: name the saved plan path and require the coordinator to
+    append or refresh `## Execution Summary` after the first final-verification
+    pass. The concise summary contains current status and outcome, key changes,
+    verification overview, notable findings/fixes/deviations, observed branch,
+    pre-commit HEAD and worktree state, and unresolved follow-ups. Later
+    findings during the active run refresh the current snapshot and append a
+    phase- or date-labeled follow-up entry. Exclude raw logs, exhaustive file
+    narration, and unrelated repository audits. State that the containing final
+    SHA belongs in the final handoff because recording it in its own commit is
+    self-referential.
+11. `Checkpoint Conditions`: exactly two mandatory coordinator checkpoint
+    types:
     - Accepted plan checkpoint after combined user approval of the plan, route,
       any grouped-worker allocation, immediate current-session execution, the
       accepted-plan checkpoint commit, and the final reviewed/verified
-      implementation checkpoint commit.
-    - Final reviewed/verified implementation checkpoint after implementation,
-      the FAST quick verifier, main-agent final review and in-scope fixes, and
-      final verification pass. When uncommitted in-scope changes remain, this
-      checkpoint creates the final commit without requesting another approval;
-      it does not create an empty commit.
+      completion checkpoint commit, plus bounded in-scope coordinator execution
+      commits during the active run.
+    - Final reviewed/verified completion checkpoint after implementation, the
+      FAST quick verifier, main-agent final review and in-scope fixes, the first
+      final-verification pass, execution-summary update, and unchanged terminal
+      verification pass. When uncommitted in-scope changes remain, this
+      checkpoint creates the newest final commit without requesting another
+      approval; it does not create an empty commit.
+
+The checkpoint section must state that conditional execution commits do not add
+checkpoint types. They are allowed only when an objective technical
+prerequisite requires committed state before an approved command or work step,
+or when the original plan's execution summary must be committed separately or
+refreshed after later findings. Convenience and history-shaping commits do not
+qualify. Combined approval covers these coordinator-owned, in-scope commits
+only during the active run and expires at final handoff. Fresh approval remains
+required for scope, strategy, route, or verification changes. State whether the
+plan already expects an intermediate technical-prerequisite commit; a newly
+discovered objective need may still use the bounded authorization without
+rewriting the plan first.
 
 Normal plans must not copy global configuration resolution, commit policy, or
 dispatch boilerplate. Reference canonical global rules and record only values
@@ -162,8 +191,9 @@ Do not add worker packages or implementation-worker allocation.
 The implementation steps must state that, after the accepted-plan checkpoint,
 the main agent directly implements the one cohesive package in the current
 session, then runs the mandatory FAST quick verifier, performs the main-agent
-final diff review and in-scope fixes, runs final verification, and reaches the
-final checkpoint condition.
+final diff review and in-scope fixes, runs final verification, updates the
+original plan's execution summary, reruns terminal verification without further
+file edits, and reaches the final checkpoint condition.
 
 ## Grouped Workers Route Extensions
 
@@ -243,8 +273,9 @@ for approval. Check:
 
 - The route follows the objective `Main agent` or `Grouped workers` criteria.
 - The plan has the shared compact core, exact files, implementation steps,
-  risks, timed quick verification, timed final verification, and exactly two
-  coordinator checkpoint conditions.
+  risks, timed quick verification, timed final verification, its own path as
+  the execution record, the concise summary contract, and exactly two mandatory
+  coordinator checkpoint types.
 - Grouped-worker plans, when used, include Interface Contract, File Ownership,
   cohesive Worker Packages, serialization decisions, and FAST/NORMAL/BEST
   allocation.
@@ -256,6 +287,12 @@ for approval. Check:
 - Non-trivial quick-verifier failures return to the main agent.
 - The main agent performs final diff review and in-scope fixes; no final-review
   agent is required.
+- The plan runs its first final-verification pass before writing the summary and
+  reruns terminal verification after the last summary edit without further file
+  changes.
+- Any conditional execution commit is coordinator-owned, objectively required
+  for approved work or an execution-summary update, limited to the active run,
+  and neither a convenience commit nor a worker/per-task commit.
 - Optional plan review is either inactive or configured for one read-only pass.
 - Deprecated compatibility settings are recognized/validated but are no-ops.
 - The plan does not contain placeholders, skipped checks, backup routes, or
@@ -299,18 +336,21 @@ dispatch.
 Then ask for one combined approval covering the final plan, selected route, any
 grouped-worker allocation, immediate current-session execution, the
 accepted-plan checkpoint commit, and the
-final reviewed/verified implementation checkpoint commit. State that compliant
-in-scope execution creates the final commit without a second approval prompt
-when uncommitted changes remain. If the user requests changes, revise the plan
-and rerun the focused self-review checks. Do not create the accepted-plan
-checkpoint until the user gives combined approval.
+final reviewed/verified completion checkpoint commit, plus bounded in-scope
+coordinator execution commits during the active run. State that compliant
+in-scope execution creates those commits without a second approval prompt, that
+authorization expires at final handoff, and no empty commit is created. If the
+user requests changes, revise the plan and rerun the focused self-review checks.
+Do not create the accepted-plan checkpoint until the user gives combined
+approval.
 
 After combined approval, the coordinator creates the accepted-plan checkpoint
 and immediately invokes `simplepower:subagent-driven-development` for
 current-session auto-dispatch with the approved plan path and route. That
 accepted combined approval remains the authorization for the final checkpoint
-commit; do not ask for separate commit approval unless execution requires a
-fresh approved-path decision.
+and bounded execution commits during the active run; do not ask for separate
+commit approval unless execution requires a fresh approved-path decision. The
+authorization ends when the run is handed off as complete.
 
 ## Quick Verifier And Final Review
 
@@ -326,17 +366,18 @@ diagnosis and in-scope repair. After repairs, rerun the relevant quick
 verification.
 
 The main agent performs the final implementation review: inspect the complete
-diff, compare it to the accepted plan and approved path, make in-scope fixes,
-and run final verification. The normal workflow has no final-review agent and
-no final-review scratch phase.
+diff from the accepted-plan checkpoint through committed and uncommitted
+execution changes, compare it to the accepted plan and approved path, make
+in-scope fixes, and run final verification. The normal workflow has no
+final-review agent and no final-review scratch phase.
 
 Only quick-verifier scratch refs remain in the target workflow; the optional
 single-pass plan reviewer never gets scratch refs. Quick-verifier refs are
 coordinator-owned local diff anchors managed by the execution skill. The target
-workflow has exactly two coordinator checkpoints: accepted plan and final
-reviewed/verified implementation. The final reviewed/verified implementation
-checkpoint has no intermediate quick-verified
-implementation checkpoint.
+workflow has exactly two mandatory coordinator checkpoint types: accepted plan
+and final reviewed/verified completion. Objective technical-prerequisite and
+execution-summary commits are bounded execution commits, not new checkpoint
+types or intermediate quick-verified implementation checkpoints.
 
 The canonical scratch namespace and mechanics live in
 `skills/subagent-driven-development/scratch-ref-workflow.md`, under
@@ -346,6 +387,30 @@ commands. Scratch refs are not accepted history commits.
 Workers and quick verifiers must not commit, inspect, or manage refs.
 No worker commits or per-task commits. No per-task commits includes task-local
 `git commit` commands.
+
+## Execution Record And Conditional Commits
+
+After the first final-verification pass, the coordinator updates the original
+plan's `## Execution Summary` with observed facts through that point. It then
+inspects the summary diff and reruns the plan's terminal verification without
+further file edits. A later material finding before handoff reopens completion:
+apply only approved in-scope work, refresh the current summary, append a labeled
+follow-up entry, and rerun affected checks plus terminal verification. The
+newest verified commit becomes the final-completion checkpoint.
+
+When the plan is writable and tracked in the current repository, an unexpected
+summary write or validation failure blocks completion and preserves working
+state and quick-verifier scratch refs. When the plan is genuinely untracked,
+outside the repository, or unwritable, preserve verified implementation work
+and allow handoff only with the exact omission reason. The summary records the
+observed pre-commit HEAD; the final handoff reports the containing SHA.
+
+The coordinator may create a technical-prerequisite commit only when a concrete
+approved command or work step objectively requires committed state. It commits
+only approved in-scope changes and later records the reason and SHA in the
+summary. A separate summary commit is allowed when the summary cannot join the
+implementation commit or later findings require another update. Do not create
+these commits for convenience, history shaping, workers, packages, or tasks.
 
 ## Current-Session Execution Handoff
 
@@ -364,9 +429,12 @@ Use direct main-agent implementation for Main agent routes.
 For Grouped workers routes, dispatch only the approved cohesive packages whose write scopes do not overlap, with exact fork_turns="none" and only package-relevant context.
 Run the mandatory FAST quick verifier after implementation edits.
 Return non-trivial quick-verifier failures to the main agent.
-Have the main agent perform final diff review, in-scope fixes, and final verification.
-Use the combined approval as authorization for both coordinator checkpoint commits.
-After compliant final verification, create the final commit without another approval when uncommitted in-scope changes remain; do not create an empty commit.
+Have the main agent review the full accepted-plan-to-working-state diff, apply in-scope fixes, and run the first final-verification pass.
+Update the original plan's concise Execution Summary, then rerun terminal verification without further file edits.
+Use the combined approval for the two mandatory checkpoint types and bounded in-scope coordinator execution commits only during the active run.
+Allow an execution commit only for an objective committed-state prerequisite or a separate/later summary update, never convenience or history shaping.
+After compliant terminal verification, make the newest commit the final-completion checkpoint when uncommitted in-scope changes remain; do not create an empty commit.
+End commit authorization at final handoff and report the containing final SHA there.
 ```
 
 ## No Placeholders
@@ -380,6 +448,9 @@ failures:
 - References to functions, files, or commands not defined elsewhere in the plan.
 - Worker commit instructions, per-task commit instructions, or task-local
   `git commit` commands.
+- Convenience or history-shaping commits presented as technical prerequisites,
+  unconditional separate summary commits, or commit authorization extending
+  beyond the active run.
 - Text that pre-authorizes scope reduction, skipped checks, placeholder
   implementations, docs-only substitutes, route changes, alternate execution
   modes, or user selection among execution routes after approval.
@@ -393,9 +464,12 @@ failures:
   work with clear delegation value.
 - Capacity queues packages; it does not split tiny tasks.
 - Compact plans need design summary, route, exact files, steps, risks, timed
-  quick/final verification, and two coordinator checkpoint conditions.
-- Combined approval explicitly authorizes both coordinator checkpoint commits;
-  compliant in-scope execution does not request a second final-commit approval.
+  quick/final verification, their own path as the execution record, a concise
+  summary contract, and two mandatory coordinator checkpoint types.
+- Combined approval explicitly authorizes both mandatory checkpoint types and
+  bounded in-scope coordinator execution commits during the active run;
+  compliant execution does not request another commit approval, and
+  authorization expires at final handoff.
 - Grouped plans add Interface Contract, File Ownership, cohesive Worker
   Packages, serialization decisions, and FAST/NORMAL/BEST allocation.
 - Main-agent plan self-review always runs; optional `plan_review_model` adds at
@@ -405,5 +479,7 @@ failures:
   fixes.
 - Main-agent final diff review and in-scope fixes replace the final-review
   agent.
+- The coordinator updates the original plan after the first final-verification
+  pass and reruns terminal verification after the last summary edit.
 - Generated plans reference canonical global rules instead of copying global
   boilerplate.

@@ -12,15 +12,21 @@ skill handoffs focused on Codex.
   the active repo.
 - Do not add worker-owned or per-task commit requirements to planning or
   execution workflows.
-- Coordinator-owned commits are allowed only at approved checkpoints. Normal
-  workflows use two coordinator checkpoints: after the main-agent
+- Coordinator-owned commits require accepted workflow authorization. Normal
+  workflows retain two mandatory checkpoint types: after the main-agent
   reviewed plan and route are accepted, and after the final reviewed/verified
-  implementation. The main agent implements one cohesive package directly, or
-  uses grouped workers only for at least two independent non-overlapping
-  packages or specialized work with clear delegation value. Grouped workers,
-  the optional single-pass plan reviewer, the mandatory FAST quick verifier,
-  and any optional explorers must receive exact `fork_turns="none"` dispatches
-  and must not commit.
+  completion. The same combined approval may authorize additional
+  coordinator-owned execution commits during the active run only when an
+  objective technical prerequisite requires committed state before approved
+  testing or work, or when the original plan's execution summary must be
+  created or refreshed separately. Convenience and history-shaping commits,
+  worker-owned commits, and per-task commits remain forbidden; active-run
+  authorization ends at final handoff. The main agent implements one cohesive
+  package directly, or uses grouped workers only for at least two independent
+  non-overlapping packages or specialized work with clear delegation value.
+  Grouped workers, the optional single-pass plan reviewer, the mandatory FAST
+  quick verifier, and any optional explorers must receive exact
+  `fork_turns="none"` dispatches and must not commit.
 - Coordinator-owned temporary scratch refs under
   `refs/simplepower/scratch/<run-id>/...` are allowed only as local
   quick-verifier diff anchors in the normal workflow. Scratch refs are not commits in accepted history,

@@ -254,9 +254,17 @@ require_contains_all 'README.md' "README documents AGENTS model assignment retir
 require_contains "README.md" "repository 文件不会整体替代 home 文件" "README documents per-key repo overlay"
 require_not_contains "README.md" "Simple Power uses three configurable model tiers" "README no longer documents three model tiers"
 require_regex_contains "README.md" '按最后一个 dash 拆成非空 model prefix|parsed at.*final dash.*nonempty model prefix' "README explains final-dash parsing as model-prefix + effort-suffix"
-require_contains "README.md" "two coordinator checkpoints" "README documents two target coordinator checkpoints"
-require_contains "README.md" "approved plan" "README documents the approved plan checkpoint"
-require_contains "README.md" "final reviewed/verified implementation" "README documents the final implementation checkpoint"
+require_contains "README.md" "two mandatory checkpoint types" "README documents two mandatory checkpoint types"
+require_contains "README.md" "accepted plan" "README documents the accepted plan checkpoint"
+require_contains "README.md" "final-completion checkpoint" "README documents the final completion checkpoint"
+require_contains_all "README.md" "README documents original-plan execution summaries and bounded execution commits" \
+    "Execution Summary" \
+    "original plan" \
+    "terminal verification" \
+    "committed state" \
+    "Convenience, worker, and per-task commits remain" \
+    "authorization ends at final handoff"
+require_not_contains "README.md" "exactly two coordinator checkpoints" "README does not conflate mandatory checkpoint types with total commit count"
 require_contains "README.md" "simplepower:subagent-driven-development" "README documents current-session auto-dispatch"
 require_contains "README.md" "temporary localhost visual companion" "README distinguishes the brainstorming visual companion"
 require_contains "README.md" "quick-verifier scratch refs as temporary local diff anchors" "README documents local scratch refs as diff anchors"
@@ -278,6 +286,8 @@ require_contains ".codex-plugin/plugin.json" "Main agent" "plugin metadata docum
 require_contains ".codex-plugin/plugin.json" "Grouped workers" "plugin metadata documents grouped worker implementation"
 require_contains ".codex-plugin/plugin.json" "FAST quick verifier" "plugin metadata documents the FAST quick verifier"
 require_contains ".codex-plugin/plugin.json" "temporary local scratch refs as diff anchors" "plugin metadata documents scratch refs as diff anchors"
+require_contains ".codex-plugin/plugin.json" "concise execution summaries in original plans" "plugin metadata documents original-plan summaries"
+require_contains ".codex-plugin/plugin.json" "two mandatory coordinator checkpoint types with bounded active-run execution commits" "plugin metadata documents bounded execution commits"
 require_contains ".codex-plugin/plugin.json" "deprecated no-op" "plugin metadata documents deprecated review compatibility settings"
 require_contains ".codex-plugin/plugin.json" "optional configured single-pass read-only plan reviewer" "plugin metadata documents optional plan review"
 require_not_contains ".codex-plugin/plugin.json" "one BEST-tier review+fix pass" "plugin metadata no longer documents BEST-tier review+fix"
@@ -292,6 +302,13 @@ require_contains "AGENTS.md" "allowed only as local" "AGENTS.md limits scratch r
 require_contains "AGENTS.md" "quick-verifier diff anchors" "AGENTS.md scopes scratch refs to quick-verifier diff anchors"
 require_contains "AGENTS.md" "not commits in accepted history" "AGENTS.md keeps scratch refs out of accepted history"
 require_contains "AGENTS.md" "reported for manual cleanup on" "AGENTS.md preserves scratch refs for cleanup reporting on blockers"
+require_contains_all "AGENTS.md" "AGENTS documents bounded coordinator execution commits" \
+    "Coordinator-owned commits require accepted workflow authorization" \
+    "two mandatory checkpoint types" \
+    "objective technical prerequisite" \
+    "original plan's execution summary" \
+    "Convenience and history-shaping commits" \
+    "authorization ends at final handoff"
 
 require_contains "docs/README.codex.md" "simplepower:*" "Codex install guide uses the Simple Power namespace"
 require_contains "docs/README.codex.md" "codex plugin marketplace add garyfpga/codex-plugins" "Codex install guide documents the marketplace install command"
@@ -332,7 +349,13 @@ require_not_contains "docs/README.codex.md" "Simple Power uses three configurabl
 require_contains "docs/README.codex.md" "after combined approval in the current session" "Codex install guide documents combined approval in the current session"
 require_contains "docs/README.codex.md" "simplepower:subagent-driven-development" "Codex install guide documents current-session auto-dispatch"
 require_contains "docs/README.codex.md" "Git scratch refs as diff anchors" "Codex install guide documents scratch refs as diff anchors"
-require_contains "docs/README.codex.md" "two coordinator checkpoints" "Codex install guide documents two coordinator checkpoints"
+require_contains "docs/README.codex.md" "two mandatory checkpoint types" "Codex install guide documents two mandatory checkpoint types"
+require_contains_all "docs/README.codex.md" "Codex install guide documents the summary lifecycle" \
+    "coordinator-owned execution" \
+    "Execution Summary" \
+    "terminal verification without further file edits" \
+    "committed state" \
+    "authorization ends at final handoff"
 require_contains "docs/README.codex.md" "quick-verifier" "Codex install guide scopes scratch refs to quick verifier"
 require_contains "docs/README.codex.md" "scratch refs are cleaned up after success" "Codex install guide documents scratch cleanup after success"
 require_not_contains "docs/README.codex.md" "checks the saved plan size and asks which" "Codex install guide does not describe plan-size-primary handoff routing"
@@ -367,6 +390,15 @@ require_contains "docs/testing.md" "Implementation Route: Main agent" "testing d
 require_contains "docs/testing.md" "Implementation Route: Grouped workers" "testing docs cover grouped worker route"
 require_contains "docs/testing.md" "mandatory FAST quick verifier" "testing docs cover mandatory FAST quick verification"
 require_contains "docs/testing.md" "deprecated no-ops" "testing docs cover deprecated review compatibility no-ops"
+require_contains_all "docs/testing.md" "testing docs cover execution summaries and bounded commits" \
+    "original plan's concise execution summary" \
+    "two mandatory" \
+    "labeled follow-up entries" \
+    "raw logs" \
+    "objective committed-state prerequisite" \
+    "Convenience, worker, and per-task" \
+    "authorization ends at final handoff" \
+    "exact reason"
 
 require_contains "skills/using-simplepower/SKILL.md" "simplepower:*" "using-simplepower skill uses the Simple Power namespace"
 require_contains "skills/using-simplepower/SKILL.md" "docs/simplepower" "using-simplepower skill points generated docs at docs/simplepower"
@@ -588,12 +620,35 @@ require_contains "skills/writing-plans/SKILL.md" "directly implements" "writing-
 require_contains "skills/writing-plans/SKILL.md" "gpt-5.3-codex-spark" "writing-plans documents the default FAST Spark model"
 require_contains "skills/writing-plans/SKILL.md" "current-session auto-dispatch" "writing-plans documents current-session auto-dispatch"
 require_contains "skills/writing-plans/SKILL.md" "combined approval" "writing-plans documents combined approval"
-require_contains_all "skills/writing-plans/SKILL.md" "writing-plans combined approval authorizes both coordinator commits" \
+require_contains_all "skills/writing-plans/SKILL.md" "writing-plans combined approval authorizes mandatory and bounded commits" \
     "accepted-plan checkpoint commit" \
-    "final reviewed/verified implementation checkpoint commit" \
-    "without a second approval prompt"
+    "final reviewed/verified completion checkpoint commit" \
+    "bounded in-scope coordinator execution commits during the active run" \
+    "authorization expires at final handoff"
 require_contains "skills/writing-plans/SKILL.md" "approved plan" "writing-plans documents the approved plan checkpoint condition"
-require_contains "skills/writing-plans/SKILL.md" "final reviewed/verified implementation" "writing-plans documents the final implementation checkpoint condition"
+require_contains "skills/writing-plans/SKILL.md" "final reviewed/verified completion" "writing-plans documents the final completion checkpoint condition"
+require_contains_all "skills/writing-plans/SKILL.md" "writing-plans defines the original-plan execution record" \
+    '`Execution Record`' \
+    "saved plan's own path" \
+    '`## Execution Summary`' \
+    "current status and outcome" \
+    "verification overview" \
+    "pre-commit HEAD" \
+    "unresolved follow-ups" \
+    "phase- or date-labeled follow-up entry" \
+    "raw logs" \
+    "unrelated repository audits" \
+    "containing final SHA"
+require_contains_all "skills/writing-plans/SKILL.md" "writing-plans defines bounded execution commits and terminal verification" \
+    "objective technical" \
+    "requires committed state" \
+    "execution summary must be committed separately" \
+    "Convenience and history-shaping commits" \
+    "reruns terminal verification after the last summary edit" \
+    "without further file edits" \
+    "genuinely untracked" \
+    "summary write or validation failure blocks completion"
+require_not_contains "skills/writing-plans/SKILL.md" "always create a separate summary commit" "writing-plans does not require an unconditional summary commit"
 require_not_contains "skills/writing-plans/SKILL.md" "sends the revised plan and the concrete diff to the same original reviewer" "writing-plans removes the reusable reviewer loop"
 require_not_contains "skills/writing-plans/SKILL.md" "send the revised plan back" "writing-plans does not resend plans for review"
 require_contains "skills/writing-plans/SKILL.md" 'immediately invokes `simplepower:subagent-driven-development`' "writing-plans documents immediate invocation after approval"
@@ -629,6 +684,10 @@ require_contains "skills/brainstorming/SKILL.md" "Approved Path Enforcement" "br
 require_contains "skills/brainstorming/SKILL.md" "fresh explicit approval" "brainstorming requires fresh approval for alternate paths"
 require_contains "skills/brainstorming/SKILL.md" "backup plan" "brainstorming blocks backup plans"
 require_contains "skills/brainstorming/SKILL.md" "escape plan" "brainstorming blocks escape plans"
+require_contains_all "skills/brainstorming/SKILL.md" "brainstorming hands execution-record facts to planning" \
+    "coordinator-owned execution record" \
+    "two mandatory coordinator checkpoint types" \
+    "bounded active-run"
 
 require_contains "skills/writing-plans/SKILL.md" "Approved Path Enforcement" "writing-plans documents approved path enforcement"
 require_contains "skills/writing-plans/SKILL.md" "docs-only substitute" "writing-plans blocks docs-only substitutes"
@@ -677,16 +736,39 @@ require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD keeps li
     "written reason" \
     "No worker commits." \
     "No per-task commits." \
-    "final reviewed/verified implementation" \
-    "must create a final commit when uncommitted" \
+    "final reviewed/verified completion" \
+    "must create the newest final commit when uncommitted" \
     "refs/simplepower/scratch/<run-id>/" \
     "quick-verifier/before" \
     "quick-verifier/after" \
     "scratch-ref cleanup status or cleanup commands"
-require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD treats accepted combined approval as final commit authorization" \
-    "combined approval authorizes both coordinator checkpoint" \
+require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD treats accepted combined approval as bounded active-run commit authorization" \
+    "combined approval authorizes the two mandatory checkpoint types" \
+    "bounded coordinator execution commits during the active run" \
     "without requesting another approval" \
-    "do not create an empty commit"
+    "do not create an empty commit" \
+    "Authorization ends at final handoff"
+require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD defines coordinator-owned execution commits" \
+    "## Coordinator Execution Commits" \
+    "technical-prerequisite commit" \
+    "objectively cannot proceed without committed state" \
+    "execution-summary commit" \
+    "Convenience, history shaping" \
+    "through every committed and uncommitted" \
+    "separate user authorization"
+require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD defines original-plan summary and follow-up handling" \
+    "## Original Plan Execution Summary" \
+    "current status and outcome" \
+    "verification overview" \
+    "observed branch, pre-commit HEAD" \
+    "phase- or date-labeled" \
+    "raw logs" \
+    "audit unrelated" \
+    "later material finding before final handoff reopens" \
+    "without further file edits" \
+    "genuinely untracked" \
+    "exact omission reason"
+require_not_contains "skills/subagent-driven-development/SKILL.md" "always create a separate summary commit" "SDD does not require an unconditional summary commit"
 require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD requires coordinator final review and fixes" \
     "main agent" \
     "final diff review" \
@@ -732,6 +814,9 @@ require_contains_all "skills/subagent-driven-development/quick-verifier-prompt.m
     "approved File Ownership/write scopes" \
     "NON_TRIVIAL_FAILURES" \
     "quick-verifier/before" \
+    "coordinator-owned execution record" \
+    "Do not edit it" \
+    "report any plan" \
     "spawn subagents" \
     "workflow skills"
 require_file "skills/systematic-debugging/parallel-investigation.md" "parallel investigation reference file exists"
@@ -773,6 +858,12 @@ require_contains_all "skills/subagent-driven-development/scratch-ref-workflow.md
     "git update-ref" \
     "git update-ref -d" \
     "manual cleanup command"
+require_contains_all "skills/subagent-driven-development/scratch-ref-workflow.md" "scratch refs survive until newest final completion" \
+    "newest final reviewed/verified" \
+    "completion checkpoint succeeds" \
+    "technical-prerequisite" \
+    "earlier execution-summary" \
+    "does not trigger cleanup"
 require_not_contains "skills/subagent-driven-development/scratch-ref-workflow.md" "review-fix/before" "scratch-ref workflow removes review-fix before refs"
 require_not_contains "skills/subagent-driven-development/scratch-ref-workflow.md" "review-fix/after" "scratch-ref workflow removes review-fix after refs"
 require_dir_absent "skills/subagent-driven-development/impl-reviewer-prompt.md" "retired inline reviewer prompt is absent"
@@ -815,8 +906,12 @@ require_contains "skills/using-simplepower/references/codex-tools.md" "plan-docu
 require_contains "skills/using-simplepower/references/codex-tools.md" "Default resolves to Spark xhigh" "Codex tool mapping describes the quick verifier FAST default"
 require_contains_all "skills/using-simplepower/references/codex-tools.md" "Codex tool mapping documents the checkpoint commit authorization exception" \
     "combined approval" \
-    "two coordinator checkpoint commits" \
-    "without requesting another approval" \
+    "two mandatory coordinator checkpoint types" \
+    "objectively requires committed state" \
+    "original plan's execution summary" \
+    "Convenience and history-shaping commits do not qualify" \
+    "request another approval" \
+    "Authorization ends at final handoff" \
     "does not otherwise automatically create"
 require_not_contains "skills/using-simplepower/references/codex-tools.md" "Simple Power does not automatically commit, merge, push, or open PRs." "Codex tool mapping removes the contradictory blanket no-auto-commit rule"
 
@@ -942,11 +1037,13 @@ require_no_active_match "^description: Use when|MUST use this before any creativ
 require_contains "skills/writing-plans/SKILL.md" "No per-task commits" "writing-plans still forbids per-task commits"
 require_contains "skills/subagent-driven-development/SKILL.md" "No per-task commits" "SDD still forbids per-task commits"
 require_contains "AGENTS.md" "Do not add worker-owned or per-task commit requirements" "AGENTS forbids worker-owned and per-task commits"
-require_contains "AGENTS.md" "Coordinator-owned commits are allowed only at approved checkpoints" "AGENTS allows coordinator checkpoint commits"
+require_contains "AGENTS.md" "Coordinator-owned commits require accepted workflow authorization" "AGENTS bounds coordinator commit authorization"
 require_contains "skills/writing-plans/SKILL.md" "No worker commits or per-task commits" "writing-plans clarifies the worker commit restriction"
 require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD clarifies the worker commit restriction" \
     "No worker commits." \
     "No per-task commits."
+unbounded_execution_commit_language='always create a separate summary commit|workers may commit|per-task commits are allowed|commit for convenience|authorization continues after final handoff|audit every repository subsystem|paste full raw logs'
+require_no_active_match "$unbounded_execution_commit_language" "active workflow files reject unbounded execution-summary and commit behavior" "${active_plan_first_paths[@]}"
 require_dir_absent "skills/subagent-driven-development/wave-reviewer-fixer-prompt.md" "retired wave reviewer/fixer prompt file is absent"
 require_no_active_match "wave-reviewer-fixer-prompt[.]md" "active files do not reference the retired combined reviewer/fixer prompt" "${active_paths[@]}"
 

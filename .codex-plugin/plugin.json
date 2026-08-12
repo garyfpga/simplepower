@@ -19,7 +19,7 @@
   "interface": {
     "displayName": "Simple Power",
     "shortDescription": "Codex-only planning, optional plan review, adaptive implementation, and verification",
-    "longDescription": "Use Simple Power to guide Codex through brainstorming, authoritative implementation planning, an optional configured single-pass read-only plan reviewer limited to Critical and Must Fix findings, coordinator-led on-demand read-only explorer fan-out, adaptive Main agent or Grouped workers implementation, cohesive worker packages when delegation has clear value, a mandatory FAST quick verifier with temporary local scratch refs as diff anchors, main-agent final diff review and in-scope fixes, two coordinator checkpoints, deprecated no-op compatibility validation for legacy review settings, final verification, and an explicit read-only code discussion mode.",
+    "longDescription": "Use Simple Power to guide Codex through brainstorming, authoritative implementation planning, an optional configured single-pass read-only plan reviewer limited to Critical and Must Fix findings, coordinator-led on-demand read-only explorer fan-out, adaptive Main agent or Grouped workers implementation, cohesive worker packages when delegation has clear value, a mandatory FAST quick verifier with temporary local scratch refs as diff anchors, main-agent final diff review and in-scope fixes, concise execution summaries in original plans, two mandatory coordinator checkpoint types with bounded active-run execution commits, deprecated no-op compatibility validation for legacy review settings, terminal verification, and an explicit read-only code discussion mode.",
     "developerName": "Simple Power maintainers",
     "category": "Coding",
     "capabilities": [

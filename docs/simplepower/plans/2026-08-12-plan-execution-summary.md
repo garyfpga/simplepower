@@ -27,6 +27,8 @@ This is one cohesive behavior-and-contract package. The skills, governance text,
 - `skills/brainstorming/SKILL.md` — approved design handoff facts required by planning.
 - `skills/writing-plans/SKILL.md` — generated-plan structure, approval scope, and execution-record contract.
 - `skills/subagent-driven-development/SKILL.md` — runtime summary lifecycle, bounded commits, failure handling, and finalization.
+- `skills/subagent-driven-development/scratch-ref-workflow.md` — retain verifier evidence through the newest final-completion checkpoint.
+- `skills/subagent-driven-development/quick-verifier-prompt.md` — keep the original plan read-only to the verifier.
 - `skills/using-simplepower/references/codex-tools.md` — canonical Codex commit authorization and repository-state guidance.
 - `tests/simplepower-static/run-tests.sh` — positive and negative regression assertions for the active contract.
 
@@ -50,20 +52,22 @@ This is one cohesive behavior-and-contract package. The skills, governance text,
    - after the last summary edit, inspect its diff and rerun required terminal checks before the newest final-completion commit;
    - report the final containing SHA outside the self-referential summary; and
    - when a tracked writable plan unexpectedly fails to update or validate, preserve work and scratch refs, report recovery details, and do not claim completion; when the plan is genuinely untracked, outside the repository, or unwritable, preserve verified work and allow completion only with the exact omission reason in the final handoff.
-6. Update `skills/using-simplepower/references/codex-tools.md` with the same bounded authorization semantics. State that intermediate commits require objective technical necessity, summary commits are coordinator-owned, authorization ends at handoff, and unrelated commits/merge/push/PR operations remain unauthorized.
-7. Update `README.md`, `.codex-plugin/plugin.json`, `docs/README.codex.md`, and `docs/testing.md` to describe concise plan execution summaries, two mandatory checkpoints, conditional execution commits, fresh post-summary verification, and preserved worker/per-task restrictions. Keep both README languages semantically aligned.
-8. Extend `tests/simplepower-static/run-tests.sh` with focused positive assertions for:
+6. Update `skills/subagent-driven-development/scratch-ref-workflow.md` so quick-verifier refs survive every prerequisite or summary update and are deleted only after the newest final-completion checkpoint succeeds.
+7. Update `skills/subagent-driven-development/quick-verifier-prompt.md` so the verifier reports any plan typo instead of editing the coordinator-owned execution record, even when the plan appears in the approved changed-file list.
+8. Update `skills/using-simplepower/references/codex-tools.md` with the same bounded authorization semantics. State that intermediate commits require objective technical necessity, summary commits are coordinator-owned, authorization ends at handoff, and unrelated commits/merge/push/PR operations remain unauthorized.
+9. Update `README.md`, `.codex-plugin/plugin.json`, `docs/README.codex.md`, and `docs/testing.md` to describe concise plan execution summaries, two mandatory checkpoints, conditional execution commits, fresh post-summary verification, and preserved worker/per-task restrictions. Keep both README languages semantically aligned.
+10. Extend `tests/simplepower-static/run-tests.sh` with focused positive assertions for:
    - original-plan execution-record scope and required concise summary fields;
    - current-snapshot refresh plus labeled follow-up entries;
    - two mandatory checkpoint types plus objective prerequisite and summary-update commits;
    - combined active-run authorization and authorization expiry at handoff;
    - post-summary diff inspection and terminal verification; and
    - precise failure reporting when plan updates are genuinely impossible.
-9. Add negative assertions rejecting always-separate summary commits, raw-log or unrelated full-repository audits, convenience commits, worker/per-task commits, indefinite post-handoff authorization, and completion after an unvalidated writable summary.
-10. Run the mandatory FAST quick verifier using the commands below. Return every non-trivial finding to the main agent for diagnosis, an approved in-scope fix, and focused rerun.
-11. Inspect the complete implementation diff against this plan, correct in-scope inconsistencies, and run the full Final Verification command set once.
-12. Update this plan with its concise `Execution Summary`, including the first full verification results. Make no further content edits, inspect the summary diff, and rerun the complete Final Verification command set as terminal evidence.
-13. Apply the final checkpoint condition: commit all remaining in-scope implementation and summary changes without another approval, do not create an empty commit, clean quick-verifier scratch refs after success, and report the final SHA and branch state.
+11. Add negative assertions rejecting always-separate summary commits, raw-log or unrelated full-repository audits, convenience commits, worker/per-task commits, indefinite post-handoff authorization, and completion after an unvalidated writable summary.
+12. Run the mandatory FAST quick verifier using the commands below. Return every non-trivial finding to the main agent for diagnosis, an approved in-scope fix, and focused rerun.
+13. Inspect the complete implementation diff against this plan, correct in-scope inconsistencies, and run the full Final Verification command set once.
+14. Update this plan with its concise `Execution Summary`, including the first full verification results. Make no further content edits, inspect the summary diff, and rerun the complete Final Verification command set as terminal evidence.
+15. Apply the final checkpoint condition: commit all remaining in-scope implementation and summary changes without another approval, do not create an empty commit, clean quick-verifier scratch refs after success, and report the final SHA and branch state.
 
 ## Risks
 
@@ -100,7 +104,7 @@ timeout 120s bash tests/explicit-skill-requests/run-all.sh
 timeout 30s git diff --check
 ```
 
-All commands must exit 0. Then update only this plan with the concise execution summary and rerun the same six commands without further file edits. The second run is the terminal evidence for the final completion claim. Before the final commit, `git status --short` may list only the eleven paths in `Exact Files`; after the commit, the worktree must be clean on `feature/plan-execution-summary`.
+All commands must exit 0. Then update only this plan with the concise execution summary and rerun the same six commands without further file edits. The second run is the terminal evidence for the final completion claim. Before the final commit, `git status --short` may list only the thirteen paths in `Exact Files`; after the commit, the worktree must be clean on `feature/plan-execution-summary`.
 
 ## Checkpoint Conditions
 
@@ -108,3 +112,12 @@ All commands must exit 0. Then update only this plan with the concise execution 
 2. **Final reviewed/verified implementation checkpoint:** After direct main-agent implementation, the mandatory FAST quick verifier, main-agent final diff review and in-scope fixes, the first full verification pass, this plan's execution-summary update, and the unchanged terminal verification pass. Create the final commit whenever uncommitted in-scope changes remain, without requesting another approval; do not create an empty commit.
 
 This task has no objective need for an intermediate execution commit. Its requested execution summary will be included in the final checkpoint commit. The implementation being introduced will allow future accepted plans to authorize bounded prerequisite and follow-up summary commits during their active runs.
+
+## Execution Summary
+
+- **Status and outcome:** Implementation and first full verification are complete. The workflow now keeps a concise execution record in the original plan and permits only bounded, coordinator-owned prerequisite or summary-update commits during the approved active run. Terminal verification and the final checkpoint commit remain.
+- **Key changes:** Updated governance, planning and execution skills, Codex guidance, English and Chinese user documentation, plugin metadata, and static regression coverage. The plan summary uses one current snapshot plus labeled follow-up entries for later material findings.
+- **Verification overview:** Two FAST quick-verifier passes completed with no verifier edits. The main agent's first full pass succeeded: Simple Power static checks, 26 brainstorm-server tests, plugin-sync regression tests, five invocation-contract fixtures, nine explicit-request fixtures, and `git diff --check`.
+- **Review findings, fixes, and deviations:** Main-agent review found two implied-scope omissions. The scratch-ref guide now retains evidence through the newest final-completion checkpoint, and the quick-verifier prompt now keeps the coordinator-owned plan read-only. Both files were added to exact scope and verification was rerun; the approved design and `Main agent` route did not change.
+- **Repository state:** Branch `feature/plan-execution-summary`; pre-commit HEAD `8e339f3bb68d3d6b821e540f94a3e72c3c15eee4`; the worktree contains only the thirteen in-scope files. The containing final SHA will be reported in the handoff.
+- **Unresolved issues and follow-ups:** None for this task. Two pre-existing, unrelated July scratch refs remain untouched.

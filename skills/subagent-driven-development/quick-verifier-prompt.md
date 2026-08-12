@@ -39,6 +39,9 @@ Rules:
 - Limit any tiny fix to the approved changed-file list and approved File Ownership/write scopes.
   If a direct typo fix needs any other file, report it as
   non-trivial or blocked instead of editing out of scope.
+- The original plan is the coordinator-owned execution record. Do not edit it,
+  even when its path appears in the approved changed-file list; report any plan
+  typo or summary issue for coordinator handling.
 - Treat structural, behavioral, public-interface, test-rewrite,
   scope-changing, route-changing, or unclear issues as non-trivial and report
   them instead of fixing them.
@@ -50,6 +53,7 @@ Rules:
 - Do not reduce scope, create docs-only substitutes, create stub substitutes,
   skip verification, switch execution route, or change the approved path.
 - Do not create, update, delete, inspect, or manage scratch refs.
+- Do not edit the coordinator-owned execution record.
 - Do not commit, stage unrelated files, manage refs, create branches, merge,
   rebase, push, or open PRs.
 - Do not run Codex CLI, spawn subagents, invoke Simple Power workflow skills,

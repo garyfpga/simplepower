@@ -66,9 +66,10 @@ git diff refs/simplepower/scratch/<run-id>/quick-verifier/before refs/simplepowe
 
 ## Cleanup After Successful Final Checkpoint
 
-Delete the quick-verifier refs only after the final reviewed/verified
-implementation checkpoint succeeds or after the no-empty-final-commit outcome
-is recorded as successful.
+Delete the quick-verifier refs only after the newest final reviewed/verified
+completion checkpoint succeeds or after the no-empty-final-commit outcome is
+recorded as successful. A technical-prerequisite or earlier execution-summary
+commit does not trigger cleanup.
 
 ```bash
 phase="quick-verifier"

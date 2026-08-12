@@ -188,18 +188,27 @@ page during brainstorming instead of saved plan visuals. After
 optional `plan_review_model` is active, it then runs one read-only review; the
 main agent handles only Critical and Must Fix findings in one fix pass and never
 resends the plan. Launch or report failures fall back to the completed
-self-review. It then asks the user to approve the final plan, route/model allocation, and immediate
-current-session execution in one step. If the user approves, the coordinator
-creates the accepted plan checkpoint commit and immediately invokes
+self-review. The plan includes its own path as the coordinator-owned execution
+record. Simple Power then asks the user to approve the final plan, route/model
+allocation, two mandatory checkpoint types, bounded coordinator execution
+commits during the active run, and immediate current-session execution in one
+step. If the user approves, the coordinator creates the accepted-plan
+checkpoint commit and immediately invokes
 `simplepower:subagent-driven-development` with the approved allocation.
 `Implementation Route: Main agent` directly edits one cohesive package without
 spawning `sp-impl`. `Implementation Route: Grouped workers` dispatches only
 cohesive packages that are independent, non-overlapping, or materially benefit
 from specialization; workers receive only relevant design, contract, scope, and
 verification context. Every route runs the mandatory FAST quick verifier, then
-the main agent performs final diff review, in-scope fixes, final verification,
-and the final reviewed/verified implementation checkpoint. The normal workflow
-uses two coordinator checkpoints and keeps only quick-verifier Git scratch refs as diff anchors.
+the main agent performs final diff review, in-scope fixes, and a first
+final-verification pass. It updates the original plan with a concise `Execution
+Summary`, then reruns terminal verification without further file edits. The
+workflow retains two mandatory checkpoint types. A coordinator execution commit
+is additionally allowed only when approved testing/work objectively requires
+committed state or when the summary must be committed separately or refreshed
+after a later in-run finding. Convenience, worker, and per-task commits remain
+forbidden; authorization ends at final handoff. The workflow keeps only
+quick-verifier Git scratch refs as diff anchors.
 Optional plan review and final review have no scratch phase. Quick-verifier
 scratch refs are cleaned up after success; on blockers or
 failed checkpoints they are preserved for manual cleanup reporting.
@@ -211,7 +220,7 @@ After the main-agent reviewed plan and route/model allocation are approved,
 the implementation path directly.
 
 ```text
-Use `simplepower:subagent-driven-development` to execute `<PLAN_PATH>` in the current session. If the plan route is Main agent, implement the cohesive package directly with no `sp-impl` spawn. If the route is Grouped workers, dispatch only the approved cohesive non-overlapping worker packages with `fork_turns="none"` and their relevant design/contract/scope/verification context. Run the mandatory FAST quick verifier with lint/build/tests and timeouts; it may make only tiny typo-level fixes and must return non-trivial failures to the main agent. Finish with main-agent final diff review, in-scope fixes, final verification, and the final reviewed/verified implementation checkpoint.
+Use `simplepower:subagent-driven-development` to execute `<PLAN_PATH>` in the current session. If the plan route is Main agent, implement the cohesive package directly with no `sp-impl` spawn. If the route is Grouped workers, dispatch only the approved cohesive non-overlapping worker packages with `fork_turns="none"` and their relevant design/contract/scope/verification context. Run the mandatory FAST quick verifier with lint/build/tests and timeouts; it may make only tiny typo-level fixes and must return non-trivial failures to the main agent. Finish with main-agent review of committed and uncommitted execution changes, in-scope fixes, a first final-verification pass, the original plan's concise Execution Summary, an unchanged terminal verification pass, and the newest final-completion checkpoint. Allow extra coordinator commits only for an objective committed-state prerequisite or a required separate/later summary update during the active run.
 ```
 
 ## Usage

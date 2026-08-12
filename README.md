@@ -35,7 +35,7 @@ SimplePower 是 Jesse Vincent / Prime Radiant 的 [Superpowers](https://github.c
 |---|---:|---:|
 | Spec / Plan | brainstorming -> <br> approve spec -> <br> spec.md (commit) -> <br> plan.md (approve and commit) | brainstorming -> <br> approve spec -> <br> plan.md -> <br> optional configured single-pass review -> <br> approve and commit <br> 懒得同时检查 spec.md 和 plan.md
 | Subagent Implementation <br><br> 这就是 SimplePower 快的原因 | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | Main agent 直接处理一个 cohesive package；或者只在有清晰价值时使用 Grouped workers -> <br> mandatory FAST-tier quick verifier -> <br> main agent final diff review + in-scope fixes
-| Git Commits? | 每一步 | approved plan checkpoint + <br> final reviewed/verified implementation checkpoint
+| Git Commits? | 每一步 | 两个 mandatory checkpoint types + <br> 必要时 bounded coordinator execution commits
 
 ## 安装
 
@@ -104,7 +104,7 @@ fast_model = "gpt-5.3-codex-spark-xhigh"
 
 `use_subagent` 是 brainstorming 和 `simplepower:ro` 的硬 gate：`false` 禁止所有可选 explorer；`true` 只是 permission，不是启动指令。两个 workflow 都先由 coordinator 进行 initial triage，不会在启动时自动 dispatch explorer。只有 triage 判断 investigation 属于 large、cross-cutting、complex 或 stalled 时，coordinator 才能在 runtime capacity 内 fan-out 一个或多个具有 distinct investigation angles 的 read-only explorers。每个 explorer 都使用自包含 brief 和 `fork_turns="none"`，只能读取和运行只读命令；coordinator 会综合所有报告。选定的 explorer batch 如果无法完整派发，流程会停止，不会用 partial batch 静默替代。
 
-正常 implementation route 是自适应的：`Implementation Route: Main agent` 用于一个 cohesive package 且没有实质 specialization benefit 的工作；`Implementation Route: Grouped workers` 只用于至少两个 independent non-overlapping packages，或确实因专业化 delegation 明显受益的工作。Main-agent plans 保持紧凑，包含 design summary、route、exact files、implementation steps、risks、timed quick/final verification，以及两个 checkpoint conditions。Grouped-worker plans 额外包含 Interface Contract、File Ownership、cohesive Worker Packages、serialization decisions，以及 FAST/NORMAL/BEST allocation。Closely related code and tests stay in one package；capacity 只能 queue package，不能造成 tiny-task splitting。
+正常 implementation route 是自适应的：`Implementation Route: Main agent` 用于一个 cohesive package 且没有实质 specialization benefit 的工作；`Implementation Route: Grouped workers` 只用于至少两个 independent non-overlapping packages，或确实因专业化 delegation 明显受益的工作。Main-agent plans 保持紧凑，包含 design summary、route、exact files、implementation steps、risks、timed quick/final verification、原始 plan execution record，以及两个 mandatory checkpoint types。Grouped-worker plans 额外包含 Interface Contract、File Ownership、cohesive Worker Packages、serialization decisions，以及 FAST/NORMAL/BEST allocation。Closely related code and tests stay in one package；capacity 只能 queue package，不能造成 tiny-task splitting。
 
 这次变更不会创建或 track repository-level `simplepower.toml`；如果该文件存在，系统会支持它并按 key overlay home 文件。
 
@@ -114,10 +114,10 @@ Simple Power skills 使用 `simplepower:*` namespace。当你想让 Codex 使用
 
 brainstorming skill 可以使用临时的 localhost visual companion 来处理 mockups、diagrams 和其他视觉问题。生成的 implementation plans 会保存到 `docs/simplepower/plans/`。
 
-在 `simplepower:writing-plans` 完成 main-agent plan self-review 之后，如果 optional `plan_review_model` 已启用，Simple Power 会 dispatch 一次 read-only reviewer，只处理 Critical 和 Must Fix findings。Main agent 做一次 fix pass 后不会 re-review；review dispatch 失败或 report unusable 时继续使用已完成的 self-review。之后 Simple Power 会一次性询问你是否批准最终 plan、route/model allocation，以及立刻在当前 session 里启动 `simplepower:subagent-driven-development`。
+在 `simplepower:writing-plans` 完成 main-agent plan self-review 之后，如果 optional `plan_review_model` 已启用，Simple Power 会 dispatch 一次 read-only reviewer，只处理 Critical 和 Must Fix findings。Main agent 做一次 fix pass 后不会 re-review；review dispatch 失败或 report unusable 时继续使用已完成的 self-review。之后 Simple Power 会一次性询问你是否批准最终 plan、route/model allocation、两个 mandatory checkpoint types、active run 内受限的 coordinator execution commits，以及立刻在当前 session 里启动 `simplepower:subagent-driven-development`。
 你确认后，coordinator 会创建 accepted plan checkpoint commit，并立即调用 `simplepower:subagent-driven-development` 执行已批准的 plan。
 如果 route 是 Main agent，coordinator 直接编辑一个 cohesive package，不 dispatch `sp-impl` worker。如果 route 是 Grouped workers，coordinator 只把相关 design/contract/scope/verification context 发送给各个 cohesive package worker，而不是完整 plan 和重复的全局 boilerplate；每个 grouped `sp-impl` dispatch 都必须使用 `fork_turns="none"`。
-所有 route 都必须运行 mandatory FAST quick verifier。Quick verifier 只能做 tiny typo-level fixes；non-trivial failures 回到 main agent 诊断和 in-scope 修复。正常 workflow 只保留 quick-verifier scratch refs；optional plan review 和 final review 都没有 scratch phase。最后由 main agent 做 final diff review、in-scope fixes 和 final verification，然后创建 final reviewed/verified implementation checkpoint。
+所有 route 都必须运行 mandatory FAST quick verifier。Quick verifier 只能做 tiny typo-level fixes；non-trivial failures 回到 main agent 诊断和 in-scope 修复。正常 workflow 只保留 quick-verifier scratch refs；optional plan review 和 final review 都没有 scratch phase。Main agent 做 final diff review、in-scope fixes 和第一次 final verification，然后在原始 plan 中写入精简的 `Execution Summary`，最后一次 summary edit 后不再修改文件并重新运行 terminal verification。只有 approved test/work 客观要求 committed state，或 summary 必须单独/再次更新时，active run 才允许额外 coordinator commit；convenience、worker 和 per-task commits 仍然禁止。最新 verified commit 是 final completion checkpoint，authorization 在 final handoff 结束。
 
 ## 如何使用 Simple Power
 
@@ -164,7 +164,7 @@ This table explains what SimplePower is trying to achieve (times are just estima
 |---|---:|---:|
 | Spec / Plan | brainstorming -> <br> approve spec -> <br> spec.md (commit) -> <br> plan.md (approve and commit) | brainstorming -> <br> approve spec -> <br> plan.md -> <br> optional configured single-pass review -> <br> approve and commit <br> too lazy to check spec.md and plan.md
 | Subagent Implementation <br><br> this is why SimplePower is fast | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | Main agent directly edits one cohesive package; or Grouped workers only when delegation has clear value -> <br> mandatory FAST-tier quick verifier -> <br> main agent final diff review + in-scope fixes
-| Git Commits? | every steps | approved plan checkpoint + <br> final reviewed/verified implementation checkpoint
+| Git Commits? | every steps | two mandatory checkpoint types + <br> bounded coordinator execution commits when required
 
 ## Installation
 
@@ -310,8 +310,9 @@ agent` is for one cohesive package with no material specialization benefit.
 `Implementation Route: Grouped workers` is only for at least two independent,
 non-overlapping packages or specialized work that materially benefits from
 delegation. Main-agent plans stay compact with design summary, route, exact
-files, implementation steps, risks, timed quick/final verification, and two
-checkpoint conditions. Grouped-worker plans add Interface Contract, File
+files, implementation steps, risks, timed quick/final verification, the
+original-plan execution record, and two mandatory checkpoint types.
+Grouped-worker plans add Interface Contract, File
 Ownership, cohesive Worker Packages, serialization decisions, and
 FAST/NORMAL/BEST allocation. Closely related code and tests stay in one
 package; capacity queues packages but must not create tiny-task splitting.
@@ -332,7 +333,9 @@ After `simplepower:writing-plans` finishes main-agent plan self-review, it runs
 one read-only reviewer when optional `plan_review_model` is active. The main
 agent handles only Critical and Must Fix findings in one fix pass and never
 resends the plan; launch or report failures fall back to the completed
-self-review. Simple Power then asks for combined approval of the final plan, route/model allocation, and
+self-review. Simple Power then asks for combined approval of the final plan,
+route/model allocation, two mandatory checkpoint types, bounded coordinator
+execution commits during the active run, and
 immediate execution in the current session with
 `simplepower:subagent-driven-development`.
 Once you approve, the coordinator creates the accepted plan checkpoint commit
@@ -348,9 +351,15 @@ Every route runs the mandatory FAST quick verifier. The quick verifier may make
 only tiny typo-level fixes; non-trivial failures return to the main agent for
 diagnosis and in-scope repair. The normal workflow keeps only quick-verifier scratch refs as temporary local diff anchors,
 and they are cleaned up after the successful final checkpoint. Optional plan
-review and final review have no scratch phase. The main agent performs the final diff review, applies in-scope
-fixes, runs final verification, and creates the final reviewed/verified
-implementation checkpoint. The normal workflow uses exactly two coordinator checkpoints.
+review and final review have no scratch phase. The main agent performs the final
+diff review, applies in-scope fixes, and runs the first final-verification pass.
+It then writes a concise `Execution Summary` into the original plan and reruns
+terminal verification without further file edits. An additional coordinator
+commit is allowed only when approved testing/work objectively requires committed
+state or when the summary must be committed separately or refreshed after a
+later in-run finding. Convenience, worker, and per-task commits remain
+forbidden. The newest verified commit is the final-completion checkpoint, and
+commit authorization ends at final handoff.
 
 ## How To Use Simple Power
 
