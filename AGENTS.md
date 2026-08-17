@@ -24,12 +24,16 @@ skill handoffs focused on Codex.
   authorization ends at final handoff. The main agent implements one cohesive
   package directly, or uses grouped workers only for at least two independent
   non-overlapping packages or specialized work with clear delegation value.
-  Grouped workers, the optional single-pass plan reviewer, the mandatory FAST
-  quick verifier, and any optional explorers must receive exact
-  `fork_turns="none"` dispatches and must not commit.
+  Grouped workers, the optional single-pass plan reviewer, the FAST
+  quick-verifier subagent when selected, and any optional explorers must receive
+  exact `fork_turns="none"` dispatches and must not commit. Mandatory quick
+  verification runs in the main agent when `skip_quick_verifier=true` (the
+  default) and in the FAST subagent when `false`.
 - Coordinator-owned temporary scratch refs under
   `refs/simplepower/scratch/<run-id>/...` are allowed only as local
-  quick-verifier diff anchors in the normal workflow. Scratch refs are not commits in accepted history,
+  quick-verifier subagent diff anchors only when
+  `skip_quick_verifier=false`. Main-agent quick verification creates none.
+  Scratch refs are not commits in accepted history,
   and they must be deleted after successful
   checkpoints or reported for manual cleanup on blockers or failed checkpoints.
 - The normal workflow has at most one optional read-only plan-review agent,

@@ -2,6 +2,9 @@
 # Copy the keys you want into a supported configuration layer when needed.
 
 use_subagent = false
+# Quick verification remains mandatory. true runs it in the main agent;
+# false dispatches the FAST quick-verifier subagent and uses scratch refs.
+skip_quick_verifier = true
 # Deprecated compatibility/no-op in the normal brainstorming-to-implementation
 # chain. Still recognized and strictly validated for existing configs.
 skip_final_review = false

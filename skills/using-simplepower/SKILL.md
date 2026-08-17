@@ -45,9 +45,11 @@ behavior, and dispatch isolation, follow
 `references/simplepower-config.md`. Every Simple Power agent dispatch must pass
 exactly `fork_turns="none"` and a self-contained task brief. This universal
 rule applies to optional explorers, the optional single-pass plan reviewer,
-grouped `sp-impl` workers, and the mandatory FAST quick verifier alike;
-`use_subagent` and `subagent_model` never replace approved FAST/NORMAL/BEST
-allocation.
+grouped `sp-impl` workers, and the FAST quick-verifier subagent when selected
+alike; `use_subagent` and `subagent_model` never replace approved
+FAST/NORMAL/BEST allocation. Mandatory quick verification runs in the main
+agent by default through `skip_quick_verifier=true`; setting it to `false`
+selects the isolated FAST subagent path.
 
 # Using Skills
 

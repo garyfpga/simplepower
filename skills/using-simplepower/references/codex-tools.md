@@ -12,15 +12,17 @@ Simple Power skills may mention generic skill tool names. When you encounter the
 | `Skill` tool (invoke a skill) | Skills load natively — just follow the instructions |
 | `Read`, `Write`, `Edit` (files) | Use your native file tools |
 | `Bash` (run commands) | Use your native shell tools |
-| Main agent direct implementation | No spawn. The main agent edits the cohesive package directly, then runs the mandatory quick verifier and final diff review. |
+| Main agent direct implementation | No spawn. The main agent edits the cohesive package directly, then follows the configured quick-verification executor and performs final diff review. |
 | sp-impl file-edit worker | `spawn_agent(agent_type="worker", model=<FAST_or_NORMAL_or_BEST_model>, reasoning_effort=<FAST_or_NORMAL_or_BEST_effort>, fork_turns="none", message=...)` |
 | optional plan reviewer | When `plan_review_model` is active, `spawn_agent(agent_type="worker", model=<plan_review_model>, reasoning_effort=<resolved_effort>, fork_turns="none", message=...)` for one read-only pass. |
-| quick verifier | `spawn_agent(agent_type="worker", model=<FAST_model>, reasoning_effort=<FAST_effort>, fork_turns="none", message=...)` Default resolves to Spark xhigh unless overridden. |
+| main-agent quick verification | With effective `skip_quick_verifier=true`, the coordinator runs the plan's exact timed commands directly; no spawn or verifier scratch refs. |
+| FAST quick-verifier subagent | With effective `skip_quick_verifier=false`, `spawn_agent(agent_type="worker", model=<FAST_model>, reasoning_effort=<FAST_effort>, fork_turns="none", message=...)`. Default resolves to Spark xhigh unless overridden. |
 | Grouped workers with independent file-edit packages | Multiple `spawn_agent(fork_turns="none", message=...)` calls, one per cohesive non-conflicting worker package whose delegation has clear value, before `wait` |
 
-The grouped worker and quick verifier mappings are normal Simple Power
-dispatches and are independent of `use_subagent`. Before resolving them,
-validate the seven base keys plus optional `plan_review_model`,
+The grouped worker and FAST quick-verifier mappings are normal Simple Power
+dispatches and are independent of `use_subagent`. `skip_quick_verifier`
+selects the main-agent or FAST-subagent quick-verification executor. Before
+resolving them, validate the eight base keys plus optional `plan_review_model`,
 `review_model2`, and `final_review_model` by following
 `skills/using-simplepower/references/simplepower-config.md`. Every present TOML
 file must validate in full before overlays; a higher layer must not hide
@@ -32,8 +34,9 @@ environment values, and explicit current-session instructions last. Each later
 layer replaces only the keys it supplies. Missing higher-layer keys
 inherit. Do not read model assignments from any `AGENTS.md` file.
 
-The seven base keys are `use_subagent`, `skip_final_review`, `subagent_model`,
-`review_model`, `best_model`, `normal_model`, and `fast_model`. Resolve optional
+The eight base keys are `use_subagent`, `skip_quick_verifier`,
+`skip_final_review`, `subagent_model`, `review_model`, `best_model`,
+`normal_model`, and `fast_model`. Resolve optional
 `plan_review_model`, `review_model2`, and `final_review_model` as defined by the
 configuration reference. `plan_review_model` has no default or fallback. A home
 or repository TOML key, or non-empty `SIMPLEPOWER_PLAN_REVIEW_MODEL`, activates
@@ -49,10 +52,12 @@ An absent `review_model2`, or an exact match with the fully resolved
 primary, preserves the single-reviewer compatibility result; a distinct value
 preserves the legacy secondary-reviewer compatibility result.
 
-Scratch refs under `refs/simplepower/scratch/<run-id>/` are coordinator-owned
-local refs used to provide concrete quick-verifier diff anchors. They are
-not branches, accepted checkpoints, pushed refs, or subagent commits; workers
-and quick verifiers must not create, update, delete, inspect, or manage them.
+With effective `skip_quick_verifier=false`, scratch refs under
+`refs/simplepower/scratch/<run-id>/` are coordinator-owned local refs used to
+provide concrete quick-verifier subagent diff anchors. They are not branches,
+accepted checkpoints, pushed refs, or subagent commits; workers and quick
+verifiers must not create, update, delete, inspect, or manage them. Effective
+`true` creates no quick-verifier refs.
 
 Resolve the active tiers and validate the deprecated compatibility REVIEW value
 before dispatch:
@@ -72,7 +77,9 @@ guessing. With the built-in defaults, FAST resolves to model
 and BEST and REVIEW to model `gpt-5.6-sol` with `high`.
 
 Use the plan's approved FAST/NORMAL/BEST allocation for grouped `sp-impl`
-file-edit workers. Main agent direct implementation has no spawn. When optional
+file-edit workers. Main agent direct implementation has no spawn. Quick
+verification uses the approved executor resolved from `skip_quick_verifier`;
+FAST model routing applies only when the subagent path is selected. When optional
 plan review is active, use `skills/writing-plans/plan-document-reviewer-prompt.md`
 for exactly one read-only pass, then let the main agent apply accepted Critical
 and Must Fix findings without redispatch. Do not dispatch final review+fix
@@ -93,11 +100,12 @@ This enables `spawn_agent`, `wait`, and `close_agent` for skills like `simplepow
 ## Prompt dispatch
 
 Codex does not use a named Simple Power agent registry. When a skill needs an
-optional plan reviewer, grouped file-edit worker, or quick verifier, use the
+optional plan reviewer, grouped file-edit worker, or FAST quick-verifier
+subagent, use the
 skill-local prompt template
 and dispatch a generic subagent from a built-in role (`default`, `explorer`,
-`worker`). Main agent direct implementation, plan self-review, final diff
-review, and in-scope fixes use no spawn.
+`worker`). Main agent direct implementation, main-agent quick verification,
+plan self-review, final diff review, and in-scope fixes use no spawn.
 
 When a skill says to dispatch a Simple Power worker:
 

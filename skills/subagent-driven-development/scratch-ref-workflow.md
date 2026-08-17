@@ -3,6 +3,10 @@
 Read this file before creating, diffing, deleting, or reporting Simple Power
 scratch refs.
 
+Use this workflow only when effective `skip_quick_verifier=false` selects the
+FAST quick-verifier subagent. Effective `true` runs quick verification in the
+main agent and creates no verifier run id or scratch refs.
+
 Scratch refs are coordinator-owned local quick-verifier anchors. They are not
 branches, accepted checkpoint commits, pushed refs, merged refs, rebased refs,
 worker commits, or task commits. Workers and quick verifiers must not create,

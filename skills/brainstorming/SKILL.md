@@ -107,11 +107,12 @@ still mandatory before implementation.
    for adaptive planning: design summary, cohesion assessment, specialization or
    delegation value, constraints, decisions, exact known file areas, risks, and
    success criteria. The plan file selects `Implementation Route: Main agent` or
-   `Implementation Route: Grouped workers`, keeps the FAST quick verifier,
-   records its own path as the coordinator-owned execution record, and defines
-   the two mandatory coordinator checkpoint types plus any bounded active-run
-   execution-commit conditions. The plan file is the authoritative
-   implementation artifact.
+   `Implementation Route: Grouped workers`, keeps mandatory quick verification,
+   records the resolved `skip_quick_verifier` value and `Main agent` or
+   `FAST subagent` executor, names its coordinator-owned execution record, and
+   defines the two mandatory coordinator checkpoint types plus any
+   bounded active-run execution-commit conditions. The plan file is the
+   authoritative implementation artifact.
 
 The terminal state is invoking `simplepower:writing-plans`. Do not write a
 standalone spec document, ask the user to review a written spec, create a

@@ -17,9 +17,10 @@ workflow is now an adaptive coordinator for the approved `Implementation Route`:
   cohesive, non-overlapping worker packages only when at least two independent
   packages or specialized work materially benefits from delegation.
 
-Both routes preserve the mandatory FAST quick verifier, coordinator-owned final
+Both routes preserve mandatory quick verification, coordinator-owned final
 diff review, final verification, `approved-path`, `no-worker-commit`, and
-`final commit condition` safeguards.
+`final commit condition` safeguards. Effective `skip_quick_verifier=true`
+selects the main agent; `false` selects the isolated FAST verifier subagent.
 
 The accepted plan's combined approval authorizes two mandatory coordinator
 checkpoint types: accepted plan and final reviewed/verified completion. During
@@ -52,7 +53,7 @@ worker package scopes when present, and relevant contract inputs:
 - before edits or dispatch;
 - after each grouped worker result;
 - before quick verification;
-- after the quick verifier result;
+- after the quick-verification result;
 - after any coordinator repair;
 - before any technical-prerequisite or summary-update commit;
 - before coordinator final diff review;
@@ -126,20 +127,22 @@ already implied by approved text. Stop and ask the user for fresh explicit
 approval before changing scope, strategy, verification, review approach, or
 implementation work.
 
-Grouped workers and the quick verifier must not self-expand write scope. They
-report `BLOCKED` or `NEEDS_CONTEXT`; the coordinator owns classification and
-any approved correction.
+Grouped workers and a dispatched quick-verifier subagent must not self-expand
+write scope. They report `BLOCKED` or `NEEDS_CONTEXT`; the coordinator owns
+classification and any approved correction.
 
 ## Required Read Points
 
 Before route execution, read the accepted plan and validate the sections named
 above.
 
-Before creating, diffing, deleting, or reporting scratch refs, read
-`./scratch-ref-workflow.md` and use its command shapes. Scratch refs live only
-under `refs/simplepower/scratch/<run-id>/` and are coordinator-owned local
+When effective `skip_quick_verifier=false`, read
+`./scratch-ref-workflow.md` before creating, diffing, deleting, or reporting
+scratch refs and use its command shapes. These refs live only under
+`refs/simplepower/scratch/<run-id>/` and are coordinator-owned local
 quick-verifier anchors, not branches, accepted commits, pushed refs, merged
-refs, rebased refs, worker commits, or task commits.
+refs, rebased refs, worker commits, or task commits. Effective `true` creates
+no verifier run id or scratch refs.
 
 ## Model And Config Routing
 
@@ -156,8 +159,9 @@ keys inherit. Do not read model assignments from any `AGENTS.md` file. Parse
 the final dash-delimited segment as `reasoning_effort`; valid suffixes are
 `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`.
 
-The seven base keys are `use_subagent`, `skip_final_review`, `subagent_model`,
-`review_model`, `best_model`, `normal_model`, and `fast_model`;
+The eight base keys are `use_subagent`, `skip_quick_verifier`,
+`skip_final_review`, `subagent_model`, `review_model`, `best_model`,
+`normal_model`, and `fast_model`;
 `plan_review_model`, `review_model2`, and `final_review_model` are optional.
 `plan_review_model` controls only the completed planning phase and is
 validation-only during execution. `review_model`,
@@ -171,13 +175,18 @@ Active dispatch routing:
   Escalate FAST to NORMAL/BEST when work is less mechanical than planned;
   escalate NORMAL to BEST when work is broad, ambiguous, behavior-shaping,
   high risk, or hard to verify. Record the reason.
-- The quick verifier always uses FAST. With built-in defaults this resolves to
+- Effective `skip_quick_verifier=true` runs quick verification in the main
+  agent with no verifier model routing, spawn, lifecycle, or scratch refs.
+- Effective `skip_quick_verifier=false` dispatches the quick verifier with
+  FAST. With built-in defaults this resolves to
   `model="gpt-5.3-codex-spark"` and `reasoning_effort="xhigh"`.
 - `Implementation Route: Main agent` dispatches no `sp-impl` worker and uses no
   implementation model routing.
 
-Quick verifier: use FAST. Grouped-worker `Contract inputs` contain only the
-relevant approved Interface Contract entries and package facts.
+Quick verification: use the approved executor resolved from
+`skip_quick_verifier`; use FAST only for the subagent path. Grouped-worker
+`Contract inputs` contain only the relevant approved Interface Contract
+entries and package facts.
 
 Every retained Simple Power dispatch uses exact `fork_turns="none"` and a
 self-contained prompt. There are no conversation-history inheritance
@@ -213,8 +222,8 @@ report the exact failure and recovery state, and do not claim completion.
 
 ## Original Plan Execution Summary
 
-The coordinator owns summary updates. Workers and the quick verifier report
-facts but must not edit the plan. After the first final-verification pass,
+The coordinator owns summary updates. Workers and a dispatched quick verifier
+report facts but must not edit the plan. After the first final-verification pass,
 append or refresh `## Execution Summary` in the original plan with:
 
 - current status and outcome;
@@ -249,8 +258,9 @@ SHA without changing it.
    implementation steps, risks, timed quick and final verification, summary
    requirements, and the two mandatory checkpoint conditions plus bounded
    execution-commit conditions.
-3. Validate model configuration before any grouped-worker or quick-verifier
-   dispatch. Treat `plan_review_model` and deprecated review settings as
+3. Validate configuration before selecting the quick-verification executor and
+   before any grouped-worker or quick-verifier dispatch. Treat
+   `plan_review_model` and deprecated review settings as
    validation-only keys during execution. Throughout the remaining lifecycle,
    apply `Coordinator Execution Commits` only at an objective committed-state
    prerequisite or a required separate/later summary update.
@@ -287,27 +297,32 @@ SHA without changing it.
 11. Before quick verification, ensure all implementation work is complete, no
     finished worker remains open without a written reason, and every changed
     file is in approved ownership.
-12. Create `refs/simplepower/scratch/<run-id>/quick-verifier/before` for the
-    approved changed-file list. If this fails, stop before relying on the
-    missing anchor.
-13. Dispatch the quick verifier from `quick-verifier-prompt.md` with the
-    approved FAST model, `fork_turns="none"`, and a self-contained prompt
-    containing the design summary, approved file list, relevant contract
-    entries, implementation result summaries, exact commands, timeouts, and
-    expected results.
-14. The quick verifier runs the named lint/build/test commands. It may fix only
-    tiny typo-level issues that directly cause a command failure. It reports
-    `NON_TRIVIAL_FAILURES` for structural, behavioral, interface,
-    scope-changing, or unclear failures.
-15. If the quick verifier reports non-trivial failures, the coordinator
-    diagnoses them, makes only approved in-scope repairs, and reruns the
-    required verification. Do not launch another implementation worker or
-    reviewer to handle those failures. If repair needs true scope expansion or
-    changed strategy, stop for user approval.
-16. After quick verifier returns, lifecycle-close it by default, inspect the
-    report and actual diff, validate any changed files, and if tiny fixes
-    changed files create `quick-verifier/after` and inspect the scratch diff.
-    Omit the `after` ref when no files changed.
+12. With effective `skip_quick_verifier=true`, run the plan's exact timed quick
+    commands directly in the coordinator. Inspect failures, make only approved
+    in-scope repairs, rerun affected commands, and stop for fresh approval if
+    repair requires scope or strategy changes. Create no verifier subagent,
+    lifecycle entry, run id, or scratch refs.
+13. With effective `skip_quick_verifier=false`, create
+    `refs/simplepower/scratch/<run-id>/quick-verifier/before` for the approved
+    changed-file list. If this fails, stop before relying on the missing anchor.
+14. In that subagent mode, dispatch the quick verifier from
+    `quick-verifier-prompt.md` with the approved FAST model, exact
+    `fork_turns="none"`, and a self-contained prompt containing the design
+    summary, approved file list, relevant contract entries, implementation
+    result summaries, exact commands, timeouts, and expected results.
+15. The dispatched quick verifier runs the named lint/build/test commands. It
+    may fix only tiny typo-level issues that directly cause a command failure.
+    It reports `NON_TRIVIAL_FAILURES` for structural, behavioral, interface,
+    scope-changing, or unclear failures. The coordinator diagnoses those
+    failures, makes only approved in-scope repairs, and reruns required
+    verification. Do not launch another implementation worker or reviewer to
+    handle them. Stop for user approval if repair needs true scope expansion or
+    changed strategy.
+16. After a dispatched quick verifier returns, lifecycle-close it by default,
+    inspect the report and actual diff, validate any changed files, and if tiny
+    fixes changed files create `quick-verifier/after` and inspect the scratch
+    diff. Omit the `after` ref when no files changed. Both executor paths then
+    continue to coordinator review.
 17. After quick verification, the coordinator inspects the complete diff from
     the accepted-plan checkpoint through committed and uncommitted execution
     changes, performs coordinator review for plan compliance, ownership,
@@ -330,14 +345,16 @@ SHA without changing it.
     changes remain, without requesting another approval; do not create an empty
     commit. A prior technical-prerequisite or summary commit does not replace
     this condition.
-22. Delete quick-verifier scratch refs only after the newest final checkpoint
-    condition succeeds, then run the final cleanup check for
-    `refs/simplepower/scratch/<run-id>/`.
+22. When subagent mode created quick-verifier scratch refs, delete them only
+    after the newest final checkpoint condition succeeds, then run the final
+    cleanup check for `refs/simplepower/scratch/<run-id>/`. Main-agent mode has
+    no verifier-ref cleanup.
 23. Report verification results, final checkpoint SHA or no-empty outcome when
     applicable, execution-summary status, any execution-commit reasons and
     SHAs, changed files, route decision, grouped dispatch decisions, capacity
     queue behavior, any serialized packages and reasons, lifecycle status,
-    quick-verifier scratch run id when refs were created, scratch-ref cleanup
+    quick-verification executor, quick-verifier scratch run id when refs were
+    created, scratch-ref cleanup
     status or cleanup commands for preserved refs, and coordinator review
     findings/fixes. Commit authorization ends with this final handoff.
 
@@ -379,10 +396,12 @@ SHA without changing it.
 
 ## Scratch Refs
 
-Scratch refs are coordinator-owned evidence for quick-verifier diffs. They do
-not change the two mandatory coordinator checkpoint types: approved plan and
-final reviewed/verified completion. Bounded technical-prerequisite and summary
-commits are execution history, not scratch-ref phases.
+Scratch refs are coordinator-owned evidence for FAST quick-verifier subagent
+diffs and exist only when effective `skip_quick_verifier=false`. Main-agent
+quick verification creates none. Scratch refs do not change the two mandatory
+coordinator checkpoint types: approved plan and final reviewed/verified
+completion. Bounded technical-prerequisite and summary commits are execution
+history, not scratch-ref phases.
 
 All temporary refs for one run live under
 `refs/simplepower/scratch/<run-id>/`, where the run id is
@@ -393,7 +412,7 @@ Use `./scratch-ref-workflow.md` for exact commands, including temporary-index
 creation, diffing, phase cleanup, final cleanup checks, and preserved-ref
 cleanup commands.
 
-Phase ownership and timing:
+Subagent-mode phase ownership and timing:
 
 - Quick-verifier `before` is created after all implementation edits are
   complete and before the quick verifier dispatch.
@@ -412,7 +431,7 @@ final verification.
 ## Subagent Lifecycle
 
 Run a lifecycle checkpoint after every retained subagent final result,
-including grouped `sp-impl` workers and the quick verifier.
+including grouped `sp-impl` workers and the quick verifier when dispatched.
 
 Default lifecycle decision: close.
 
@@ -477,7 +496,8 @@ Never:
   original-plan summary handling, terminal post-summary verification, or the
   final commit condition.
 - Skip required quick-verifier scratch-ref creation, scratch diff inspection,
-  phase cleanup, preserved-ref reporting, or final cleanup checks.
+  phase cleanup, preserved-ref reporting, or final cleanup checks in
+  FAST-subagent mode, or create any verifier scratch ref in main-agent mode.
 - Leave a finished subagent open without a written reason tied to the current
   plan execution.
 - Merge, push, or create a PR without a separate user request.
@@ -492,8 +512,8 @@ diagnostic context needed to explain it, classify missing write-scope files as
 `implied-scope omission` or `true scope expansion`, and stop for user approval
 before true scope expansion or alternate implementation work.
 
-If the quick verifier finds issues, allow only tiny typo-level fixes that
-directly cause a command failure. Non-trivial failures return to the
+If a dispatched quick verifier finds issues, allow only tiny typo-level fixes
+that directly cause a command failure. Non-trivial failures return to the
 coordinator for diagnosis, approved in-scope repair, and verification rerun.
 
 If coordinator review finds issues, fix only within approved write scopes, run
@@ -544,6 +564,7 @@ Final reporting must include:
   SHA;
 - final checkpoint SHA or no-empty outcome when applicable;
 - changed files;
+- quick-verification executor and resolved `skip_quick_verifier` value;
 - quick-verifier scratch run id when refs were created;
 - scratch-ref cleanup status or cleanup commands for preserved refs; and
 - confirmation that all finished subagents were closed or have an active

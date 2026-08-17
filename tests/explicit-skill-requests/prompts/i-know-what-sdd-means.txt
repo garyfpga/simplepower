@@ -3,7 +3,7 @@ I have my implementation plan ready at docs/simplepower/plans/auth-system.md.
 I want to use simplepower:subagent-driven-development to execute it with adaptive implementation. I know SDD now means:
 - Main agent route: the coordinator edits the approved cohesive package directly
 - Grouped workers route: dispatch cohesive, non-overlapping worker packages only when delegation has clear value
-- Mandatory FAST quick verifier runs after implementation
+- Mandatory quick verification runs after implementation through the resolved Main agent or FAST subagent executor
 - The coordinator performs final review, in-scope fixes, final verification, and the final checkpoint condition
 
 Let's start.

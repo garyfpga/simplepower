@@ -4,8 +4,10 @@ This reference is the operational configuration contract for active Simple
 Power workflows. Resolve and validate it when an affected skill starts, before
 making any configuration-controlled dispatch. The normal
 brainstorming-to-implementation chain actively uses `best_model`,
-`normal_model`, and `fast_model` for implementation and the mandatory quick
-verifier. It also uses optional `plan_review_model` for one single-pass plan
+`normal_model`, and `fast_model` for implementation and any configured FAST
+quick-verifier subagent. Mandatory quick verification itself is performed by
+the main agent or that FAST subagent according to `skip_quick_verifier`. The
+chain also uses optional `plan_review_model` for one single-pass plan
 review when that key is activated by a supported TOML file or non-empty
 `SIMPLEPOWER_PLAN_REVIEW_MODEL`. `review_model`, `review_model2`,
 `final_review_model`, and `skip_final_review` remain recognized and strictly
@@ -17,7 +19,7 @@ The exact filename is `simplepower.toml`.
 
 Resolve every supported key independently in this order:
 
-1. Start with the built-in defaults for the seven base keys.
+1. Start with the built-in defaults for the eight base keys.
    `plan_review_model`, `review_model2`, and `final_review_model` have no
    independent built-in defaults and start absent.
 2. If `~/.codex/simplepower.toml` exists, overlay the keys present there.
@@ -29,7 +31,8 @@ Resolve every supported key independently in this order:
    `SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_PLAN_REVIEW_MODEL`,
    `SIMPLEPOWER_FINAL_REVIEW_MODEL`,
    `SIMPLEPOWER_BEST_MODEL`, `SIMPLEPOWER_NORMAL_MODEL`,
-   `SIMPLEPOWER_FAST_MODEL`, and `SIMPLEPOWER_SKIP_FINAL_REVIEW`.
+   `SIMPLEPOWER_FAST_MODEL`, `SIMPLEPOWER_SKIP_QUICK_VERIFIER`, and
+   `SIMPLEPOWER_SKIP_FINAL_REVIEW`.
 5. Apply explicit current-session instructions last. An explicit
    `plan_review_model` may override an already-active plan-review model, but it
    cannot activate plan review by itself.
@@ -52,11 +55,12 @@ supported as the per-key overlay described above.
 
 ## Schema, Defaults, And Validation
 
-Only these seven base top-level keys plus optional `plan_review_model`,
+Only these eight base top-level keys plus optional `plan_review_model`,
 `review_model2`, and `final_review_model` are supported:
 
 ```toml
 use_subagent = false
+skip_quick_verifier = true
 skip_final_review = false
 subagent_model = "gpt-5.6-luna-xhigh"
 review_model = "gpt-5.6-sol-high"
@@ -70,7 +74,8 @@ fast_model = "gpt-5.3-codex-spark-xhigh"
 # review_model2 = "gpt-5.6-luna-max"
 ```
 
-`use_subagent` and `skip_final_review` must be TOML Booleans and default to
+`use_subagent`, `skip_quick_verifier`, and `skip_final_review` must be TOML
+Booleans. `skip_quick_verifier` defaults to `true`; the other two default to
 `false` when missing.
 The five base model keys must be nonempty TOML strings and default to the exact
 values shown above when missing from all higher-priority layers.
@@ -86,8 +91,9 @@ absent from all allowed layers, its effective value is the fully resolved
 explicit current-session configuration, it must be a nonempty model/effort
 string.
 
-For `SIMPLEPOWER_USE_SUBAGENT` and `SIMPLEPOWER_SKIP_FINAL_REVIEW`, accept only
-case-insensitive `true` or `false` after confirming the value is non-empty.
+For `SIMPLEPOWER_USE_SUBAGENT`, `SIMPLEPOWER_SKIP_QUICK_VERIFIER`, and
+`SIMPLEPOWER_SKIP_FINAL_REVIEW`, accept only case-insensitive `true` or `false`
+after confirming the value is non-empty.
 Values such as `true`, `True`, and `TRUE` are equivalent, as are the matching
 forms of `false`. Any other non-empty Boolean environment value is invalid.
 
@@ -111,6 +117,28 @@ inherits the value already resolved from lower-priority layers.
 `final_review_model` then falls back to fully resolved `review_model`. Only
 empty supported environment variables are ignored rather than treated as
 overrides or activation sources.
+
+## Quick Verification Executor
+
+Quick verification is mandatory regardless of `skip_quick_verifier`. The key
+controls only who runs the exact timed commands recorded in the accepted plan:
+
+- With effective `skip_quick_verifier=true`, the main agent runs the commands
+  at the normal quick-verification lifecycle point. It diagnoses failures,
+  applies only approved in-scope repairs, reruns affected commands, and asks
+  for fresh approval before any scope or strategy change. It does not dispatch
+  a quick-verifier subagent or create, manage, preserve, report, or clean
+  quick-verifier scratch refs.
+- With effective `skip_quick_verifier=false`, dispatch one FAST quick-verifier
+  subagent with exact `fork_turns="none"`. Preserve its tiny typo-level fix
+  limit, return non-trivial failures to the main agent, and use the
+  coordinator-owned before/optional-after scratch-ref workflow.
+
+A missing key inherits the built-in `true` when no higher-priority layer
+changes it. An empty `SIMPLEPOWER_SKIP_QUICK_VERIFIER` is ignored like every
+other supported empty environment value. `fast_model` selects the verifier
+model only in subagent mode; changing or omitting `SIMPLEPOWER_FAST_MODEL`
+never enables or disables quick verification or its subagent.
 
 ## Optional Single-Pass Plan Review
 
@@ -183,9 +211,11 @@ selected batch cannot dispatch because multi-agent support, the configured
 model, or spawning is unavailable, stop the affected workflow and report the
 precise blocker; a partial batch is not a substitute.
 
-The switch and `subagent_model` do not govern approved grouped `sp-impl`
-workers, quick verifiers, or their FAST/NORMAL/BEST allocation. They also do
-not govern explicitly invoked general delegation skills.
+The `use_subagent` switch and `subagent_model` do not govern approved grouped
+`sp-impl` workers, the configuration-selected quick-verification executor, or
+FAST/NORMAL/BEST allocation. `skip_quick_verifier` governs only whether quick
+verification uses the main agent or FAST subagent. These settings do not govern
+explicitly invoked general delegation skills.
 The deprecated review compatibility settings do not govern normal brainstorming-to-implementation execution.
 
 ## Universal Dispatch Isolation

@@ -34,7 +34,7 @@ SimplePower 是 Jesse Vincent / Prime Radiant 的 [Superpowers](https://github.c
 | 阶段 | SuperPower | SimplePower |
 |---|---:|---:|
 | Spec / Plan | brainstorming -> <br> approve spec -> <br> spec.md (commit) -> <br> plan.md (approve and commit) | brainstorming -> <br> approve spec -> <br> plan.md -> <br> optional configured single-pass review -> <br> approve and commit <br> 懒得同时检查 spec.md 和 plan.md
-| Subagent Implementation <br><br> 这就是 SimplePower 快的原因 | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | Main agent 直接处理一个 cohesive package；或者只在有清晰价值时使用 Grouped workers -> <br> mandatory FAST-tier quick verifier -> <br> main agent final diff review + in-scope fixes
+| Subagent Implementation <br><br> 这就是 SimplePower 快的原因 | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | Main agent 直接处理一个 cohesive package；或者只在有清晰价值时使用 Grouped workers -> <br> mandatory quick verification（默认由 main agent 执行；可配置 FAST subagent） -> <br> main agent final diff review + in-scope fixes
 | Git Commits? | 每一步 | 两个 mandatory checkpoint types + <br> 必要时 bounded coordinator execution commits
 
 ## 安装
@@ -70,7 +70,7 @@ review_model = "gpt-5.6-sol-high"
 
 最终主动分配为 BEST = `gpt-5.6-sol`/`high`、NORMAL = `gpt-5.6-luna`/`max`、FAST = `gpt-5.3-codex-spark`/`xhigh`。
 
-环境变量可以覆盖 `use_subagent`、`subagent_model`、三个主动模型层级、可选 `plan_review_model`、deprecated compatibility `review_model`、`final_review_model` 和 `skip_final_review`，对应 `SIMPLEPOWER_USE_SUBAGENT`、`SIMPLEPOWER_SUBAGENT_MODEL`、`SIMPLEPOWER_REVIEW_MODEL`、`SIMPLEPOWER_PLAN_REVIEW_MODEL`、`SIMPLEPOWER_BEST_MODEL`、`SIMPLEPOWER_NORMAL_MODEL`、`SIMPLEPOWER_FAST_MODEL`、`SIMPLEPOWER_FINAL_REVIEW_MODEL` 和 `SIMPLEPOWER_SKIP_FINAL_REVIEW`。不存在 `SIMPLEPOWER_REVIEW_MODEL2`。根目录或嵌套的 `AGENTS.md` 都不再提供模型赋值。
+环境变量可以覆盖 `use_subagent`、`skip_quick_verifier`、`subagent_model`、三个主动模型层级、可选 `plan_review_model`、deprecated compatibility `review_model`、`final_review_model` 和 `skip_final_review`，对应 `SIMPLEPOWER_USE_SUBAGENT`、`SIMPLEPOWER_SKIP_QUICK_VERIFIER`、`SIMPLEPOWER_SUBAGENT_MODEL`、`SIMPLEPOWER_REVIEW_MODEL`、`SIMPLEPOWER_PLAN_REVIEW_MODEL`、`SIMPLEPOWER_BEST_MODEL`、`SIMPLEPOWER_NORMAL_MODEL`、`SIMPLEPOWER_FAST_MODEL`、`SIMPLEPOWER_FINAL_REVIEW_MODEL` 和 `SIMPLEPOWER_SKIP_FINAL_REVIEW`。不存在 `SIMPLEPOWER_REVIEW_MODEL2`。根目录或嵌套的 `AGENTS.md` 都不再提供模型赋值。
 
 `plan_review_model` 没有内建默认值，也不会 fallback 到 `review_model`。只有 home/repository `simplepower.toml` 中存在该 key，或 `SIMPLEPOWER_PLAN_REVIEW_MODEL` 为 non-empty 时才会启用一次 read-only plan review。Current-session 指示只能覆盖已经启用的 model，不能单独启用 review。Reviewer 只返回 Critical 和 Must Fix；main agent 修复或明确驳回这些 findings 后直接视为 reviewed，不会重新发送 plan，也不会创建 plan-review scratch refs。Reviewer 无法启动或返回 usable report 时，记录失败并继续使用 main-agent self-review，不重试。
 
@@ -80,7 +80,7 @@ review_model = "gpt-5.6-sol-high"
 
 BEST 用于广泛、跨文件、含糊、会改变行为、高风险、难测试的工作。
 NORMAL 用于原来会放进旧 FAST 层的常规低风险实现工作，尤其是局部修改。
-FAST 是 Spark 层，用于明显重复的工作、多文件机械性修改、大量静态文本扫改、简单 fixture/assertion 变更，以及 mandatory quick verifier。
+FAST 是 Spark 层，用于明显重复的工作、多文件机械性修改、大量静态文本扫改、简单 fixture/assertion 变更，以及 `skip_quick_verifier=false` 时的 quick-verifier subagent。
 
 ## 配置
 
@@ -88,10 +88,11 @@ Simple Power 按 key 独立解析配置：先使用内建默认值，再 overlay
 
 可复制的完整示例见 [simplepower.toml.example](simplepower.toml.example)；该文件本身不是 active repository configuration。
 
-支持的 TOML 顶层 key 仍是以下七个 base keys，加上没有独立默认值的可选 `plan_review_model`、`review_model2` 和 `final_review_model`。七个 base key 的精确默认值如下；legacy review key 是正常 chain 的 deprecated compatibility/no-op：
+支持的 TOML 顶层 key 是以下八个 base keys，加上没有独立默认值的可选 `plan_review_model`、`review_model2` 和 `final_review_model`。八个 base key 的精确默认值如下；legacy review key 是正常 chain 的 deprecated compatibility/no-op：
 
 ```toml
 use_subagent = false
+skip_quick_verifier = true
 skip_final_review = false
 subagent_model = "gpt-5.6-luna-xhigh"
 review_model = "gpt-5.6-sol-high"
@@ -100,9 +101,11 @@ normal_model = "gpt-5.6-luna-max"
 fast_model = "gpt-5.3-codex-spark-xhigh"
 ```
 
-`use_subagent` 和 `skip_final_review` 必须是 TOML Boolean。对应的环境变量仅接受不区分大小写的 `true` 或 `false`，所以 `true`、`True`、`TRUE` 等价；其他非空值是 fatal error。每个存在的模型 key（包括可选的 `plan_review_model`、`review_model2` 和 `final_review_model`）都必须是非空 TOML string，并按最后一个 dash 拆成非空 model prefix 与 reasoning-effort suffix；合法 suffix 只有 `low`、`medium`、`high`、`xhigh`、`max` 和 `ultra`。格式错误的 TOML、未知 key、错误类型、空模型字符串、缺失 model prefix 或非法 effort 都是 fatal error。每个存在的文件、每个显式 current-session 配置值，以及每个非空环境 override 都必须验证，即使更高层随后会覆盖同一 key；缺失文件或 key 则继承。`final_review_model` 缺失时使用完全解析后的 `review_model`。所有空的受支持环境变量都会被忽略，也不会启用 plan review。只有 `review_model2` 没有环境变量覆盖。
+`use_subagent`、`skip_quick_verifier` 和 `skip_final_review` 必须是 TOML Boolean。对应的环境变量仅接受不区分大小写的 `true` 或 `false`，所以 `true`、`True`、`TRUE` 等价；其他非空值是 fatal error。每个存在的模型 key（包括可选的 `plan_review_model`、`review_model2` 和 `final_review_model`）都必须是非空 TOML string，并按最后一个 dash 拆成非空 model prefix 与 reasoning-effort suffix；合法 suffix 只有 `low`、`medium`、`high`、`xhigh`、`max` 和 `ultra`。格式错误的 TOML、未知 key、错误类型、空模型字符串、缺失 model prefix 或非法 effort 都是 fatal error。每个存在的文件、每个显式 current-session 配置值，以及每个非空环境 override 都必须验证，即使更高层随后会覆盖同一 key；缺失文件或 key 则继承。`final_review_model` 缺失时使用完全解析后的 `review_model`。所有空的受支持环境变量都会被忽略，也不会启用 plan review。只有 `review_model2` 没有环境变量覆盖。
 
 `use_subagent` 是 brainstorming 和 `simplepower:ro` 的硬 gate：`false` 禁止所有可选 explorer；`true` 只是 permission，不是启动指令。两个 workflow 都先由 coordinator 进行 initial triage，不会在启动时自动 dispatch explorer。只有 triage 判断 investigation 属于 large、cross-cutting、complex 或 stalled 时，coordinator 才能在 runtime capacity 内 fan-out 一个或多个具有 distinct investigation angles 的 read-only explorers。每个 explorer 都使用自包含 brief 和 `fork_turns="none"`，只能读取和运行只读命令；coordinator 会综合所有报告。选定的 explorer batch 如果无法完整派发，流程会停止，不会用 partial batch 静默替代。
+
+`skip_quick_verifier=true` 是默认值：quick verification 仍然必须运行，但由 main agent 直接执行 plan 中相同的 timed commands，不 spawn verifier 或使用 scratch refs。`false` 才会 dispatch FAST quick-verifier subagent，并保留 tiny-fix 限制与 before/optional-after scratch refs。`fast_model` 只选择该 subagent 的模型，不能启用或禁用它。
 
 正常 implementation route 是自适应的：`Implementation Route: Main agent` 用于一个 cohesive package 且没有实质 specialization benefit 的工作；`Implementation Route: Grouped workers` 只用于至少两个 independent non-overlapping packages，或确实因专业化 delegation 明显受益的工作。Main-agent plans 保持紧凑，包含 design summary、route、exact files、implementation steps、risks、timed quick/final verification、原始 plan execution record，以及两个 mandatory checkpoint types。Grouped-worker plans 额外包含 Interface Contract、File Ownership、cohesive Worker Packages、serialization decisions，以及 FAST/NORMAL/BEST allocation。Closely related code and tests stay in one package；capacity 只能 queue package，不能造成 tiny-task splitting。
 
@@ -117,7 +120,7 @@ brainstorming skill 可以使用临时的 localhost visual companion 来处理 m
 在 `simplepower:writing-plans` 完成 main-agent plan self-review 之后，如果 optional `plan_review_model` 已启用，Simple Power 会 dispatch 一次 read-only reviewer，只处理 Critical 和 Must Fix findings。Main agent 做一次 fix pass 后不会 re-review；review dispatch 失败或 report unusable 时继续使用已完成的 self-review。之后 Simple Power 会一次性询问你是否批准最终 plan、route/model allocation、两个 mandatory checkpoint types、active run 内受限的 coordinator execution commits，以及立刻在当前 session 里启动 `simplepower:subagent-driven-development`。
 你确认后，coordinator 会创建 accepted plan checkpoint commit，并立即调用 `simplepower:subagent-driven-development` 执行已批准的 plan。
 如果 route 是 Main agent，coordinator 直接编辑一个 cohesive package，不 dispatch `sp-impl` worker。如果 route 是 Grouped workers，coordinator 只把相关 design/contract/scope/verification context 发送给各个 cohesive package worker，而不是完整 plan 和重复的全局 boilerplate；每个 grouped `sp-impl` dispatch 都必须使用 `fork_turns="none"`。
-所有 route 都必须运行 mandatory FAST quick verifier。Quick verifier 只能做 tiny typo-level fixes；non-trivial failures 回到 main agent 诊断和 in-scope 修复。正常 workflow 只保留 quick-verifier scratch refs；optional plan review 和 final review 都没有 scratch phase。Main agent 做 final diff review、in-scope fixes 和第一次 final verification，然后在原始 plan 中写入精简的 `Execution Summary`，最后一次 summary edit 后不再修改文件并重新运行 terminal verification。只有 approved test/work 客观要求 committed state，或 summary 必须单独/再次更新时，active run 才允许额外 coordinator commit；convenience、worker 和 per-task commits 仍然禁止。最新 verified commit 是 final completion checkpoint，authorization 在 final handoff 结束。
+所有 route 都必须运行 quick verification。`skip_quick_verifier=true`（默认）时由 main agent 运行相同命令，不 dispatch verifier 或创建 scratch refs；`false` 时 dispatch FAST quick-verifier subagent，它只能做 tiny typo-level fixes，non-trivial failures 回到 main agent 诊断和 in-scope 修复。只有 subagent 路径保留 quick-verifier scratch refs；optional plan review 和 final review 都没有 scratch phase。Main agent 做 final diff review、in-scope fixes 和第一次 final verification，然后在原始 plan 中写入精简的 `Execution Summary`，最后一次 summary edit 后不再修改文件并重新运行 terminal verification。只有 approved test/work 客观要求 committed state，或 summary 必须单独/再次更新时，active run 才允许额外 coordinator commit；convenience、worker 和 per-task commits 仍然禁止。最新 verified commit 是 final completion checkpoint，authorization 在 final handoff 结束。
 
 ## 如何使用 Simple Power
 
@@ -163,7 +166,7 @@ This table explains what SimplePower is trying to achieve (times are just estima
 | Pharse | SuperPower | SimplePower |
 |---|---:|---:|
 | Spec / Plan | brainstorming -> <br> approve spec -> <br> spec.md (commit) -> <br> plan.md (approve and commit) | brainstorming -> <br> approve spec -> <br> plan.md -> <br> optional configured single-pass review -> <br> approve and commit <br> too lazy to check spec.md and plan.md
-| Subagent Implementation <br><br> this is why SimplePower is fast | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | Main agent directly edits one cohesive package; or Grouped workers only when delegation has clear value -> <br> mandatory FAST-tier quick verifier -> <br> main agent final diff review + in-scope fixes
+| Subagent Implementation <br><br> this is why SimplePower is fast | Task1 impl agent -> <br> Task1 planning check -> <br> Task1 quality agent -> <br> Task2 impl agent -> <br> Task2 planning check -> <br> Task2 quality agent -> <br>  .... | Main agent directly edits one cohesive package; or Grouped workers only when delegation has clear value -> <br> mandatory quick verification (main agent by default; configurable FAST subagent) -> <br> main agent final diff review + in-scope fixes
 | Git Commits? | every steps | two mandatory checkpoint types + <br> bounded coordinator execution commits when required
 
 ## Installation
@@ -206,10 +209,10 @@ The active assignments are BEST = `gpt-5.6-sol`/`high`, NORMAL =
 `gpt-5.6-luna`/`max`, and FAST =
 `gpt-5.3-codex-spark`/`xhigh`.
 
-The environment can override `use_subagent`, `subagent_model`, the three active
+The environment can override `use_subagent`, `skip_quick_verifier`, `subagent_model`, the three active
 model tiers, optional `plan_review_model`, deprecated compatibility
 `review_model`, `final_review_model`, and `skip_final_review` through
-`SIMPLEPOWER_USE_SUBAGENT`, `SIMPLEPOWER_SUBAGENT_MODEL`,
+`SIMPLEPOWER_USE_SUBAGENT`, `SIMPLEPOWER_SKIP_QUICK_VERIFIER`, `SIMPLEPOWER_SUBAGENT_MODEL`,
 `SIMPLEPOWER_REVIEW_MODEL`, `SIMPLEPOWER_PLAN_REVIEW_MODEL`,
 `SIMPLEPOWER_BEST_MODEL`,
 `SIMPLEPOWER_NORMAL_MODEL`, `SIMPLEPOWER_FAST_MODEL`,
@@ -245,7 +248,7 @@ NORMAL is for routine low-risk implementation work that used to fit the old
 FAST tier, especially localized edits.
 FAST is the Spark tier for obvious repetitive work, mechanical edits across
 many files, large static text sweeps, simple fixture/assertion churn, and the
-mandatory quick verifier.
+quick-verifier subagent when `skip_quick_verifier=false`.
 
 ## Configuration
 
@@ -261,13 +264,14 @@ is skipped.
 See [simplepower.toml.example](simplepower.toml.example) for a copyable full
 example; the example itself is not active repository configuration.
 
-The supported TOML schema is still these seven base keys plus optional
-`plan_review_model`, `review_model2`, and `final_review_model`. The seven base
+The supported TOML schema has these eight base keys plus optional
+`plan_review_model`, `review_model2`, and `final_review_model`. The eight base
 keys have the following exact defaults; legacy review keys are deprecated
 compatibility no-ops in the normal chain:
 
 ```toml
 use_subagent = false
+skip_quick_verifier = true
 skip_final_review = false
 subagent_model = "gpt-5.6-luna-xhigh"
 review_model = "gpt-5.6-sol-high"
@@ -276,7 +280,7 @@ normal_model = "gpt-5.6-luna-max"
 fast_model = "gpt-5.3-codex-spark-xhigh"
 ```
 
-`use_subagent` and `skip_final_review` must be TOML Booleans. Their environment
+`use_subagent`, `skip_quick_verifier`, and `skip_final_review` must be TOML Booleans. Their environment
 values accept only case-insensitive `true` or `false`, so `true`, `True`, and
 `TRUE` are equivalent; every other non-empty value is fatal. Every present
 model key, including optional `plan_review_model`, `review_model2`, and
@@ -304,6 +308,13 @@ explorer receives a self-contained brief and uses `fork_turns="none"`; the
 coordinator synthesizes the reports. A selected batch that cannot fully
 dispatch stops the workflow rather than silently using a partial batch. This is
 separate from the active implementation and verification model tiers.
+
+`skip_quick_verifier=true` is the default. Quick verification remains
+mandatory, but the main agent runs the plan's same timed commands without a
+verifier spawn or scratch refs. Set it to `false` to use the FAST
+quick-verifier subagent with its tiny-fix limit and before/optional-after refs.
+`fast_model` selects that subagent's model only; it never enables or disables
+the executor.
 
 The normal implementation route is adaptive. `Implementation Route: Main
 agent` is for one cohesive package with no material specialization benefit.
@@ -347,11 +358,14 @@ cohesive package and does not dispatch an `sp-impl` worker. For
 design, contract, scope, and verification context for its cohesive package, not
 the complete plan or repeated global boilerplate; every grouped `sp-impl`
 dispatch passes `fork_turns="none"`.
-Every route runs the mandatory FAST quick verifier. The quick verifier may make
+Every route runs mandatory quick verification. With
+`skip_quick_verifier=true`, the main agent runs it directly and creates no
+verifier scratch refs. With `false`, the FAST quick-verifier subagent may make
 only tiny typo-level fixes; non-trivial failures return to the main agent for
-diagnosis and in-scope repair. The normal workflow keeps only quick-verifier scratch refs as temporary local diff anchors,
-and they are cleaned up after the successful final checkpoint. Optional plan
-review and final review have no scratch phase. The main agent performs the final
+diagnosis and in-scope repair. Only that subagent path keeps quick-verifier
+scratch refs as temporary local diff anchors, cleaned up after the successful
+final checkpoint. Optional plan review and final review have no scratch phase.
+The main agent performs the final
 diff review, applies in-scope fixes, and runs the first final-verification pass.
 It then writes a concise `Execution Summary` into the original plan and reruns
 terminal verification without further file edits. An additional coordinator

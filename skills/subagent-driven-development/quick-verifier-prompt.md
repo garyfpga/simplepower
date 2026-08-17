@@ -1,10 +1,11 @@
 # Quick Verifier Prompt Template
 
-Use this template for the mandatory FAST quick verifier after the approved
-implementation edits are complete, whether the `Implementation Route` was
-`Main agent` or `Grouped workers`. The coordinator must validate model config
-before dispatch and paste all bracketed content so the prompt is
-self-contained.
+Use this template only when effective `skip_quick_verifier=false`. Quick
+verification remains mandatory, but this FAST subagent path is selected only
+after the approved implementation edits are complete. It applies whether the
+`Implementation Route` was `Main agent` or `Grouped workers`. The coordinator
+must validate configuration before dispatch and paste all bracketed content so
+the prompt is self-contained.
 
 Dispatch shape:
 

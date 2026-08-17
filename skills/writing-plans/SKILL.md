@@ -16,10 +16,12 @@ The main agent writes and self-reviews the plan. When optional
 `plan_review_model` is active, dispatch one read-only single-pass plan reviewer,
 apply only accepted `Critical` and `Must Fix` findings, and do not re-review the
 revised plan. The workflow has no plan-review loop, plan-review scratch refs,
-final-review agent, or final-review scratch refs. The FAST quick verifier
-remains mandatory. The saved plan is also the coordinator-owned execution
-record and receives a concise completion summary before final handoff whenever
-it is a writable tracked file in the current repository.
+final-review agent, or final-review scratch refs. Quick verification remains
+mandatory; `skip_quick_verifier` selects the main agent by default or the FAST
+quick-verifier subagent when `false`. The saved plan is also the
+coordinator-owned execution record and receives a concise completion summary
+before final handoff whenever it is a writable tracked file in the current
+repository.
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
@@ -69,14 +71,14 @@ A stub substitute or execution-mode switch requires fresh explicit approval.
 
 ## Configuration And Model Terms
 
-Before assigning FAST/NORMAL/BEST work or the FAST quick verifier, resolve and
-validate Simple Power configuration by following
+Before assigning FAST/NORMAL/BEST work or selecting the quick-verification
+executor, resolve and validate Simple Power configuration by following
 `skills/using-simplepower/references/simplepower-config.md`.
 
 Active normal planning uses only:
 
 - FAST for obvious mechanical edits, simple fixture/assertion churn, and the
-  mandatory quick verifier.
+  quick-verifier subagent only when `skip_quick_verifier=false`.
 - NORMAL for routine, localized implementation.
 - BEST for broad, ambiguous, behavior-shaping, high-risk, or hard-to-test work.
 
@@ -92,6 +94,13 @@ they are deprecated no-ops in the normal brainstorming-to-implementation chain.
 Do not include legacy REVIEW allocation, dual-review routing,
 final-review-agent routing, final-review-skip boilerplate, or global optional
 plan-review configuration in generated normal plans.
+
+`skip_quick_verifier` is an active base Boolean and defaults to `true`.
+Generated plans must record its resolved value and one executor: `Main agent`
+for `true`, or `FAST subagent` for `false`. Both use the same exact timed quick
+commands. Only the FAST-subagent path receives model/effort allocation,
+`fork_turns="none"`, tiny-fix limits, lifecycle handling, and quick-verifier
+scratch refs.
 
 ## Route Selection Before Approval
 
@@ -137,8 +146,9 @@ core with concrete content and no placeholders:
 6. `Implementation Steps`: ordered, executable steps with enough detail for the
    selected route.
 7. `Risks`: concrete risks and how the plan reduces them.
-8. `Quick Verification`: exact timed commands and expected results for the FAST
-   quick verifier.
+8. `Quick Verification`: the resolved `skip_quick_verifier` value, selected
+   `Main agent` or `FAST subagent` executor, exact timed commands, and expected
+   results.
 9. `Final Verification`: exact timed commands, expected results, the main
    agent's final diff review requirement, and the terminal rerun required after
    the last execution-summary edit.
@@ -159,8 +169,8 @@ core with concrete content and no placeholders:
       accepted-plan checkpoint commit, and the final reviewed/verified
       completion checkpoint commit, plus bounded in-scope coordinator execution
       commits during the active run.
-    - Final reviewed/verified completion checkpoint after implementation, the
-      FAST quick verifier, main-agent final review and in-scope fixes, the first
+    - Final reviewed/verified completion checkpoint after implementation,
+      mandatory quick verification, main-agent final review and in-scope fixes, the first
       final-verification pass, execution-summary update, and unchanged terminal
       verification pass. When uncommitted in-scope changes remain, this
       checkpoint creates the newest final commit without requesting another
@@ -190,10 +200,11 @@ Do not add worker packages or implementation-worker allocation.
 
 The implementation steps must state that, after the accepted-plan checkpoint,
 the main agent directly implements the one cohesive package in the current
-session, then runs the mandatory FAST quick verifier, performs the main-agent
-final diff review and in-scope fixes, runs final verification, updates the
-original plan's execution summary, reruns terminal verification without further
-file edits, and reaches the final checkpoint condition.
+session, then runs mandatory quick verification through the approved executor,
+performs the main-agent final diff review and in-scope fixes, runs final
+verification, updates the original plan's execution summary, reruns terminal
+verification without further file edits, and reaches the final checkpoint
+condition.
 
 ## Grouped Workers Route Extensions
 
@@ -248,14 +259,17 @@ approved interface another package is implementing.
 
 ### FAST/NORMAL/BEST Allocation
 
-List grouped-worker packages and the quick verifier with resolved FAST, NORMAL,
-or BEST model/effort values. Do not include REVIEW allocation. Use BEST for
+List grouped-worker packages with resolved FAST, NORMAL, or BEST model/effort
+values. When `skip_quick_verifier=false`, also list the quick-verifier subagent
+with resolved FAST model/effort; with `true`, record `Main agent` and no verifier
+model allocation. Do not include REVIEW allocation. Use BEST for
 broad or behavior-shaping packages, NORMAL for routine implementation packages,
-and FAST only for mechanical package work or quick verification.
+and FAST only for mechanical package work or a selected quick-verifier
+subagent.
 
-The quick verifier uses the FAST tier by default; its built-in value is
-`gpt-5.3-codex-spark-xhigh`. Resolve all active model values through the
-canonical configuration reference instead of copying environment-overlay
+The quick-verifier subagent uses the FAST tier when selected; its built-in
+value is `gpt-5.3-codex-spark-xhigh`. Resolve all active model values through
+the canonical configuration reference instead of copying environment-overlay
 boilerplate into generated plans.
 
 ## Visual Aids
@@ -283,8 +297,10 @@ for approval. Check:
   independence.
 - Worker prompts will receive only relevant package context and exact
   `fork_turns="none"` dispatch isolation.
-- The FAST quick verifier is mandatory and limited to tiny typo-level fixes.
-- Non-trivial quick-verifier failures return to the main agent.
+- Quick verification is mandatory and the plan records the resolved executor.
+- Main-agent mode has no verifier spawn or scratch refs. FAST-subagent mode is
+  limited to tiny typo-level fixes and returns non-trivial failures to the main
+  agent.
 - The main agent performs final diff review and in-scope fixes; no final-review
   agent is required.
 - The plan runs its first final-verification pass before writing the summary and
@@ -352,14 +368,22 @@ and bounded execution commits during the active run; do not ask for separate
 commit approval unless execution requires a fresh approved-path decision. The
 authorization ends when the run is handed off as complete.
 
-## Quick Verifier And Final Review
+## Quick Verification And Final Review
 
-The quick verifier runs after all implementation edits, whether those edits were
-made directly by the main agent or by grouped workers. It uses FAST by default
-and receives only the approved changed-file list, relevant behavior contract,
+Quick verification runs after all implementation edits, whether those edits
+were made directly by the main agent or by grouped workers. The plan records
+one exact command set and the resolved executor.
+
+With effective `skip_quick_verifier=true`, the main agent runs those commands
+directly, diagnoses failures, applies only approved in-scope repairs, and
+reruns affected commands. It creates no verifier subagent, lifecycle entry, run
+id, or scratch refs.
+
+With effective `skip_quick_verifier=false`, the FAST quick-verifier subagent
+receives only the approved changed-file list, relevant behavior contract,
 implementation summary, and exact timed commands.
 
-The quick verifier may make only tiny typo-level fixes. Any behavior change,
+The dispatched quick verifier may make only tiny typo-level fixes. Any behavior change,
 structural edit, public-interface change, test rewrite, unclear failure, or
 scope concern is a non-trivial failure and must return to the main agent for
 diagnosis and in-scope repair. After repairs, rerun the relevant quick
@@ -371,13 +395,14 @@ execution changes, compare it to the accepted plan and approved path, make
 in-scope fixes, and run final verification. The normal workflow has no
 final-review agent and no final-review scratch phase.
 
-Only quick-verifier scratch refs remain in the target workflow; the optional
-single-pass plan reviewer never gets scratch refs. Quick-verifier refs are
-coordinator-owned local diff anchors managed by the execution skill. The target
-workflow has exactly two mandatory coordinator checkpoint types: accepted plan
-and final reviewed/verified completion. Objective technical-prerequisite and
-execution-summary commits are bounded execution commits, not new checkpoint
-types or intermediate quick-verified implementation checkpoints.
+Only the FAST-subagent path uses quick-verifier scratch refs; the main-agent
+path and optional single-pass plan reviewer never get them. Quick-verifier refs
+are coordinator-owned local diff anchors managed by the execution skill. The
+target workflow has exactly two mandatory coordinator checkpoint types:
+accepted plan and final reviewed/verified completion. Objective
+technical-prerequisite and execution-summary commits are bounded execution
+commits, not new checkpoint types or intermediate quick-verified implementation
+checkpoints.
 
 The canonical scratch namespace and mechanics live in
 `skills/subagent-driven-development/scratch-ref-workflow.md`, under
@@ -400,7 +425,7 @@ newest verified commit becomes the final-completion checkpoint.
 
 When the plan is writable and tracked in the current repository, an unexpected
 summary write or validation failure blocks completion and preserves working
-state and quick-verifier scratch refs. When the plan is genuinely untracked,
+state plus any quick-verifier scratch refs that were created. When the plan is genuinely untracked,
 outside the repository, or unwritable, preserve verified implementation work
 and allow handoff only with the exact omission reason. The summary records the
 observed pre-commit HEAD; the final handoff reports the containing SHA.
@@ -427,8 +452,8 @@ Execute <PLAN_PATH> using the approved Implementation Route: <Main agent|Grouped
 Preserve approved-path enforcement and exact file scope.
 Use direct main-agent implementation for Main agent routes.
 For Grouped workers routes, dispatch only the approved cohesive packages whose write scopes do not overlap, with exact fork_turns="none" and only package-relevant context.
-Run the mandatory FAST quick verifier after implementation edits.
-Return non-trivial quick-verifier failures to the main agent.
+Run mandatory quick verification after implementation edits through the plan-approved Main agent or FAST subagent executor.
+For FAST-subagent mode, return non-trivial quick-verifier failures to the main agent and use conditional scratch refs; for main-agent mode, create neither.
 Have the main agent review the full accepted-plan-to-working-state diff, apply in-scope fixes, and run the first final-verification pass.
 Update the original plan's concise Execution Summary, then rerun terminal verification without further file edits.
 Use the combined approval for the two mandatory checkpoint types and bounded in-scope coordinator execution commits only during the active run.
@@ -475,8 +500,8 @@ failures:
 - Main-agent plan self-review always runs; optional `plan_review_model` adds at
   most one read-only review and one main-agent fix pass.
 - Never resend a revised plan to the optional reviewer.
-- The FAST quick verifier remains mandatory and may make only tiny typo-level
-  fixes.
+- Quick verification remains mandatory. Main-agent mode has no verifier spawn
+  or scratch refs; the FAST-subagent mode may make only tiny typo-level fixes.
 - Main-agent final diff review and in-scope fixes replace the final-review
   agent.
 - The coordinator updates the original plan after the first final-verification

@@ -207,6 +207,7 @@ require_file "skills/using-simplepower/references/simplepower-config.md" "shared
 require_dir_absent "skills/using-superpowers" "using-superpowers skill directory is absent"
 require_path_untracked "simplepower.toml" "repository does not track a default Simple Power config"
 require_file "simplepower.toml.example" "simplepower.toml.example exists as a copyable example config"
+require_contains "simplepower.toml.example" 'skip_quick_verifier = true' "example config defaults quick verification to the main agent"
 require_contains "simplepower.toml.example" '# plan_review_model = "gpt-5.6-luna-max"' "example config documents plan review as commented opt-in"
 require_regex_not_contains "simplepower.toml.example" '^[[:space:]]*plan_review_model[[:space:]]*=' "example config does not activate plan review by default"
 
@@ -229,7 +230,9 @@ require_contains "README.md" "review_model2" "README documents optional review_m
 require_contains "README.md" "final_review_model" "README documents optional final_review_model"
 require_contains "README.md" "no environment override" "README documents that review_model2 has no environment override"
 require_contains "README.md" "skip_final_review = false" "README documents the final-review skip default"
+require_contains "README.md" "skip_quick_verifier = true" "README documents the main-agent quick-verification default"
 require_contains "README.md" "SIMPLEPOWER_USE_SUBAGENT" "README documents the explorer Boolean env var"
+require_contains "README.md" "SIMPLEPOWER_SKIP_QUICK_VERIFIER" "README documents the quick-verifier executor env var"
 require_contains "README.md" "SIMPLEPOWER_SUBAGENT_MODEL" "README documents the explorer model env var"
 require_contains "README.md" "SIMPLEPOWER_FINAL_REVIEW_MODEL" "README documents the final review model env var"
 require_contains "README.md" "SIMPLEPOWER_SKIP_FINAL_REVIEW" "README documents the final-review skip env var"
@@ -267,9 +270,9 @@ require_contains_all "README.md" "README documents original-plan execution summa
 require_not_contains "README.md" "exactly two coordinator checkpoints" "README does not conflate mandatory checkpoint types with total commit count"
 require_contains "README.md" "simplepower:subagent-driven-development" "README documents current-session auto-dispatch"
 require_contains "README.md" "temporary localhost visual companion" "README distinguishes the brainstorming visual companion"
-require_contains "README.md" "quick-verifier scratch refs as temporary local diff anchors" "README documents local scratch refs as diff anchors"
+require_contains "README.md" "Only that subagent path keeps quick-verifier" "README scopes scratch refs to FAST-subagent mode"
 require_contains "README.md" "quick-verifier" "README scopes scratch refs to quick verifier"
-require_contains "README.md" "and they are cleaned up after" "README documents scratch cleanup after success"
+require_contains "README.md" "cleaned up after the successful" "README documents scratch cleanup after success"
 require_not_contains "README.md" "git clone https://github.com/garyfpga/simplepower.git ~/.codex/simplepower" "README does not document the manual clone install flow"
 require_not_contains "README.md" "ln -s ~/.codex/simplepower/skills ~/.agents/skills/simplepower" "README does not document the manual symlink install flow"
 require_not_contains "README.md" "checks the saved plan size and asks which" "README does not describe plan-size-primary handoff routing"
@@ -284,8 +287,7 @@ require_not_contains "README.md" "current-session-context.md" "README does not p
 require_contains ".codex-plugin/plugin.json" '"version": "1.1.0"' "plugin manifest version is 1.1.0"
 require_contains ".codex-plugin/plugin.json" "Main agent" "plugin metadata documents direct main-agent implementation"
 require_contains ".codex-plugin/plugin.json" "Grouped workers" "plugin metadata documents grouped worker implementation"
-require_contains ".codex-plugin/plugin.json" "FAST quick verifier" "plugin metadata documents the FAST quick verifier"
-require_contains ".codex-plugin/plugin.json" "temporary local scratch refs as diff anchors" "plugin metadata documents scratch refs as diff anchors"
+require_contains ".codex-plugin/plugin.json" "optional FAST subagent with temporary local scratch refs" "plugin metadata documents conditional verifier dispatch and scratch refs"
 require_contains ".codex-plugin/plugin.json" "concise execution summaries in original plans" "plugin metadata documents original-plan summaries"
 require_contains ".codex-plugin/plugin.json" "two mandatory coordinator checkpoint types with bounded active-run execution commits" "plugin metadata documents bounded execution commits"
 require_contains ".codex-plugin/plugin.json" "deprecated no-op" "plugin metadata documents deprecated review compatibility settings"
@@ -299,7 +301,9 @@ require_contains "AGENTS.md" 'Root or nested `AGENTS.md` files' "AGENTS.md docum
 require_contains "AGENTS.md" 'do not provide model assignments' "AGENTS.md documents AGENTS-model assignment retirement"
 require_contains "AGENTS.md" "refs/simplepower/scratch/<run-id>/..." "AGENTS.md documents the scratch ref namespace"
 require_contains "AGENTS.md" "allowed only as local" "AGENTS.md limits scratch refs to local quick-verifier diff anchors"
-require_contains "AGENTS.md" "quick-verifier diff anchors" "AGENTS.md scopes scratch refs to quick-verifier diff anchors"
+require_contains "AGENTS.md" "quick-verifier subagent diff anchors" "AGENTS.md scopes scratch refs to quick-verifier subagent mode"
+require_contains "AGENTS.md" "skip_quick_verifier=true" "AGENTS.md documents default main-agent quick verification"
+require_contains "AGENTS.md" "skip_quick_verifier=false" "AGENTS.md scopes verifier scratch refs to subagent mode"
 require_contains "AGENTS.md" "not commits in accepted history" "AGENTS.md keeps scratch refs out of accepted history"
 require_contains "AGENTS.md" "reported for manual cleanup on" "AGENTS.md preserves scratch refs for cleanup reporting on blockers"
 require_contains_all "AGENTS.md" "AGENTS documents bounded coordinator execution commits" \
@@ -322,6 +326,7 @@ require_contains "docs/README.codex.md" "SIMPLEPOWER_BEST_MODEL" "Codex install 
 require_contains "docs/README.codex.md" "SIMPLEPOWER_NORMAL_MODEL" "Codex install guide documents the NORMAL model env var"
 require_contains "docs/README.codex.md" "SIMPLEPOWER_FAST_MODEL" "Codex install guide documents the FAST Spark model env var"
 require_contains "docs/README.codex.md" "SIMPLEPOWER_USE_SUBAGENT" "Codex install guide documents the explorer Boolean env var"
+require_contains "docs/README.codex.md" "SIMPLEPOWER_SKIP_QUICK_VERIFIER" "Codex install guide documents the verifier executor env var"
 require_contains "docs/README.codex.md" "SIMPLEPOWER_SUBAGENT_MODEL" "Codex install guide documents the explorer model env var"
 require_contains "docs/README.codex.md" "SIMPLEPOWER_FINAL_REVIEW_MODEL" "Codex install guide documents the final-review model env var"
 require_contains "docs/README.codex.md" "SIMPLEPOWER_SKIP_FINAL_REVIEW" "Codex install guide documents the final-review skip env var"
@@ -388,7 +393,8 @@ require_contains "docs/testing.md" 'SIMPLEPOWER_PLAN_REVIEW_MODEL' "testing docs
 require_contains "docs/testing.md" 'SIMPLEPOWER_REVIEW_MODEL2' "testing docs reject a review_model2 environment override"
 require_contains "docs/testing.md" "Implementation Route: Main agent" "testing docs cover direct main-agent route"
 require_contains "docs/testing.md" "Implementation Route: Grouped workers" "testing docs cover grouped worker route"
-require_contains "docs/testing.md" "mandatory FAST quick verifier" "testing docs cover mandatory FAST quick verification"
+require_contains "docs/testing.md" "quick verification is mandatory" "testing docs cover mandatory quick verification"
+require_contains "docs/testing.md" "skip_quick_verifier=true" "testing docs cover default main-agent quick verification"
 require_contains "docs/testing.md" "deprecated no-ops" "testing docs cover deprecated review compatibility no-ops"
 require_contains_all "docs/testing.md" "testing docs cover execution summaries and bounded commits" \
     "original plan's concise execution summary" \
@@ -410,6 +416,7 @@ require_contains "skills/using-simplepower/SKILL.md" "Do not invoke Simple Power
 config_reference="skills/using-simplepower/references/simplepower-config.md"
 require_contains "$config_reference" '<git-root>/simplepower.toml' "config reference names the exact repository config filename"
 require_contains "$config_reference" 'use_subagent =' "config reference defines use_subagent"
+require_contains "$config_reference" 'skip_quick_verifier =' "config reference defines skip_quick_verifier"
 require_contains "$config_reference" 'skip_final_review =' "config reference defines skip_final_review"
 require_contains "$config_reference" 'subagent_model =' "config reference defines subagent_model"
 require_contains "$config_reference" 'review_model =' "config reference defines review_model"
@@ -420,6 +427,7 @@ require_contains "$config_reference" 'best_model =' "config reference defines be
 require_contains "$config_reference" 'normal_model =' "config reference defines normal_model"
 require_contains "$config_reference" 'fast_model =' "config reference defines fast_model"
 require_contains "$config_reference" 'use_subagent = false' "config reference gives the disabled-by-default Boolean"
+require_contains "$config_reference" 'skip_quick_verifier = true' "config reference defaults quick verification to the main agent"
 require_contains "$config_reference" 'skip_final_review = false' "config reference gives the final-review skip default"
 require_contains "$config_reference" 'subagent_model = "gpt-5.6-luna-xhigh"' "config reference gives the optional subagent model default"
 require_contains "$config_reference" 'review_model = "gpt-5.6-sol-high"' "config reference gives the default REVIEW model"
@@ -436,6 +444,7 @@ require_contains "$config_reference" '`SIMPLEPOWER_BEST_MODEL`' "config referenc
 require_contains "$config_reference" '`SIMPLEPOWER_NORMAL_MODEL`' "config reference names the NORMAL environment override"
 require_contains "$config_reference" '`SIMPLEPOWER_FAST_MODEL`' "config reference names the FAST environment override"
 require_contains "$config_reference" '`SIMPLEPOWER_USE_SUBAGENT`' "config reference names the explorer Boolean environment override"
+require_contains "$config_reference" '`SIMPLEPOWER_SKIP_QUICK_VERIFIER`' "config reference names the verifier executor environment override"
 require_contains "$config_reference" '`SIMPLEPOWER_SUBAGENT_MODEL`' "config reference names the explorer model environment override"
 require_contains "$config_reference" '`SIMPLEPOWER_SKIP_FINAL_REVIEW`' "config reference names the final-review skip environment override"
 require_contains "$config_reference" 'SIMPLEPOWER_REVIEW_MODEL2' "config reference states that review_model2 has no environment variable"
@@ -445,6 +454,14 @@ require_contains "$config_reference" '`low`, `medium`, `high`, `xhigh`, `max`, a
 require_contains "$config_reference" 'It does not replace the home file as a' "config reference documents per-key overlay"
 require_contains "$config_reference" 'missing repository keys retain home or default values.' "config reference documents per-key overlay"
 require_contains "$config_reference" 'case-insensitive `true` or `false`' "config reference defines Boolean environment parsing"
+require_contains_all "$config_reference" "config reference defines both mandatory quick-verification executors" \
+    "Quick Verification Executor" \
+    "skip_quick_verifier=true" \
+    "skip_quick_verifier=false" \
+    "main agent runs the commands" \
+    "dispatch one FAST quick-verifier" \
+    "does not dispatch" \
+    "never enables or disables"
 require_contains "$config_reference" 'empty supported environment variables are ignored' "config reference ignores empty environment values"
 require_contains "$config_reference" '`~/.codex/simplepower.toml`' "config reference defines home config fallback"
 require_contains "$config_reference" 'Apply explicit current-session instructions last.' "config reference enforces current-session override precedence"
@@ -583,7 +600,12 @@ require_contains "skills/writing-plans/SKILL.md" "simplepower-config.md" "writin
 require_contains "skills/writing-plans/SKILL.md" "instead of copying environment-overlay" "writing-plans keeps environment boilerplate out of generated plans"
 require_contains "skills/writing-plans/SKILL.md" "FAST/NORMAL/BEST" "writing-plans documents active implementation allocation"
 require_contains 'skills/writing-plans/SKILL.md' '`gpt-5.3-codex-spark-xhigh`' "writing-plans defaults FAST to Spark xhigh"
-require_contains "skills/writing-plans/SKILL.md" "The quick verifier uses the FAST tier by default" "writing-plans routes quick verifier through FAST"
+require_contains_all "skills/writing-plans/SKILL.md" "writing-plans records the configuration-selected verifier executor" \
+    "skip_quick_verifier" \
+    "Main agent" \
+    "FAST subagent" \
+    "same exact timed quick" \
+    "no verifier spawn or scratch refs"
 require_contains "skills/writing-plans/SKILL.md" "final_review_model" "writing-plans documents the final review model"
 require_contains "skills/writing-plans/SKILL.md" "deprecated" "writing-plans marks review compatibility settings deprecated"
 require_contains "skills/writing-plans/SKILL.md" "no-op" "writing-plans marks review compatibility settings no-op in the normal chain"
@@ -711,7 +733,7 @@ require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD keeps ap
     "sp-impl" \
     "simplepower-config.md" \
     "supported non-empty" \
-    "Quick verifier: use FAST" \
+    "Quick verification: use the approved executor" \
     "Main agent" \
     "Grouped workers" \
     "cohesive" \
@@ -742,6 +764,14 @@ require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD keeps li
     "quick-verifier/before" \
     "quick-verifier/after" \
     "scratch-ref cleanup status or cleanup commands"
+require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD branches quick verification without changing coverage" \
+    "skip_quick_verifier=true" \
+    "skip_quick_verifier=false" \
+    "exact timed quick" \
+    "Create no verifier subagent" \
+    "quick-verifier/before" \
+    "Both executor paths" \
+    "no verifier-ref cleanup"
 require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD treats accepted combined approval as bounded active-run commit authorization" \
     "combined approval authorizes the two mandatory checkpoint types" \
     "bounded coordinator execution commits during the active run" \
@@ -808,6 +838,7 @@ require_file "skills/subagent-driven-development/quick-verifier-prompt.md" "quic
 require_path_absent "skills/subagent-driven-development/review-fix-prompt.md" "retired review+fix prompt file is absent"
 require_path_absent "skills/subagent-driven-development/secondary-review-prompt.md" "secondary final-review prompt is absent"
 require_contains_all "skills/subagent-driven-development/quick-verifier-prompt.md" "quick verifier prompt keeps FAST limited-fix guardrails" \
+    "skip_quick_verifier=false" \
     "FAST quick verifier" \
     "tiny typo-level" \
     "approved changed-file list" \
@@ -849,6 +880,7 @@ require_contains_all "skills/systematic-debugging/parallel-investigation.md" "pa
     "Assigned angle" \
     "Coordinator Synthesis"
 require_contains_all "skills/subagent-driven-development/scratch-ref-workflow.md" "scratch-ref workflow keeps exact coordinator mechanics" \
+    "skip_quick_verifier=false" \
     "refs/simplepower/scratch/<run-id>/" \
     "quick-verifier/before" \
     "quick-verifier/after" \
@@ -872,7 +904,7 @@ require_dir_absent "skills/subagent-driven-development/fixer-prompt.md" "retired
 require_dir_absent "skills/executing-plans" "retired inline execution skill is absent"
 require_contains "skills/using-simplepower/references/codex-tools.md" "independent of" "Codex tool mapping says sp-impl settings override generic same-model defaults"
 require_contains "skills/using-simplepower/references/codex-tools.md" "sp-impl file-edit worker" "Codex tool mapping includes the sp-impl file-edit worker"
-require_contains "skills/using-simplepower/references/codex-tools.md" "quick verifier" "Codex tool mapping includes the quick verifier"
+require_contains "skills/using-simplepower/references/codex-tools.md" "FAST quick-verifier subagent" "Codex tool mapping includes the quick-verifier subagent"
 require_contains "skills/using-simplepower/references/codex-tools.md" "Main agent" "Codex tool mapping includes direct main-agent implementation"
 require_contains "skills/using-simplepower/references/codex-tools.md" "Grouped workers" "Codex tool mapping includes grouped worker implementation"
 require_contains "skills/using-simplepower/references/codex-tools.md" "final_review_model" "Codex tool mapping documents the final review compatibility key"
@@ -885,6 +917,9 @@ require_contains "skills/using-simplepower/references/codex-tools.md" "SIMPLEPOW
 require_contains "skills/using-simplepower/references/codex-tools.md" 'SIMPLEPOWER_REVIEW_MODEL2' "Codex tool mapping states that review_model2 has no environment variable"
 require_contains "skills/using-simplepower/references/codex-tools.md" "SIMPLEPOWER_NORMAL_MODEL" "Codex tool mapping documents the NORMAL model env var"
 require_contains "skills/using-simplepower/references/codex-tools.md" "SIMPLEPOWER_FAST_MODEL" "Codex tool mapping documents the FAST model env var"
+require_contains "skills/using-simplepower/references/codex-tools.md" "skip_quick_verifier" "Codex tool mapping documents verifier executor routing"
+require_contains "skills/using-simplepower/references/codex-tools.md" "main-agent quick verification" "Codex tool mapping documents no-spawn quick verification"
+require_contains "skills/using-simplepower/references/codex-tools.md" "FAST quick-verifier subagent" "Codex tool mapping documents conditional FAST dispatch"
 require_contains_all "skills/using-simplepower/references/codex-tools.md" "Codex tool mapping rejects invalid lower-precedence TOML files" \
     "Every present TOML" \
     "file must validate in full"
@@ -895,12 +930,12 @@ require_contains "skills/using-simplepower/references/codex-tools.md" 'from any 
 require_contains "skills/using-simplepower/references/codex-tools.md" "refs/simplepower/scratch/<run-id>/" "Codex tool mapping documents the scratch namespace"
 require_contains "skills/using-simplepower/references/codex-tools.md" "coordinator-owned" "Codex tool mapping keeps scratch refs coordinator-owned"
 require_contains "skills/using-simplepower/references/codex-tools.md" "quick-verifier" "Codex tool mapping scopes scratch refs to the quick verifier"
-require_contains "skills/using-simplepower/references/codex-tools.md" "not branches, accepted checkpoints, pushed refs, or subagent commits" "Codex tool mapping excludes branch/checkpoint/pushed/subagent semantics"
+require_contains "skills/using-simplepower/references/codex-tools.md" "not branches" "Codex tool mapping excludes branch semantics"
 require_contains "skills/using-simplepower/references/codex-tools.md" "must not create, update, delete, inspect, or manage them" "Codex tool mapping forbids worker scratch ref ownership"
 require_contains "skills/using-simplepower/references/codex-tools.md" "plan's approved FAST/NORMAL/BEST allocation" "Codex tool mapping keeps sp-impl dispatch on the three implementation tiers"
 require_not_contains "skills/using-simplepower/references/codex-tools.md" "Dispatch one" "Codex tool mapping removes final review dispatch routing"
 require_contains "skills/using-simplepower/references/codex-tools.md" '| FAST | `fast_model` | `SIMPLEPOWER_FAST_MODEL` | `gpt-5.3-codex-spark-xhigh` |' "Codex tool mapping defaults FAST to Spark xhigh"
-require_contains "skills/using-simplepower/references/codex-tools.md" "quick verifier" "Codex tool mapping includes the quick verifier"
+require_contains "skills/using-simplepower/references/codex-tools.md" "FAST quick-verifier subagent" "Codex tool mapping includes the conditional quick verifier"
 require_contains "skills/using-simplepower/references/codex-tools.md" "optional plan reviewer" "Codex tool mapping includes optional plan review"
 require_contains "skills/using-simplepower/references/codex-tools.md" "plan-document-reviewer-prompt.md" "Codex tool mapping points at the plan-review prompt"
 require_contains "skills/using-simplepower/references/codex-tools.md" "Default resolves to Spark xhigh" "Codex tool mapping describes the quick verifier FAST default"
@@ -928,7 +963,8 @@ require_contains "tests/explicit-skill-requests/prompts/after-planning-flow.txt"
 require_contains "tests/explicit-skill-requests/prompts/codex-suggested-it.txt" "docs/simplepower/plans/auth-system.md" "follow-up explicit skill prompt uses the Simple Power plan path"
 require_contains "tests/explicit-skill-requests/prompts/i-know-what-sdd-means.txt" "docs/simplepower/plans/auth-system.md" "explicit skill prompt uses the Simple Power plan path"
 require_contains "tests/explicit-skill-requests/prompts/action-oriented.txt" "approved adaptive route" "action-oriented prompt uses adaptive route wording"
-require_contains "tests/explicit-skill-requests/prompts/action-oriented.txt" "mandatory FAST quick verifier" "action-oriented prompt requires FAST quick verification"
+require_contains "tests/explicit-skill-requests/prompts/action-oriented.txt" "mandatory quick verification" "action-oriented prompt requires configuration-selected quick verification"
+require_contains "tests/explicit-skill-requests/prompts/i-know-what-sdd-means.txt" "resolved Main agent or FAST subagent executor" "SDD prompt names both quick-verification executors"
 require_contains "tests/explicit-skill-requests/prompts/i-know-what-sdd-means.txt" "Main agent route" "SDD prompt defines main-agent behavior"
 require_contains "tests/explicit-skill-requests/prompts/i-know-what-sdd-means.txt" "Grouped workers route" "SDD prompt defines grouped-worker behavior"
 

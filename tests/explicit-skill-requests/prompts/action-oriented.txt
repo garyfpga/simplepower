@@ -3,7 +3,7 @@ I have my implementation plan ready at docs/simplepower/plans/auth-system.md.
 I want to use simplepower:subagent-driven-development to execute it with the approved adaptive route. That means:
 - Implement directly as the main agent when the plan selects one cohesive package
 - Dispatch grouped non-conflicting sp-impl workers only when the plan selects independent packages or specialized work
-- Run the mandatory FAST quick verifier with lint/build/tests and timeouts
+- Run mandatory quick verification through the resolved Main agent or FAST subagent executor with lint/build/tests and timeouts
 - Have the coordinator perform final diff review, in-scope fixes, and final verification
 
 Let's start.
