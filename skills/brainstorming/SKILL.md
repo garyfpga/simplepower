@@ -87,9 +87,10 @@ still mandatory before implementation.
    recovery state rather than continuing from memory or creating another
    artifact.
 
-   The coordinator is the only writer. After every meaningful requirement,
-   constraint, approach, route, or approval decision, replace the current snapshot
-   in place with these concise fields:
+   The coordinator is the only writer. Replace the current snapshot only after
+   a material accepted scope, constraint, approach, or route change, at complete
+   design approval, or when a blocker prevents safe continuation. Do not write
+   it after every answer or design section. Keep these concise fields:
 
    - `Confirmed requirements and constraints`
    - `Decisions and rejected choices`
@@ -97,10 +98,14 @@ still mandatory before implementation.
    - `Proposed route and consent status`
    - `Next action`
 
-   This proactive write is the brainstorming pre-compaction protocol. If the
-   context was compacted or reconstructed, reread the active plan before asking
-   another question, invoking a tool, or changing the snapshot. Missing,
-   ambiguous, or unreadable active-plan state blocks continuation; do not guess.
+   A successful `apply_patch` to this file lets the Simple Power `PostToolUse`
+   hook register its exact path and hash. `PreCompact` validates registered
+   state, `PostCompact` marks recovery pending, and `SessionStart(source=compact)`
+   injects the exact reread requirement before the immediate continuation. If
+   context was compacted or reconstructed, reread the injected active plan
+   before asking another question, invoking a tool, or changing the snapshot.
+   Missing, ambiguous, or unreadable registered state blocks continuation; do
+   not guess or parse transcript content.
 4. **Offer the visual companion only when visual questions are likely.** The
    companion is a temporary browser aid, not a mode and not an implementation
    artifact. If upcoming questions would benefit from mockups, wireframes,

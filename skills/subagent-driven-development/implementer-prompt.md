@@ -45,10 +45,10 @@ Verification for this package:
 Report requirements:
 [PASTE ANY PACKAGE-SPECIFIC OUTPUT REQUIREMENTS.]
 
-Milestone continuity:
-- After every meaningful implementation or verification milestone, deliver a
-  `PROGRESS_SNAPSHOT` to the coordinator before proceeding beyond that
-  milestone.
+Package continuity:
+- Deliver a `PROGRESS_SNAPSHOT` at package completion, when blocked, or when
+  the coordinator explicitly requests one. Do not report every internal
+  implementation or verification milestone.
 - Report exactly:
   - Package identifier: [STABLE PACKAGE IDENTIFIER]
   - Completed work

@@ -45,16 +45,20 @@ delegation value, recommended the route, and recorded explicit user consent as
 the main-agent route. This consent boundary does not govern optional explorers,
 the optional plan reviewer, or quick-verifier executor selection.
 
-Simple Power compaction continuity is instruction-level. Before context may be
-lost, the active coordinator refreshes current brainstorming or implementation
-state in the plan after meaningful milestones. After compaction or reconstructed
-context, it rereads the active plan before continuing. In grouped execution,
-workers send structured milestone snapshots and may recover by reading only
-their package continuity section; the coordinator remains the sole plan writer.
-Temporary snapshots are folded into permanent design content or the final
-`Execution Summary` and removed when their phase completes. No executable
-compaction helper, helper agent, transcript parser, second state artifact, or
-new configuration key is part of this protocol.
+Simple Power compaction continuity is hook-backed and plan-authoritative.
+Successful plan patches register one atomic session-scoped metadata pointer;
+`PreCompact` validates it, `PostCompact` marks recovery pending, and
+`SessionStart(source=compact)` injects the exact plan reread before continuation.
+The handler stores no plan content, executes no plan text, never parses the
+transcript, and never guesses a plan. Brainstorming writes durable continuity
+only for material accepted changes, complete approval, or blockers; main-agent
+execution writes after cohesive phases, blockers, or final handoff preparation.
+Grouped workers report at package completion, on blockers, or on explicit
+request and may recover by reading only their package continuity section; the
+coordinator remains the sole plan writer. Temporary snapshots are folded into
+permanent design content or the final `Execution Summary` and removed when
+their phase completes. No helper agent, transcript parser, second workflow-state
+artifact, or new configuration key is part of this protocol.
 
 Skills use the active skill content directly. Do not read skill files as a substitute for invoking the skill.
 

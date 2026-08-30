@@ -245,6 +245,7 @@ write_upstream_fixture() {
         "$repo/.codex-plugin" \
         "$repo/.private-journal" \
         "$repo/assets" \
+        "$repo/hooks" \
         "$repo/scripts" \
         "$repo/skills/example"
 
@@ -274,9 +275,20 @@ EOF
     cat > "$repo/.codex-plugin/plugin.json" <<EOF
 {
   "name": "simplepower",
-  "version": "$MANIFEST_VERSION"
+  "version": "$MANIFEST_VERSION",
+  "hooks": "./hooks/hooks.json"
 }
 EOF
+
+    cat > "$repo/hooks/hooks.json" <<'EOF'
+{"hooks":{"PreCompact":[]}}
+EOF
+
+    cat > "$repo/hooks/hooks.user.json" <<'EOF'
+{"hooks":{"PreCompact":[]}}
+EOF
+
+    printf '#!/usr/bin/env python3\nprint("hook fixture")\n' > "$repo/hooks/simplepower_continuity.py"
 
     cat > "$repo/assets/simplepower-small.svg" <<'EOF'
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"></svg>
@@ -301,6 +313,9 @@ EOF
         .gitignore \
         assets/app-icon.png \
         assets/simplepower-small.svg \
+        hooks/hooks.json \
+        hooks/hooks.user.json \
+        hooks/simplepower_continuity.py \
         package.json \
         scripts/sync-to-codex-plugin.sh \
         skills/example/SKILL.md
@@ -411,14 +426,26 @@ write_synced_destination_fixture() {
         "$repo/plugins/simplepower/.codex-plugin" \
         "$repo/plugins/simplepower/.private-journal" \
         "$repo/plugins/simplepower/assets" \
+        "$repo/plugins/simplepower/hooks" \
         "$repo/plugins/simplepower/skills/example"
 
     cat > "$repo/plugins/simplepower/.codex-plugin/plugin.json" <<EOF
 {
   "name": "simplepower",
-  "version": "$MANIFEST_VERSION"
+  "version": "$MANIFEST_VERSION",
+  "hooks": "./hooks/hooks.json"
 }
 EOF
+
+    cat > "$repo/plugins/simplepower/hooks/hooks.json" <<'EOF'
+{"hooks":{"PreCompact":[]}}
+EOF
+
+    cat > "$repo/plugins/simplepower/hooks/hooks.user.json" <<'EOF'
+{"hooks":{"PreCompact":[]}}
+EOF
+
+    printf '#!/usr/bin/env python3\nprint("hook fixture")\n' > "$repo/plugins/simplepower/hooks/simplepower_continuity.py"
 
     cat > "$repo/plugins/simplepower/assets/simplepower-small.svg" <<'EOF'
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"></svg>
@@ -440,6 +467,9 @@ EOF
         plugins/simplepower/.codex-plugin/plugin.json \
         plugins/simplepower/assets/app-icon.png \
         plugins/simplepower/assets/simplepower-small.svg \
+        plugins/simplepower/hooks/hooks.json \
+        plugins/simplepower/hooks/hooks.user.json \
+        plugins/simplepower/hooks/simplepower_continuity.py \
         plugins/simplepower/skills/example/SKILL.md \
         plugins/simplepower/.private-journal/keep.txt
 
@@ -609,6 +639,7 @@ main() {
     local bootstrap_marketplace_path
     local marketplace_update_path
     local noop_marketplace_path
+    local bootstrap_hook_path
 
     echo "=== Test: sync-to-codex-plugin dry-run regression ==="
 
@@ -708,6 +739,7 @@ main() {
     bootstrap_marketplace_path="$bootstrap_apply_dest/$MARKETPLACE_REL"
     marketplace_update_path="$marketplace_update_dest/$MARKETPLACE_REL"
     noop_marketplace_path="$noop_apply_dest/$MARKETPLACE_REL"
+    bootstrap_hook_path="$bootstrap_apply_dest/plugins/simplepower/hooks/hooks.json"
 
     echo ""
     echo "Preview assertions..."
@@ -718,6 +750,9 @@ main() {
     assert_contains "$preview_section" ".codex-plugin/plugin.json" "Preview includes manifest path"
     assert_contains "$preview_section" "assets/simplepower-small.svg" "Preview includes SVG asset"
     assert_contains "$preview_section" "assets/app-icon.png" "Preview includes PNG asset"
+    assert_contains "$preview_section" "hooks/hooks.json" "Preview includes plugin hook definition"
+    assert_contains "$preview_section" "hooks/hooks.user.json" "Preview includes user hook template"
+    assert_contains "$preview_section" "hooks/simplepower_continuity.py" "Preview includes shared continuity handler"
     assert_contains "$preview_section" ".private-journal/keep.txt" "Preview includes tracked ignored file"
     assert_not_contains "$preview_section" ".private-journal/leak.txt" "Preview excludes ignored untracked file"
     assert_not_contains "$preview_section" "ignored-cache/" "Preview excludes pure ignored directories"
@@ -772,6 +807,10 @@ Locally modified fixture content." "Dirty local apply preserves tracked working-
     assert_json_value "$bootstrap_marketplace_path" "name" "garyfpga-codex-plugins" "Bootstrap local apply creates marketplace root name"
     assert_json_value "$bootstrap_marketplace_path" "interface.displayName" "Simple Power Codex Plugins" "Bootstrap local apply creates marketplace display name"
     assert_marketplace_simplepower_entry "$bootstrap_marketplace_path" "Bootstrap local apply marketplace index"
+    assert_file_equals "$bootstrap_hook_path" '{"hooks":{"PreCompact":[]}}' "Bootstrap local apply packages hook definition"
+    assert_file_equals "$bootstrap_apply_dest/plugins/simplepower/hooks/hooks.user.json" '{"hooks":{"PreCompact":[]}}' "Bootstrap local apply packages user hook template"
+    assert_file_equals "$bootstrap_apply_dest/plugins/simplepower/hooks/simplepower_continuity.py" '#!/usr/bin/env python3
+print("hook fixture")' "Bootstrap local apply packages shared continuity handler"
 
     echo ""
     echo "Marketplace preservation assertions..."

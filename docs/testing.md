@@ -167,6 +167,7 @@ Configuration smoke expectations:
 Run these focused suites from the repository root:
 
 ```bash
+timeout 30s python3 tests/hooks/test_simplepower_continuity.py
 timeout 30s bash tests/simplepower-static/run-tests.sh
 timeout 30s bash tests/skill-triggering/run-all.sh
 timeout 30s bash tests/explicit-skill-requests/run-all.sh
@@ -186,28 +187,41 @@ Manual acceptance scenarios:
   value. Absent, silent, uncertain, ambiguous, or declined consent keeps
   `Implementation Route: Main agent`; planning cannot ask again or infer
   approval.
-- During brainstorming, verify `## Brainstorming Continuity` is replaced after
-  meaningful decisions with confirmed requirements and constraints, decisions
-  and rejected choices, open questions, proposed route/consent state, and next
-  action. Simulate compaction by reconstructing context and verify the main
-  agent rereads the active plan before another question or tool.
+- During brainstorming, verify `## Brainstorming Continuity` is replaced only
+  for material accepted design/route changes, complete approval, or a blocker,
+  with confirmed requirements and constraints, decisions and rejected choices,
+  open questions, proposed route/consent state, and next action. Do not persist
+  every answer or design section.
 - During direct implementation, verify `## Implementation Continuity` is a
   replaceable snapshot of completed work, partial results, changed files,
-  verification, blockers, and next action. Reconstructed main-agent context
-  must reread the plan and revalidate route and scope before editing.
+  verification, blockers, and next action written only after cohesive phases,
+  on blockers, or for final handoff preparation—not after every test, fix, or
+  review action.
 - For an explicitly consented grouped route, verify every worker has a stable
-  package identifier and sends `PROGRESS_SNAPSHOT` reports at meaningful
-  milestones before continuing. The coordinator alone writes the plan. After
+  package identifier and sends `PROGRESS_SNAPSHOT` reports at package
+  completion, on blockers, or on explicit coordinator request. The coordinator
+  alone writes the plan. After
   reconstructed worker context, the worker may read only its package continuity
   section, not the full plan for task discovery.
-- Verify a failed plan create, refresh, or reread stops the active phase with
-  the exact path and recovery state. A failed worker milestone delivery reports
-  `BLOCKED` or `NEEDS_CONTEXT` instead of proceeding from memory.
+- Test both registration modes, but enable only one at a time. Marketplace mode
+  uses `$PLUGIN_DATA/continuity/`; symlink mode uses
+  `${CODEX_HOME:-$HOME/.codex}/simplepower-data/continuity/`.
+- In a fresh Codex CLI session, run `/hooks`, review and trust the selected
+  Simple Power definition, successfully patch a plan, trigger manual
+  compaction, and verify `PreCompact`, `PostCompact`, and compact-source
+  `SessionStart` appear. Confirm the immediate continuation receives the exact
+  plan path and phase reread requirement.
+- Corrupt the isolated test pointer and verify `PreCompact` stops. Remove the
+  pointer and verify an ordinary session remains a no-op. Never corrupt live
+  workflow state for this smoke test.
+- Verify a failed plan create, refresh, hook validation, or reread stops the
+  active phase with the exact path and recovery state. A failed worker package
+  report returns `BLOCKED` or `NEEDS_CONTEXT` instead of proceeding from memory.
 - At planning and execution phase completion, verify durable facts are folded
   into permanent plan sections or `Execution Summary` and the temporary
-  continuity sections are removed. Confirm no executable compaction helper,
-  helper agent, transcript parser, extra state artifact, or new configuration
-  key was introduced.
+  continuity sections are removed. Confirm the handler stores metadata only,
+  never parses transcript content, never guesses a plan, never executes plan
+  content, and adds no continuity configuration key.
 
 ## What each check covers
 
@@ -216,7 +230,8 @@ Manual acceptance scenarios:
 - `tests/brainstorm-server` verifies the WebSocket protocol, HTTP serving,
   reload behavior, branding, and `.simplepower/brainstorm` session paths.
 - `tests/codex-plugin-sync/test-sync-to-codex-plugin.sh` verifies the Codex
-  plugin sync flow, the packaged plugin metadata, and marketplace metadata.
+  plugin sync flow, bundled hook files, packaged plugin metadata, and
+  marketplace metadata.
 - Static checks cover adaptive Main agent and Grouped workers routes, optional plan visual guidance,
   brainstorming visual companion behavior, and
   marketplace install/version metadata.

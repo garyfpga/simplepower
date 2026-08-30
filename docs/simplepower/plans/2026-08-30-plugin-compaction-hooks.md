@@ -185,19 +185,17 @@ timeout 30s git diff --check
 
 Record every command, result, and any bounded deviation. A timeout, skip, or unavailable dependency is not a pass and must be reported and resolved or handed off as a blocker.
 
-## Execution Record
+## Execution Summary
 
-At implementation completion, replace this section with `## Execution Summary` containing:
-
-- implemented behavior and any approved deviation from this plan;
-- exact files created/modified;
-- quick-verification results;
-- final diff self-review findings and fixes;
-- both final-verification passes with exact commands and results;
-- checkpoint commits created under the accepted authorization;
-- remaining risks or follow-up, explicitly stating `None` when empty.
-
-Use a single replaceable `## Implementation Continuity` section only after a cohesive phase completion, on a blocker, or for final-handoff preparation. Do not refresh it for every test, fix, or review action. Fold it into `Execution Summary` and remove it before the final checkpoint.
+- **Status and outcome:** Implemented the approved hook-backed continuity design on `feature/main-agent-default-and-compaction-continuity`. Marketplace plugins use the bundled registration and `$PLUGIN_DATA/continuity/`; symlink development installs use the user template and `${CODEX_HOME:-$HOME/.codex}/simplepower-data/continuity/`. Unregistered sessions no-op, registered invalid state fails closed, and compact-source recovery injects the exact authoritative plan reread. Markdown persistence is sparse at durable design/phase/package boundaries. No plan or transcript content is stored or parsed, and no plan is guessed or executed.
+- **Created files:** `hooks/hooks.json`, `hooks/hooks.user.json`, `hooks/simplepower_continuity.py`, and `tests/hooks/test_simplepower_continuity.py`.
+- **Modified files:** `AGENTS.md`, `.codex-plugin/plugin.json`, `package.json`, `README.md`, `.codex/INSTALL.md`, `docs/README.codex.md`, `docs/testing.md`, `skills/brainstorming/SKILL.md`, `skills/writing-plans/SKILL.md`, `skills/subagent-driven-development/SKILL.md`, `skills/subagent-driven-development/implementer-prompt.md`, `skills/using-simplepower/SKILL.md`, `tests/simplepower-static/run-tests.sh`, `tests/codex-plugin-sync/test-sync-to-codex-plugin.sh`, and this plan. The completed historical instruction-only plan was not changed.
+- **Quick verification:** The four approved commands passed. The initial handler run had 15 passing tests; coordinator review added five fail-closed regressions, bringing the final handler suite to 20 passing tests. Static policy checks, plugin-sync packaging, and `git diff --check` passed.
+- **Coordinator review:** Reviewed all accepted-plan-to-working-state changes and exact file scope. Fixed two security edge cases: broken pointer symlinks now fail closed instead of appearing absent, and symlinked `docs/simplepower/plans` directories are rejected as escapes. Tightened state to the exact metadata schema. No out-of-scope edits, worker commits, scratch refs, transcript reads, high-frequency persistence rules, or historical-plan rewrites were found. Plan deviations: None.
+- **First final-verification pass:** Every approved command exited 0: 20 hook tests; Simple Power static checks; plugin-sync regression; five skill-triggering fixtures; nine explicit-skill fixtures; 26 brainstorm-server tests; version synchronization at `1.2.0`; and `git diff --check`.
+- **Terminal final-verification pass:** The identical command sequence will run immediately after this summary with no further file edits. Its observed results belong in the final handoff because editing this summary afterward would invalidate the unchanged terminal pass.
+- **Checkpoint state:** Accepted-plan checkpoint `d9fa36a9b49c6eb265d1545fd4178b4c7b0a4d8a`; pre-commit HEAD remains that checkpoint. The worktree contains only the approved modified and untracked implementation paths. The final-completion checkpoint will contain this summary, and its SHA will be reported in the handoff.
+- **Remaining risk/follow-up:** This already-running symlink session has no `~/.codex/hooks.json`, so the new hooks are not active here. After the final checkpoint, create or merge the documented user-layer registration, restart Codex, review/trust it through `/hooks`, and perform the documented manual compaction smoke check. Do not also enable the marketplace registration.
 
 ## Checkpoint Conditions
 

@@ -39,6 +39,18 @@ require_executable() {
     fi
 }
 
+require_valid_json() {
+    local path="$1"
+    local description="$2"
+
+    if python3 -m json.tool "$REPO_ROOT/$path" >/dev/null 2>&1; then
+        pass "$description"
+    else
+        fail "$description"
+        echo "    invalid JSON: $path"
+    fi
+}
+
 require_dir_absent() {
     local path="$1"
     local description="$2"
@@ -255,10 +267,10 @@ require_contains_all "README.md" "README documents main-agent default, consent g
     "is the default" \
     "Grouped Workers Consent: Approved" \
     "evolving Markdown plan" \
-    "instruction-level protocol" \
+    "real Codex lifecycle hooks" \
     "only plan writer" \
-    "package continuity section" \
-    "Temporary snapshots are folded"
+    "package completion" \
+    "durable boundaries"
 require_contains_all 'README.md' "README documents AGENTS model assignment retirement" \
     'Root and nested `AGENTS.md` files do not provide' \
     'model assignments.'
@@ -281,8 +293,10 @@ require_contains "README.md" "temporary localhost visual companion" "README dist
 require_contains "README.md" "Only that subagent path keeps quick-verifier" "README scopes scratch refs to FAST-subagent mode"
 require_contains "README.md" "quick-verifier" "README scopes scratch refs to quick verifier"
 require_contains "README.md" "cleaned up after the successful" "README documents scratch cleanup after success"
-require_not_contains "README.md" "git clone https://github.com/garyfpga/simplepower.git ~/.codex/simplepower" "README does not document the manual clone install flow"
-require_not_contains "README.md" "ln -s ~/.codex/simplepower/skills ~/.agents/skills/simplepower" "README does not document the manual symlink install flow"
+require_contains "README.md" "Symlink installs remain supported for experiments" "README supports symlink development installs"
+require_contains "README.md" "hooks/hooks.user.json" "README documents the user hook template"
+require_contains "README.md" 'Codex-provided `$PLUGIN_DATA/continuity/`' "README documents the plugin data root"
+require_contains "README.md" '`${CODEX_HOME:-$HOME/.codex}/simplepower-data/continuity/`' "README documents the symlink data root"
 require_not_contains "README.md" "checks the saved plan size and asks which" "README does not describe plan-size-primary handoff routing"
 require_not_contains "README.md" "/clear" "README does not preserve the retired /clear handoff flow"
 require_not_contains "README.md" "current Codex context usage" "README does not preserve context-usage routing"
@@ -292,7 +306,7 @@ require_not_contains "README.md" "both commands" "README does not preserve the d
 require_not_contains "README.md" "55%" "README does not preserve the 55 percent routing threshold"
 require_not_contains "README.md" "current-session-context.md" "README does not preserve the retired context helper reference"
 
-require_contains ".codex-plugin/plugin.json" '"version": "1.1.0"' "plugin manifest version is 1.1.0"
+require_contains ".codex-plugin/plugin.json" '"version": "1.2.0"' "plugin manifest version is 1.2.0"
 require_contains ".codex-plugin/plugin.json" "Main agent" "plugin metadata documents direct main-agent implementation"
 require_contains ".codex-plugin/plugin.json" "Grouped workers" "plugin metadata documents grouped worker implementation"
 require_contains ".codex-plugin/plugin.json" "optional FAST subagent with temporary local scratch refs" "plugin metadata documents conditional verifier dispatch and scratch refs"
@@ -301,13 +315,14 @@ require_contains ".codex-plugin/plugin.json" "two mandatory coordinator checkpoi
 require_contains ".codex-plugin/plugin.json" "deprecated no-op" "plugin metadata documents deprecated review compatibility settings"
 require_contains ".codex-plugin/plugin.json" "optional configured single-pass read-only plan reviewer" "plugin metadata documents optional plan review"
 require_contains_all ".codex-plugin/plugin.json" "plugin metadata documents consent-gated route and continuity" \
-    "evolving-plan continuity" \
+    "hook-backed plan continuity" \
     "Main agent implementation by default" \
     "consent-gated Grouped workers" \
     "coordinator-only plan writes" \
-    "grouped-worker progress snapshots"
+    "package-boundary worker progress snapshots"
+require_contains ".codex-plugin/plugin.json" '"hooks": "./hooks/hooks.json"' "plugin manifest registers bundled hooks"
 require_not_contains ".codex-plugin/plugin.json" "one BEST-tier review+fix pass" "plugin metadata no longer documents BEST-tier review+fix"
-require_contains "package.json" '"version": "1.1.0"' "package.json version is 1.1.0"
+require_contains "package.json" '"version": "1.2.0"' "package.json version is 1.2.0"
 
 require_contains "AGENTS.md" "simplepower:*" "AGENTS.md uses the Simple Power namespace"
 require_contains "AGENTS.md" "docs/simplepower" "AGENTS.md points generated docs at docs/simplepower"
@@ -332,7 +347,7 @@ require_contains_all "AGENTS.md" "AGENTS documents main-agent consent gate and c
     "Grouped Workers Consent: Approved" \
     "Silence, uncertainty, rejection" \
     "coordinator is the only writer" \
-    "structured progress snapshots" \
+    "Grouped workers report at" \
     "package continuity section"
 
 require_contains "docs/README.codex.md" "simplepower:*" "Codex install guide uses the Simple Power namespace"
@@ -368,9 +383,9 @@ require_contains_all "docs/README.codex.md" "Codex install guide documents evolv
     "evolving plan" \
     "same file in place" \
     "Workers Consent: Approved" \
-    "instruction-level" \
+    "hook-backed" \
     "PROGRESS_SNAPSHOT" \
-    "only the coordinator writes" \
+    "Only the coordinator writes" \
     "only its own section"
 require_contains "docs/README.codex.md" "initial triage" "Codex install guide documents coordinator first triage"
 require_contains "docs/README.codex.md" "one or more" "Codex install guide documents on-demand fanout"
@@ -442,7 +457,7 @@ require_contains_all "docs/testing.md" "testing docs cover route consent and com
     "## Implementation Continuity" \
     "PROGRESS_SNAPSHOT" \
     "read only its package continuity" \
-    "failed plan create, refresh, or reread" \
+    "failed plan create, refresh, hook validation, or reread" \
     "continuity sections are removed"
 
 require_contains "skills/using-simplepower/SKILL.md" "simplepower:*" "using-simplepower skill uses the Simple Power namespace"
@@ -455,7 +470,7 @@ require_contains_all "skills/using-simplepower/SKILL.md" "using-simplepower summ
     "evolving Markdown plan" \
     "by default" \
     "Grouped Workers Consent: Approved" \
-    "instruction-level" \
+    "hook-backed" \
     "coordinator remains the sole plan writer" \
     "reading only" \
     "Temporary snapshots are folded"
@@ -592,8 +607,10 @@ require_contains_all "skills/brainstorming/SKILL.md" "brainstorming maintains a 
     "Open questions" \
     "Proposed route and consent status" \
     "Next action" \
-    "replace the current snapshot" \
-    "reread the active plan"
+    "Replace the current snapshot only" \
+    "material accepted" \
+    "Do not write" \
+    "reread the injected active plan"
 require_contains_all "skills/brainstorming/SKILL.md" "brainstorming keeps coordinator-led read-only fanout boundaries" \
     "coordinator performs read-only initial triage" \
     "initial triage" \
@@ -881,8 +898,9 @@ require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD keeps re
     "Verification" \
     "Blockers" \
     "Next action" \
-    "replace the current snapshot" \
-    "reread the active plan"
+    "Replace it after a cohesive phase" \
+    "not after each test" \
+    "exact plan and phase reread"
 require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD rejects grouped execution without brainstorming consent" \
     'Grouped Workers Consent` marker' \
     "Grouped Workers Consent: Approved" \
@@ -896,7 +914,8 @@ require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD uses coo
     "PROGRESS_SNAPSHOT" \
     "Package identifier" \
     "coordinator is the only writer" \
-    "before proceeding beyond the milestone" \
+    "at package completion" \
+    "explicit coordinator request" \
     "package continuity section" \
     "fold" \
     "remove temporary continuity sections"
@@ -1099,6 +1118,7 @@ active_paths=(
     .codex-plugin/plugin.json
     docs/README.codex.md
     docs/testing.md
+    hooks
     package.json
     scripts/bump-version.sh
     scripts/sync-to-codex-plugin.sh
@@ -1205,12 +1225,38 @@ require_path_absent "skills/brainstorming/scripts/pre-compact-hook" "no executab
 require_path_absent "skills/subagent-driven-development/scripts/post-compact-hook" "no executable post-compact helper is added"
 require_path_absent "skills/subagent-driven-development/continuity-helper-prompt.md" "no continuity helper agent prompt is added"
 require_path_absent ".simplepower/continuity" "no second continuity state artifact is added"
-require_contains_all "skills/using-simplepower/SKILL.md" "continuity protocol explicitly excludes executable helpers and transcript parsing" \
-    "No executable" \
-    "compaction helper" \
+require_contains_all "skills/using-simplepower/SKILL.md" "continuity protocol limits hook state and excludes transcript parsing" \
+    "session-scoped metadata pointer" \
+    "stores no plan content" \
     "helper agent" \
     "transcript parser"
-require_no_active_match "hookSpecificOutput[.]additionalContext|implementation-handoff-hook|parse the conversation transcript" "active continuity workflow does not depend on executable hook context or transcript parsing" "${active_plan_first_paths[@]}"
+require_no_active_match "implementation-handoff-hook|parse the conversation transcript" "active continuity workflow does not parse transcripts or retain retired handoff hooks" "${active_plan_first_paths[@]}"
+require_file "hooks/hooks.json" "plugin hook definition exists"
+require_file "hooks/hooks.user.json" "symlink-mode hook template exists"
+require_file "hooks/simplepower_continuity.py" "shared continuity handler exists"
+require_file "tests/hooks/test_simplepower_continuity.py" "continuity handler tests exist"
+require_valid_json "hooks/hooks.json" "plugin hook definition is valid JSON"
+require_valid_json "hooks/hooks.user.json" "symlink hook template is valid JSON"
+require_contains_all "hooks/hooks.json" "plugin hooks cover the real compaction lifecycle" \
+    '"PostToolUse"' \
+    '"PreCompact"' \
+    '"PostCompact"' \
+    '"SessionStart"' \
+    '$PLUGIN_ROOT/hooks/simplepower_continuity.py'
+require_contains_all "hooks/hooks.user.json" "user hooks use the symlink checkout" \
+    '"PostToolUse"' \
+    '"PreCompact"' \
+    '"PostCompact"' \
+    '"SessionStart"' \
+    '${CODEX_HOME:-$HOME/.codex}/simplepower/hooks/simplepower_continuity.py'
+require_contains_all "hooks/simplepower_continuity.py" "handler uses metadata-only fail-closed state" \
+    '"plan_path"' \
+    '"plan_sha256"' \
+    '"recovery_status"' \
+    '"continue": False' \
+    "os.replace" \
+    "Do not guess"
+require_not_contains "hooks/simplepower_continuity.py" 'event.get("transcript_path")' "handler never reads the transcript path"
 require_dir_absent "skills/subagent-driven-development/wave-reviewer-fixer-prompt.md" "retired wave reviewer/fixer prompt file is absent"
 require_no_active_match "wave-reviewer-fixer-prompt[.]md" "active files do not reference the retired combined reviewer/fixer prompt" "${active_paths[@]}"
 
@@ -1230,7 +1276,6 @@ for path in \
     gemini-extension.json \
     docs/README.opencode.md \
     docs/windows \
-    hooks \
     commands \
     "tests/$legacy_agent_name-code" \
     tests/opencode \

@@ -9,9 +9,10 @@ skill handoffs focused on Codex.
 - Write generated plans under `docs/simplepower/plans/`.
 - Brainstorming creates the authoritative Markdown plan early, planning expands
   that same file in place, and execution uses it for replaceable continuity
-  snapshots and the final execution summary. Do not add a second workflow-state
-  artifact, executable compaction helper, transcript parser, or configuration
-  key for continuity.
+  snapshots and the final execution summary. The root `hooks/` lifecycle may
+  keep one atomic, session-scoped metadata pointer to that plan; it must not
+  store or execute plan content, parse transcripts, guess a plan, create a
+  second workflow-state artifact, or add a configuration key for continuity.
 - Do not add standalone spec generation to the normal active workflow.
 - Do not add Claude, Gemini, OpenCode, Cursor, or Copilot harness support to
   the active repo.
@@ -40,12 +41,14 @@ skill handoffs focused on Codex.
   verification runs in the main agent when `skip_quick_verifier=true` (the
   default) and in the FAST subagent when `false`.
 - The coordinator is the only writer to the authoritative plan. It refreshes a
-  replaceable brainstorming or main-agent implementation snapshot after
-  meaningful milestones. Grouped workers send structured progress snapshots;
-  the coordinator records them, and after compaction a worker may reread only
-  its package continuity section. Fold temporary continuity into permanent
-  design content or `Execution Summary` and remove the temporary sections when
-  the phase completes.
+  replaceable brainstorming snapshot only at initial creation, material
+  accepted design/route changes, complete design approval, or a blocker. During
+  main-agent execution it refreshes continuity only after a cohesive phase, on
+  a blocker, or for final handoff preparation. Grouped workers report at
+  package completion, on a blocker, or when the coordinator explicitly asks;
+  after compaction a worker may reread only its package continuity section.
+  Fold temporary continuity into permanent design content or `Execution
+  Summary` and remove the temporary sections when the phase completes.
 - Coordinator-owned temporary scratch refs under
   `refs/simplepower/scratch/<run-id>/...` are allowed only as local
   quick-verifier subagent diff anchors only when

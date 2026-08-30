@@ -54,6 +54,10 @@ codex plugin marketplace upgrade garyfpga-codex-plugins
 
 更新后如果想让 Codex 立刻重新扫描 installed skills，请重启 Codex。
 
+Plugin 安装会自动发现 `hooks/hooks.json`，但 hooks 在通过 `/hooks` 检查并信任前不会运行。Plugin 模式的 continuity metadata 位于 Codex 提供的 `$PLUGIN_DATA/continuity/`；`PLUGIN_DATA` 由 Codex 为该 plugin 选择，用户不需要设置。
+
+用于实验的 symlink 安装仍然受支持。Checkout 可以放在 `${CODEX_HOME:-$HOME/.codex}/simplepower`，skills symlink 保持指向该 checkout。不要同时启用 marketplace plugin hooks 和 user hooks。Symlink 模式把 [hooks/hooks.user.json](hooks/hooks.user.json) 合并到 `~/.codex/hooks.json`；如果该文件完全由 Simple Power 独占，也可以直接 symlink。不要覆盖已有 hook 配置。此模式的 metadata 位于 `${CODEX_HOME:-$HOME/.codex}/simplepower-data/continuity/`。两种模式都需要 Python 3，并需要在 `/hooks` 中信任 exact hook definition。
+
 ## 模型分配
 
 Simple Power 的正常 brainstorming-to-implementation chain 使用三个主动模型层级：BEST、NORMAL 和 FAST。可选的 `plan_review_model` 在显式配置时提供一次 single-pass plan review。旧的 REVIEW 配置仍被识别和严格验证，方便已有配置继续工作，但在正常流程里已经是 deprecated compatibility/no-op。
@@ -117,7 +121,9 @@ Simple Power skills 使用 `simplepower:*` namespace。当你想让 Codex 使用
 
 brainstorming skill 可以使用临时的 localhost visual companion 来处理 mockups、diagrams 和其他视觉问题。初步 triage 确定 feature name 后，brainstorming 会在 `docs/simplepower/plans/` 提前创建唯一的 evolving Markdown plan；planning 直接扩展同一个文件，不创建第二个 state artifact。
 
-Compaction continuity 是 instruction-level protocol。Brainstorming 和 main-agent implementation 会在 meaningful milestones 后替换 plan 中的 current snapshot；context compact 或重建后，main agent 必须先重新读取 active plan。Grouped workers 只发送结构化 milestone snapshots，coordinator 是 plan 的唯一 writer；worker 恢复时只能读取自己的 package continuity section。阶段结束后，temporary snapshots 会被折叠进 permanent design 或 `Execution Summary` 并删除。流程不增加 executable compaction helper、helper agent、transcript parser 或新 config key。
+Compaction continuity 由真实 Codex lifecycle hooks 支持，同时 Markdown plan 仍是唯一 authoritative workflow record。成功的 plan `apply_patch` 通过 `PostToolUse` 注册 exact path/hash；`PreCompact` 在 registered state 无效时阻止 compact；`PostCompact` 标记 recovery pending；`SessionStart(source=compact)` 在 immediate continuation 前注入 exact plan reread。没有注册的普通 session 是 no-op。Handler 只保存 session-scoped metadata，不解析 transcript、不猜 plan、也不执行 plan 内容。
+
+Markdown persistence 只保留 durable boundaries：brainstorming 在初次创建、material accepted design/route change、完整批准或 blocker 时写入；main-agent implementation 在 cohesive phase 完成、blocker 或 final handoff preparation 时写入；grouped worker 在 package completion、blocker 或 coordinator 明确请求时报告。不会再为每个 answer、test、fix 或 review step 写 plan。Coordinator 仍是 plan 的唯一 writer；temporary snapshots 在阶段完成后折叠进 permanent design 或 `Execution Summary` 并删除。
 
 在 `simplepower:writing-plans` 完成 main-agent plan self-review 之后，如果 optional `plan_review_model` 已启用，Simple Power 会 dispatch 一次 read-only reviewer，只处理 Critical 和 Must Fix findings。Main agent 做一次 fix pass 后不会 re-review；review dispatch 失败或 report unusable 时继续使用已完成的 self-review。之后 Simple Power 会一次性询问你是否批准最终 plan、route/model allocation、两个 mandatory checkpoint types、active run 内受限的 coordinator execution commits，以及立刻在当前 session 里启动 `simplepower:subagent-driven-development`。
 你确认后，coordinator 会创建 accepted plan checkpoint commit，并立即调用 `simplepower:subagent-driven-development` 执行已批准的 plan。
@@ -188,6 +194,21 @@ codex plugin marketplace upgrade garyfpga-codex-plugins
 
 Restart Codex after install or update if you want it to rescan installed skills
 immediately.
+
+Plugin installs discover `hooks/hooks.json` automatically, but the hooks do not
+run until you inspect and trust them through `/hooks`. Plugin continuity
+metadata lives under the Codex-provided `$PLUGIN_DATA/continuity/`; users do
+not set `PLUGIN_DATA` themselves.
+
+Symlink installs remain supported for experiments. Keep the checkout at a path
+such as `${CODEX_HOME:-$HOME/.codex}/simplepower`, keep the skills symlink
+pointed at that checkout, and merge [hooks/hooks.user.json](hooks/hooks.user.json)
+into `~/.codex/hooks.json`. When that file is dedicated to Simple Power, it may
+instead be a symlink to the tracked template. Never overwrite existing hook
+configuration. Symlink-mode metadata lives under
+`${CODEX_HOME:-$HOME/.codex}/simplepower-data/continuity/`. Enable either the
+plugin registration or the user registration, never both. Both modes require
+Python 3 and trust for the exact definition shown by `/hooks`.
 
 ## Model Allocation
 
@@ -348,15 +369,23 @@ the feature name, brainstorming creates the one evolving Markdown plan under
 `docs/simplepower/plans/`; planning expands that same file in place rather than
 creating a second state artifact.
 
-Compaction continuity is an instruction-level protocol. Brainstorming and
-main-agent implementation replace the plan's current snapshot after meaningful
-milestones; after compacted or reconstructed context, the main agent rereads the
-active plan before continuing. Grouped workers send structured milestone
-snapshots and the coordinator remains the only plan writer; a recovering worker
-may read only its package continuity section. Temporary snapshots are folded
-into permanent design content or `Execution Summary` and removed at phase
-completion. The workflow adds no executable compaction helper, helper agent,
-transcript parser, or new configuration key.
+Compaction continuity uses real Codex lifecycle hooks while the Markdown plan
+remains the only authoritative workflow record. Successful plan `apply_patch`
+calls register the exact path and hash through `PostToolUse`; `PreCompact`
+blocks invalid registered state; `PostCompact` marks recovery pending; and
+`SessionStart(source=compact)` injects the exact plan reread before the
+immediate continuation. Ordinary sessions without registered state are no-ops.
+The handler stores session-scoped metadata only: it never parses transcripts,
+guesses a plan, or executes plan content.
+
+Markdown persistence now covers durable boundaries only. Brainstorming writes
+at initial creation, material accepted design/route changes, complete approval,
+or a blocker. Main-agent implementation writes after a cohesive phase, on a
+blocker, or for final-handoff preparation. Grouped workers report at package
+completion, on a blocker, or on explicit coordinator request. The workflow no
+longer writes the plan after every answer, test, fix, or review step. The
+coordinator remains the only plan writer, and temporary snapshots are folded
+into permanent design content or `Execution Summary` at phase completion.
 
 After `simplepower:writing-plans` finishes main-agent plan self-review, it runs
 one read-only reviewer when optional `plan_review_model` is active. The main

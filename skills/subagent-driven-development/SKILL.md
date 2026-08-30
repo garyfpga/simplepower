@@ -157,16 +157,19 @@ quick-verifier anchors, not branches, accepted commits, pushed refs, merged
 refs, rebased refs, worker commits, or task commits. Effective `true` creates
 no verifier run id or scratch refs.
 
-## Plan-Based Compaction Continuity
+## Hook-Backed Plan Compaction Continuity
 
-Continuity is an instruction-level protocol stored in the authoritative plan,
-not an executable lifecycle helper, helper agent, parser, extra state artifact,
-or configuration key. The coordinator is the only writer to the plan.
+The authoritative Markdown plan remains the sole workflow record. The bundled
+Simple Power lifecycle handler keeps only one atomic, session-scoped metadata
+pointer containing the exact plan path, repository root, phase, hash, and
+recovery status. It does not store or execute plan content, parse transcripts,
+guess a plan, create a second workflow-state artifact, or add a continuity
+configuration key. The coordinator is the only writer to the plan.
 
 For `Implementation Route: Main agent`, maintain one replaceable
-`## Implementation Continuity` snapshot. After every meaningful implementation,
-verification, repair, or review milestone, replace the current snapshot in
-place with:
+`## Implementation Continuity` snapshot. Replace it after a cohesive phase, on
+a blocker, or for final handoff preparation—not after each test, repair, or
+review action—with:
 
 - `Completed work`
 - `Partial results`
@@ -175,18 +178,20 @@ place with:
 - `Blockers`
 - `Next action`
 
-The write must succeed before moving beyond the milestone. This proactive
-snapshot is the pre-compaction behavior; the required reread above is the
-post-compaction behavior.
+The durable write must succeed at those boundaries. Built-in compaction
+summaries carry transient activity. The real `PreCompact` hook validates
+registered state, `PostCompact` marks recovery pending, and
+`SessionStart(source=compact)` injects the exact plan and phase reread before
+the immediate root continuation.
 
 For `Implementation Route: Grouped workers`, assign every worker package a
 stable `Package identifier` and a coordinator-owned package continuity section.
-Each worker sends a structured `PROGRESS_SNAPSHOT` after every meaningful
-milestone with the package identifier, completed work, partial results, changed
-files, verification, blockers, and next action. It must successfully deliver
-that report before proceeding beyond the milestone. The coordinator consumes
-the report, validates actual ownership and progress, and replaces that
-package's current snapshot; workers never edit the plan.
+Each worker sends a structured `PROGRESS_SNAPSHOT` at package completion, on a
+blocker, or at an explicit coordinator request with the package identifier,
+completed work, partial results, changed files, verification, blockers, and
+next action. The coordinator consumes the report, validates actual ownership
+and progress, and replaces that package's current snapshot; workers never edit
+the plan.
 
 After worker-context compaction, a worker may read only its package continuity
 section from the supplied plan path, then revalidate its package boundary and
@@ -322,8 +327,8 @@ SHA without changing it.
    prerequisite or a required separate/later summary update.
 4. If `Implementation Route: Main agent`, implement the approved cohesive
    package directly in the coordinator session. Do not dispatch an `sp-impl`
-   worker for the package. Refresh `## Implementation Continuity` after each
-   meaningful milestone before proceeding.
+   worker for the package. Refresh `## Implementation Continuity` only after a
+   cohesive phase, on a blocker, or for final handoff preparation.
 5. If `Implementation Route: Grouped workers`, classify every package:
    - ready grouped packages: non-overlapping approved write scopes, relevant
      contract inputs satisfied by the accepted `Interface Contract`, and no
@@ -440,7 +445,7 @@ SHA without changing it.
 - Make every grouped `sp-impl` prompt self-contained using
   `implementer-prompt.md`: package-specific design summary, relevant contract
   entries, exact read scope, exact write scope, package steps, verification,
-  timeouts, expected results, stable package identifier, plan path, milestone
+  timeouts, expected results, stable package identifier, plan path, package
   snapshot gate, recovery-read boundary, and completion report requirements.
 - Do not paste the complete plan or repeated global boilerplate into grouped
   worker prompts. Do not require a worker to read the plan file to discover its

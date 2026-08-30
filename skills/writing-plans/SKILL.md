@@ -219,10 +219,15 @@ selected FAST/NORMAL/BEST allocation, and verification commands.
 Before plan self-review, fold confirmed brainstorming facts into the permanent
 design sections and remove the Brainstorming Continuity section. Add the
 execution-phase continuity contract to the permanent plan text: main-agent
-execution maintains one replaceable `## Implementation Continuity` snapshot;
+execution maintains at most one replaceable `## Implementation Continuity`
+snapshot after a cohesive phase, on a blocker, or for final handoff preparation;
 an approved grouped route maintains coordinator-written package continuity
-sections from worker reports. These temporary execution sections are folded
-into `## Execution Summary` and removed at completion.
+sections only at package completion, on a blocker, or at an explicit
+coordinator request. These temporary execution sections are folded into
+`## Execution Summary` and removed at completion. State that built-in
+compaction summaries carry transient activity while the real Simple Power hooks
+restore the exact authoritative plan; do not require a Markdown update after
+each test, repair, review step, answer, or internal worker milestone.
 
 ## Main Agent Route Requirements
 
@@ -235,10 +240,11 @@ session, then runs mandatory quick verification through the approved executor,
 performs the main-agent final diff review and in-scope fixes, runs final
 verification, updates the original plan's execution summary, reruns terminal
 verification without further file edits, and reaches the final checkpoint
-condition. After meaningful milestones it replaces the current implementation
-continuity snapshot with completed work, partial results, changed files,
-verification, blockers, and next action; after compaction it rereads the active
-plan before further action.
+condition. After a cohesive phase, on a blocker, or for final handoff
+preparation it replaces the current implementation continuity snapshot with
+completed work, partial results, changed files, verification, blockers, and
+next action. After compaction it follows the hook-injected exact plan reread
+before further action. It does not persist every test, repair, or review step.
 
 ## Grouped Workers Route Extensions
 
@@ -271,9 +277,10 @@ include:
 - Exact timed verification commands.
 - Risk/model reason and FAST/NORMAL/BEST allocation.
 - Completion report requirements.
-- A stable package identifier, the active plan path, structured milestone
-  `PROGRESS_SNAPSHOT` reporting, and the worker's read-only package-continuity
-  recovery boundary.
+- A stable package identifier, the active plan path, structured
+  `PROGRESS_SNAPSHOT` reporting at package completion, blocker, or explicit
+  coordinator request, and the worker's read-only package-continuity recovery
+  boundary.
 
 Label the relevant shared facts as `Contract inputs`. Every package must state
 `Serialization required: No`, or `Serialization required: Yes` with the exact

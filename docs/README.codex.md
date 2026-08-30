@@ -24,6 +24,19 @@ codex plugin marketplace upgrade garyfpga-codex-plugins
 Restart Codex after install or update if you want it to rescan installed skills
 immediately.
 
+The plugin bundles `hooks/hooks.json`. Open `/hooks`, review the exact
+definition, and trust it before expecting compaction continuity to run. Codex
+provides `PLUGIN_ROOT` and `PLUGIN_DATA`; Simple Power stores metadata under
+`$PLUGIN_DATA/continuity/`, and users do not configure that variable.
+
+For a symlink development checkout, use `hooks/hooks.user.json` as the
+user-layer definition and keep state under
+`${CODEX_HOME:-$HOME/.codex}/simplepower-data/continuity/`. Merge it into an
+existing `~/.codex/hooks.json`, or symlink that whole file only when it is
+dedicated to Simple Power. Never overwrite unrelated hooks, and never enable
+the plugin and user-layer Simple Power registrations together. Python 3 is
+required. See [the installation guide](../.codex/INSTALL.md) for commands.
+
 ## Subagent Support
 
 `simplepower:subagent-driven-development` depends on Codex multi-agent support
@@ -233,16 +246,26 @@ plan review, main-agent quick verification, and final review have no scratch
 phase. Created quick-verifier scratch refs are cleaned up after success; on blockers or
 failed checkpoints they are preserved for manual cleanup reporting.
 
-Compaction continuity is plan-based and instruction-level. During brainstorming
-or direct implementation, the main agent replaces the current continuity
-snapshot after meaningful milestones and rereads the active plan before acting
-from compacted or reconstructed context. Grouped workers send structured
-`PROGRESS_SNAPSHOT` reports; only the coordinator writes their package
-continuity sections, and a recovering worker may reread only its own section.
-Temporary snapshots are folded into permanent design content or `Execution
-Summary` and removed at phase completion. No executable compaction helper,
-helper agent, transcript parser, extra state artifact, or new configuration key
-is added.
+Compaction continuity is hook-backed and plan-authoritative. `PostToolUse`
+registers the exact successfully patched plan and hash. `PreCompact` blocks
+invalid registered state, `PostCompact` marks recovery pending, and
+`SessionStart(source=compact)` injects the exact plan and phase section before
+the immediate continuation. Sessions without registered Simple Power state are
+unaffected. Marketplace installs store metadata under
+`$PLUGIN_DATA/continuity/`; symlink development installs store it under
+`${CODEX_HOME:-$HOME/.codex}/simplepower-data/continuity/`. Plugin and
+user-layer hook registrations are mutually exclusive.
+
+The handler stores association metadata only and does not read transcript
+contents, guess another plan, or execute plan text. Brainstorming refreshes
+Markdown only at initial creation, material accepted design/route changes,
+complete approval, or blockers. Main-agent execution refreshes after cohesive
+phases, on blockers, or for final handoff preparation. Grouped workers send
+`PROGRESS_SNAPSHOT` reports at package completion, blockers, or explicit
+coordinator requests. Only the coordinator writes package continuity sections,
+and a recovering worker may reread only its own section. Temporary continuity
+is folded into permanent design content or `Execution Summary` and removed at
+phase completion.
 
 ## Starting Implementation
 
