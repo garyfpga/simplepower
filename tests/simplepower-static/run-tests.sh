@@ -251,6 +251,14 @@ require_contains_all "README.md" "README documents adaptive route choices" \
     "Implementation Route: Main agent" \
     "Implementation Route: Grouped workers" \
     "cohesive"
+require_contains_all "README.md" "README documents main-agent default, consent gating, and plan continuity" \
+    "is the default" \
+    "Grouped Workers Consent: Approved" \
+    "evolving Markdown plan" \
+    "instruction-level protocol" \
+    "only plan writer" \
+    "package continuity section" \
+    "Temporary snapshots are folded"
 require_contains_all 'README.md' "README documents AGENTS model assignment retirement" \
     'Root and nested `AGENTS.md` files do not provide' \
     'model assignments.'
@@ -292,6 +300,12 @@ require_contains ".codex-plugin/plugin.json" "concise execution summaries in ori
 require_contains ".codex-plugin/plugin.json" "two mandatory coordinator checkpoint types with bounded active-run execution commits" "plugin metadata documents bounded execution commits"
 require_contains ".codex-plugin/plugin.json" "deprecated no-op" "plugin metadata documents deprecated review compatibility settings"
 require_contains ".codex-plugin/plugin.json" "optional configured single-pass read-only plan reviewer" "plugin metadata documents optional plan review"
+require_contains_all ".codex-plugin/plugin.json" "plugin metadata documents consent-gated route and continuity" \
+    "evolving-plan continuity" \
+    "Main agent implementation by default" \
+    "consent-gated Grouped workers" \
+    "coordinator-only plan writes" \
+    "grouped-worker progress snapshots"
 require_not_contains ".codex-plugin/plugin.json" "one BEST-tier review+fix pass" "plugin metadata no longer documents BEST-tier review+fix"
 require_contains "package.json" '"version": "1.1.0"' "package.json version is 1.1.0"
 
@@ -313,6 +327,13 @@ require_contains_all "AGENTS.md" "AGENTS documents bounded coordinator execution
     "original plan's execution summary" \
     "Convenience and history-shaping commits" \
     "authorization ends at final handoff"
+require_contains_all "AGENTS.md" "AGENTS documents main-agent consent gate and coordinator-owned continuity" \
+    "main agent is the implementation" \
+    "Grouped Workers Consent: Approved" \
+    "Silence, uncertainty, rejection" \
+    "coordinator is the only writer" \
+    "structured progress snapshots" \
+    "package continuity section"
 
 require_contains "docs/README.codex.md" "simplepower:*" "Codex install guide uses the Simple Power namespace"
 require_contains "docs/README.codex.md" "codex plugin marketplace add garyfpga/codex-plugins" "Codex install guide documents the marketplace install command"
@@ -343,6 +364,14 @@ require_contains_all "docs/README.codex.md" "Codex install guide documents adapt
     "Implementation Route: Main agent" \
     "Implementation Route: Grouped workers" \
     "cohesive"
+require_contains_all "docs/README.codex.md" "Codex install guide documents evolving-plan consent and recovery" \
+    "evolving plan" \
+    "same file in place" \
+    "Workers Consent: Approved" \
+    "instruction-level" \
+    "PROGRESS_SNAPSHOT" \
+    "only the coordinator writes" \
+    "only its own section"
 require_contains "docs/README.codex.md" "initial triage" "Codex install guide documents coordinator first triage"
 require_contains "docs/README.codex.md" "one or more" "Codex install guide documents on-demand fanout"
 require_not_contains "docs/README.codex.md" "two initial read-only final-review reports" "Codex install guide removes dual final review"
@@ -405,6 +434,16 @@ require_contains_all "docs/testing.md" "testing docs cover execution summaries a
     "Convenience, worker, and per-task" \
     "authorization ends at final handoff" \
     "exact reason"
+require_contains_all "docs/testing.md" "testing docs cover route consent and compaction continuity" \
+    "Grouped Workers Consent: Not" \
+    "Grouped Workers Consent: Declined" \
+    "Grouped Workers Consent:" \
+    "## Brainstorming Continuity" \
+    "## Implementation Continuity" \
+    "PROGRESS_SNAPSHOT" \
+    "read only its package continuity" \
+    "failed plan create, refresh, or reread" \
+    "continuity sections are removed"
 
 require_contains "skills/using-simplepower/SKILL.md" "simplepower:*" "using-simplepower skill uses the Simple Power namespace"
 require_contains "skills/using-simplepower/SKILL.md" "docs/simplepower" "using-simplepower skill points generated docs at docs/simplepower"
@@ -412,9 +451,19 @@ require_not_contains "skills/using-simplepower/SKILL.md" "using-superpowers" "us
 require_contains "skills/using-simplepower/SKILL.md" "Explicit user request required" "using-simplepower requires explicit invocation"
 require_contains "skills/using-simplepower/SKILL.md" "authorized Simple Power chain handoff" "using-simplepower preserves approved chain handoffs"
 require_contains "skills/using-simplepower/SKILL.md" "Do not invoke Simple Power skills from semantic task matching alone" "using-simplepower blocks semantic auto-triggering"
+require_contains_all "skills/using-simplepower/SKILL.md" "using-simplepower summarizes consent-gated evolving-plan continuity" \
+    "evolving Markdown plan" \
+    "by default" \
+    "Grouped Workers Consent: Approved" \
+    "instruction-level" \
+    "coordinator remains the sole plan writer" \
+    "reading only" \
+    "Temporary snapshots are folded"
 
 config_reference="skills/using-simplepower/references/simplepower-config.md"
 require_contains "$config_reference" '<git-root>/simplepower.toml' "config reference names the exact repository config filename"
+require_not_contains "$config_reference" "pre_compact" "continuity does not add a pre-compact configuration key"
+require_not_contains "$config_reference" "post_compact" "continuity does not add a post-compact configuration key"
 require_contains "$config_reference" 'use_subagent =' "config reference defines use_subagent"
 require_contains "$config_reference" 'skip_quick_verifier =' "config reference defines skip_quick_verifier"
 require_contains "$config_reference" 'skip_final_review =' "config reference defines skip_final_review"
@@ -528,6 +577,23 @@ require_contains_all "skills/brainstorming/SKILL.md" "brainstorming hands approv
     "Implementation Route" \
     "Main agent" \
     "Grouped workers"
+require_contains_all "skills/brainstorming/SKILL.md" "brainstorming creates one evolving plan and records grouped-route consent" \
+    "docs/simplepower/plans/YYYY-MM-DD-<feature-name>.md" \
+    "Grouped Workers Consent: Not requested" \
+    "Grouped Workers Consent: Declined" \
+    "Grouped Workers Consent: Approved" \
+    "Main agent is the default" \
+    "explicit user consent" \
+    "same plan path"
+require_contains_all "skills/brainstorming/SKILL.md" "brainstorming maintains a replaceable continuity snapshot" \
+    "## Brainstorming Continuity" \
+    "Confirmed requirements and constraints" \
+    "Decisions and rejected choices" \
+    "Open questions" \
+    "Proposed route and consent status" \
+    "Next action" \
+    "replace the current snapshot" \
+    "reread the active plan"
 require_contains_all "skills/brainstorming/SKILL.md" "brainstorming keeps coordinator-led read-only fanout boundaries" \
     "coordinator performs read-only initial triage" \
     "initial triage" \
@@ -589,6 +655,15 @@ require_contains "skills/writing-plans/SKILL.md" "Main agent" "writing-plans doc
 require_contains "skills/writing-plans/SKILL.md" "Grouped workers" "writing-plans documents the grouped implementation route"
 require_contains "skills/writing-plans/SKILL.md" "cohesive" "writing-plans requires cohesive packaging"
 require_contains "skills/writing-plans/SKILL.md" "docs/simplepower/plans/YYYY-MM-DD-<feature-name>.md" "writing-plans keeps Markdown plan format under docs/simplepower/plans"
+require_contains_all "skills/writing-plans/SKILL.md" "writing-plans promotes the evolving plan and enforces brainstorming consent" \
+    "expand it in place" \
+    "Grouped Workers Consent: Not requested" \
+    "Grouped Workers Consent: Declined" \
+    "Grouped Workers Consent: Approved" \
+    "planning must not ask for grouped-worker consent" \
+    "Silence, uncertainty, or contradictory evidence" \
+    "Implementation Route: Main agent" \
+    "remove the Brainstorming Continuity section"
 require_contains "skills/writing-plans/SKILL.md" "## Visual Aids" "writing-plans documents optional Visual Aids guidance"
 require_contains "skills/writing-plans/SKILL.md" "reduce ambiguity" "writing-plans keeps Visual Aids optional"
 require_contains "skills/writing-plans/SKILL.md" "workflow flowcharts" "writing-plans names workflow flowchart visual aid cases"
@@ -798,6 +873,45 @@ require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD defines 
     "without further file edits" \
     "genuinely untracked" \
     "exact omission reason"
+require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD keeps replaceable main-agent implementation continuity" \
+    "## Implementation Continuity" \
+    "Completed work" \
+    "Partial results" \
+    "Changed files" \
+    "Verification" \
+    "Blockers" \
+    "Next action" \
+    "replace the current snapshot" \
+    "reread the active plan"
+require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD rejects grouped execution without brainstorming consent" \
+    'Grouped Workers Consent` marker' \
+    "Grouped Workers Consent: Approved" \
+    "recorded during brainstorming" \
+    "objective" \
+    "silence" \
+    "uncertainty" \
+    "planning-time suggestion" \
+    'grouped execution lacks `Approved` brainstorming consent'
+require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD uses coordinator-owned grouped-worker progress snapshots" \
+    "PROGRESS_SNAPSHOT" \
+    "Package identifier" \
+    "coordinator is the only writer" \
+    "before proceeding beyond the milestone" \
+    "package continuity section" \
+    "fold" \
+    "remove temporary continuity sections"
+require_contains_all "skills/subagent-driven-development/implementer-prompt.md" "grouped implementer prompt defines milestone continuity reporting" \
+    "Plan path" \
+    "Package identifier" \
+    "PROGRESS_SNAPSHOT" \
+    "Completed work" \
+    "Partial results" \
+    "Changed files" \
+    "Verification" \
+    "Blockers" \
+    "Next action" \
+    "Do not edit the plan" \
+    "read only your package continuity section"
 require_not_contains "skills/subagent-driven-development/SKILL.md" "always create a separate summary commit" "SDD does not require an unconditional summary commit"
 require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD requires coordinator final review and fixes" \
     "main agent" \
@@ -958,8 +1072,15 @@ require_contains "tests/skill-triggering/prompts/approved-brainstorming-handoff.
 require_contains "tests/skill-triggering/prompts/approved-planning-handoff.txt" "simplepower:subagent-driven-development" "skill-triggering fixture preserves the planning handoff"
 require_contains "tests/skill-triggering/prompts/approved-planning-handoff.txt" "Implementation Route" "skill-triggering fixture names the approved route"
 require_contains "tests/skill-triggering/prompts/approved-planning-handoff.txt" "FAST/NORMAL/BEST allocation" "skill-triggering fixture names active model allocation"
+require_contains_all "tests/skill-triggering/prompts/approved-brainstorming-handoff.txt" "brainstorming handoff carries the evolving plan and consent state" \
+    "existing evolving plan" \
+    "Grouped Workers Consent"
+require_contains_all "tests/skill-triggering/prompts/approved-planning-handoff.txt" "planning handoff distinguishes default and consented routes" \
+    "Main agent by default" \
+    "Grouped Workers Consent: Approved"
 
 require_contains "tests/explicit-skill-requests/prompts/after-planning-flow.txt" "docs/simplepower/plans/auth-system.md" "explicit skill prompt uses the Simple Power plan path"
+require_contains "tests/explicit-skill-requests/prompts/after-planning-flow.txt" "Grouped Workers Consent: Approved" "explicit execution prompt requires brainstorming consent for grouped workers"
 require_contains "tests/explicit-skill-requests/prompts/codex-suggested-it.txt" "docs/simplepower/plans/auth-system.md" "follow-up explicit skill prompt uses the Simple Power plan path"
 require_contains "tests/explicit-skill-requests/prompts/i-know-what-sdd-means.txt" "docs/simplepower/plans/auth-system.md" "explicit skill prompt uses the Simple Power plan path"
 require_contains "tests/explicit-skill-requests/prompts/action-oriented.txt" "approved adaptive route" "action-oriented prompt uses adaptive route wording"
@@ -1080,6 +1201,16 @@ require_contains_all "skills/subagent-driven-development/SKILL.md" "SDD clarifie
     "No per-task commits."
 unbounded_execution_commit_language='always create a separate summary commit|workers may commit|per-task commits are allowed|commit for convenience|authorization continues after final handoff|audit every repository subsystem|paste full raw logs'
 require_no_active_match "$unbounded_execution_commit_language" "active workflow files reject unbounded execution-summary and commit behavior" "${active_plan_first_paths[@]}"
+require_path_absent "skills/brainstorming/scripts/pre-compact-hook" "no executable pre-compact helper is added"
+require_path_absent "skills/subagent-driven-development/scripts/post-compact-hook" "no executable post-compact helper is added"
+require_path_absent "skills/subagent-driven-development/continuity-helper-prompt.md" "no continuity helper agent prompt is added"
+require_path_absent ".simplepower/continuity" "no second continuity state artifact is added"
+require_contains_all "skills/using-simplepower/SKILL.md" "continuity protocol explicitly excludes executable helpers and transcript parsing" \
+    "No executable" \
+    "compaction helper" \
+    "helper agent" \
+    "transcript parser"
+require_no_active_match "hookSpecificOutput[.]additionalContext|implementation-handoff-hook|parse the conversation transcript" "active continuity workflow does not depend on executable hook context or transcript parsing" "${active_plan_first_paths[@]}"
 require_dir_absent "skills/subagent-driven-development/wave-reviewer-fixer-prompt.md" "retired wave reviewer/fixer prompt file is absent"
 require_no_active_match "wave-reviewer-fixer-prompt[.]md" "active files do not reference the retired combined reviewer/fixer prompt" "${active_paths[@]}"
 

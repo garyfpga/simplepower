@@ -162,6 +162,53 @@ Configuration smoke expectations:
 - This change must not create or track a repository-level `simplepower.toml`,
   but a present repository file must be supported as a per-key overlay.
 
+## Route-consent and compaction-continuity checks
+
+Run these focused suites from the repository root:
+
+```bash
+timeout 30s bash tests/simplepower-static/run-tests.sh
+timeout 30s bash tests/skill-triggering/run-all.sh
+timeout 30s bash tests/explicit-skill-requests/run-all.sh
+timeout 30s git diff --check
+```
+
+Manual acceptance scenarios:
+
+- Start brainstorming and verify it creates one evolving plan under
+  `docs/simplepower/plans/` after initial triage, before detailed questions.
+  Planning must expand that exact path in place; it must not create a second
+  state artifact or standalone spec.
+- Verify the plan records exactly one of `Grouped Workers Consent: Not
+  requested`, `Grouped Workers Consent: Declined`, or `Grouped Workers Consent:
+  Approved`. Main agent is the default. Brainstorming asks for consent only
+  after it recommends grouped workers with concrete package or specialization
+  value. Absent, silent, uncertain, ambiguous, or declined consent keeps
+  `Implementation Route: Main agent`; planning cannot ask again or infer
+  approval.
+- During brainstorming, verify `## Brainstorming Continuity` is replaced after
+  meaningful decisions with confirmed requirements and constraints, decisions
+  and rejected choices, open questions, proposed route/consent state, and next
+  action. Simulate compaction by reconstructing context and verify the main
+  agent rereads the active plan before another question or tool.
+- During direct implementation, verify `## Implementation Continuity` is a
+  replaceable snapshot of completed work, partial results, changed files,
+  verification, blockers, and next action. Reconstructed main-agent context
+  must reread the plan and revalidate route and scope before editing.
+- For an explicitly consented grouped route, verify every worker has a stable
+  package identifier and sends `PROGRESS_SNAPSHOT` reports at meaningful
+  milestones before continuing. The coordinator alone writes the plan. After
+  reconstructed worker context, the worker may read only its package continuity
+  section, not the full plan for task discovery.
+- Verify a failed plan create, refresh, or reread stops the active phase with
+  the exact path and recovery state. A failed worker milestone delivery reports
+  `BLOCKED` or `NEEDS_CONTEXT` instead of proceeding from memory.
+- At planning and execution phase completion, verify durable facts are folded
+  into permanent plan sections or `Execution Summary` and the temporary
+  continuity sections are removed. Confirm no executable compaction helper,
+  helper agent, transcript parser, extra state artifact, or new configuration
+  key was introduced.
+
 ## What each check covers
 
 - `tests/simplepower-static/run-tests.sh` verifies active Simple Power docs,

@@ -1,2 +1,4 @@
-The conversation design has been approved. Invoke simplepower:writing-plans to create
-the authoritative implementation plan.
+The conversation design has been approved. Invoke simplepower:writing-plans to
+expand the existing evolving plan at docs/simplepower/plans/auth-system.md in
+place. It records Grouped Workers Consent: Not requested and therefore retains
+the Main agent route.

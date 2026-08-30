@@ -74,6 +74,8 @@ the compact core required for both routes:
 
 - `Design Summary`;
 - exactly one `Implementation Route`, either `Main agent` or `Grouped workers`;
+- exactly one `Grouped Workers Consent` marker: `Not requested`, `Declined`, or
+  `Approved`;
 - exact changed files and ownership of every file to be edited or deleted;
 - complete implementation steps;
 - risks;
@@ -97,6 +99,9 @@ benefit from delegation.
 
 For `Implementation Route: Grouped workers`, also validate:
 
+- `Grouped Workers Consent: Approved` recorded during brainstorming; objective
+  suitability, silence, uncertainty, or a planning-time suggestion is not
+  consent;
 - `Interface Contract`;
 - `File Ownership`;
 - cohesive `Worker Packages`;
@@ -105,9 +110,10 @@ For `Implementation Route: Grouped workers`, also validate:
 - serialization decisions with concrete reasons and release conditions;
 - FAST/NORMAL/BEST allocation and reasons.
 
-Stop for user direction when the route is missing, ambiguous, contradicted by
-the package structure, or would require changing from one approved route to the
-other.
+Stop for user direction when the route or consent is missing, ambiguous,
+contradictory, when grouped execution lacks `Approved` brainstorming consent,
+when the route is contradicted by the package structure, or when execution would
+require changing from one approved route to the other.
 
 ## Implied Write-Scope Corrections
 
@@ -136,6 +142,13 @@ classification and any approved correction.
 Before route execution, read the accepted plan and validate the sections named
 above.
 
+If the main-agent context was compacted or reconstructed, reread the active plan
+before another question, tool, edit, dispatch, verification command, or
+checkpoint decision. Revalidate route, exact scope, the current continuity
+snapshot, and `Next action`. Missing, ambiguous, unreadable, or unwritable plan
+state blocks execution; preserve current work and report recovery details
+instead of guessing.
+
 When effective `skip_quick_verifier=false`, read
 `./scratch-ref-workflow.md` before creating, diffing, deleting, or reporting
 scratch refs and use its command shapes. These refs live only under
@@ -143,6 +156,48 @@ scratch refs and use its command shapes. These refs live only under
 quick-verifier anchors, not branches, accepted commits, pushed refs, merged
 refs, rebased refs, worker commits, or task commits. Effective `true` creates
 no verifier run id or scratch refs.
+
+## Plan-Based Compaction Continuity
+
+Continuity is an instruction-level protocol stored in the authoritative plan,
+not an executable lifecycle helper, helper agent, parser, extra state artifact,
+or configuration key. The coordinator is the only writer to the plan.
+
+For `Implementation Route: Main agent`, maintain one replaceable
+`## Implementation Continuity` snapshot. After every meaningful implementation,
+verification, repair, or review milestone, replace the current snapshot in
+place with:
+
+- `Completed work`
+- `Partial results`
+- `Changed files`
+- `Verification`
+- `Blockers`
+- `Next action`
+
+The write must succeed before moving beyond the milestone. This proactive
+snapshot is the pre-compaction behavior; the required reread above is the
+post-compaction behavior.
+
+For `Implementation Route: Grouped workers`, assign every worker package a
+stable `Package identifier` and a coordinator-owned package continuity section.
+Each worker sends a structured `PROGRESS_SNAPSHOT` after every meaningful
+milestone with the package identifier, completed work, partial results, changed
+files, verification, blockers, and next action. It must successfully deliver
+that report before proceeding beyond the milestone. The coordinator consumes
+the report, validates actual ownership and progress, and replaces that
+package's current snapshot; workers never edit the plan.
+
+After worker-context compaction, a worker may read only its package continuity
+section from the supplied plan path, then revalidate its package boundary and
+next action before resuming. This narrow recovery read does not authorize
+full-plan discovery or replace the self-contained dispatch prompt. If the
+section cannot be read or does not identify a safe next action, report
+`BLOCKED` or `NEEDS_CONTEXT` and stop.
+
+At phase completion, fold durable snapshot facts into approved permanent plan
+content or `## Execution Summary`, then remove temporary continuity sections.
+Snapshots are current replaceable state, not append-only logs.
 
 ## Model And Config Routing
 
@@ -253,7 +308,8 @@ SHA without changing it.
 ## Authoritative Lifecycle
 
 1. Read the accepted plan. Confirm it is the approved plan for the current
-   execution, not a backup or substitute.
+   execution, not a backup or substitute. Apply the post-compaction reread rule
+   whenever context was reconstructed.
 2. Validate route, exact files including the plan's own execution-record path,
    implementation steps, risks, timed quick and final verification, summary
    requirements, and the two mandatory checkpoint conditions plus bounded
@@ -266,7 +322,8 @@ SHA without changing it.
    prerequisite or a required separate/later summary update.
 4. If `Implementation Route: Main agent`, implement the approved cohesive
    package directly in the coordinator session. Do not dispatch an `sp-impl`
-   worker for the package.
+   worker for the package. Refresh `## Implementation Continuity` after each
+   meaningful milestone before proceeding.
 5. If `Implementation Route: Grouped workers`, classify every package:
    - ready grouped packages: non-overlapping approved write scopes, relevant
      contract inputs satisfied by the accepted `Interface Contract`, and no
@@ -286,7 +343,8 @@ SHA without changing it.
    available slot idle while queued ready work remains.
 9. Whenever a grouped worker finishes, run the lifecycle checkpoint
    immediately: consume its report, inspect the actual diff, validate changed
-   files against approved ownership, decide close-by-default or record a
+   files against approved ownership, refresh its package continuity from the
+   final `PROGRESS_SNAPSHOT`, decide close-by-default or record a
    written reason to keep it open, then dispatch the next queued ready package
    into the freed slot.
 10. Continue rolling dispatch until every ready grouped package is complete.
@@ -382,7 +440,8 @@ SHA without changing it.
 - Make every grouped `sp-impl` prompt self-contained using
   `implementer-prompt.md`: package-specific design summary, relevant contract
   entries, exact read scope, exact write scope, package steps, verification,
-  timeouts, expected results, and completion report requirements.
+  timeouts, expected results, stable package identifier, plan path, milestone
+  snapshot gate, recovery-read boundary, and completion report requirements.
 - Do not paste the complete plan or repeated global boilerplate into grouped
   worker prompts. Do not require a worker to read the plan file to discover its
   own package.
@@ -392,6 +451,8 @@ SHA without changing it.
   decision, route concern, or lifecycle exception with a written reason.
 - No worker commits. No per-package commits. Workers and quick verifiers must
   not create, update, delete, inspect, or manage refs.
+- Workers must not edit the plan. Only the coordinator converts delivered
+  `PROGRESS_SNAPSHOT` reports into package continuity updates.
 - No per-task commits.
 
 ## Scratch Refs

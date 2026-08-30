@@ -129,6 +129,15 @@ timeout 30s git diff --check
 
 Update `## Execution Summary` in this plan, inspect the summary diff, make no further file edits, and run the identical four-command set as terminal verification. Expected results remain four zero exits, zero fixture failures, the static success footer, and no whitespace errors. Any material finding reopens completion: make only approved in-scope repairs, refresh the summary with a labeled follow-up, and repeat affected checks plus the complete terminal set.
 
+## Execution Summary
+
+- **Status and outcome:** Complete on the approved `Main agent` route. Brainstorming now creates one evolving plan, Main agent is the consent-safe implementation default, and grouped workers require objective value plus `Grouped Workers Consent: Approved` from brainstorming. Plan-based pre/post-compaction continuity is coordinator-owned and uses replaceable main/package snapshots without executable helpers or extra state artifacts.
+- **Key changes:** Updated the planned workflow skills, grouped-worker prompt, contributor and user documentation, plugin metadata, handoff fixtures, and focused static contracts. Temporary continuity is folded into permanent design content or this summary and removed at phase completion.
+- **Verification overview:** The four-command quick set and first final-verification pass both exited `0`: static checks ended with `All Simple Power static checks passed.`, skill-triggering reported 5 passed/0 failed, explicit requests reported 9 passed/0 failed, and `git diff --check` was clean. Focused review checks also passed Bash syntax, plugin JSON parsing, and exact 15-file scope.
+- **Review findings and deviations:** Coordinator review found and fixed one omission by requiring execution-time validation of `Grouped Workers Consent: Approved`, preventing crafted or stale grouped plans from bypassing brainstorming consent. No approved-path deviation, extra file, helper agent, configuration key, implementation worker, verifier subagent, scratch ref, or intermediate execution commit occurred.
+- **Observed repository state:** Branch `feature/main-agent-default-and-compaction-continuity`; pre-commit HEAD `9f4bcc174378ecf4858498601e788e9a4d66d3da`; worktree contained exactly the 15 approved modified tracked files and no untracked files before this summary update.
+- **Unresolved issues and follow-ups:** None.
+
 ## Execution Record
 
 This file, `docs/simplepower/plans/2026-08-30-main-agent-default-and-compaction-continuity.md`, is the coordinator-owned execution record. After the first final-verification pass, append or refresh `## Execution Summary` with:

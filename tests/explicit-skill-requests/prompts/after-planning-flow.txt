@@ -6,7 +6,7 @@ Here's a summary of what we designed:
 - Task 3: Add JWT middleware for protected routes
 - Task 4: Write tests for all auth functionality
 
-Implementation is approved for the route selected in the plan: Main agent for one cohesive package, or Grouped workers only if those tasks are independent or specialized.
+Implementation is approved for the route selected in the plan: Main agent by default, or Grouped workers only if those tasks are independent or specialized and brainstorming recorded Grouped Workers Consent: Approved.
 
 Please execute the approved plan.
 

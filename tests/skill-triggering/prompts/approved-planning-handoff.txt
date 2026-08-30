@@ -1,2 +1,2 @@
 The self-reviewed plan, Implementation Route, file scope, verification commands, and FAST/NORMAL/BEST allocation are approved.
-simplepower:subagent-driven-development, please execute it with the approved adaptive route: Main agent for one cohesive package, or Grouped workers only for independent non-overlapping packages or specialized work.
+simplepower:subagent-driven-development, please execute it with Main agent by default. Grouped workers are valid only for objectively suitable packages when the evolving plan also records Grouped Workers Consent: Approved from brainstorming.

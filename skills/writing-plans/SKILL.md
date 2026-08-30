@@ -7,10 +7,10 @@ description: Use only when the user explicitly requests simplepower:writing-plan
 
 ## Overview
 
-Write the authoritative implementation plan from the approved brainstorming
-design. Planning is adaptive: choose a compact `Main agent` route for one
-cohesive package, and use grouped workers only when delegation has clear
-material value.
+Promote the authoritative evolving plan from the approved brainstorming design.
+Planning is adaptive: use a compact `Main agent` route by default, and preserve
+a grouped-worker route only when delegation has clear material value and the
+user explicitly approved it during brainstorming.
 
 The main agent writes and self-reviews the plan. When optional
 `plan_review_model` is active, dispatch one read-only single-pass plan reviewer,
@@ -25,7 +25,9 @@ repository.
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
-**Save plans to:** `docs/simplepower/plans/YYYY-MM-DD-<feature-name>.md`
+**Plan path:** expand the existing
+`docs/simplepower/plans/YYYY-MM-DD-<feature-name>.md` in place. Brainstorming
+creates this evolving plan; planning must not create a second plan artifact.
 
 Generated plans must reference canonical global rules instead of copying
 configuration, commit policy, dispatch isolation, and workflow boilerplate.
@@ -46,9 +48,16 @@ approval:
   external constraints.
 - Risks, expected verification, and any decisions that would require fresh user
   approval if they change.
+- The exact existing evolving plan path and its current `Grouped Workers
+  Consent` state.
 
 If these inputs are missing or contradictory, ask for the missing decision
 before writing the plan.
+
+Read the complete evolving plan before another question, tool, or edit. Verify
+that the path is the active brainstorming artifact, then expand it in place.
+Missing, ambiguous, unreadable, or unwritable plan state blocks planning; do not
+guess, create a replacement, or copy the design into a second artifact.
 
 ## Approved Path Enforcement
 
@@ -107,6 +116,11 @@ scratch refs.
 Choose the `Implementation Route` before asking the user to approve the plan.
 The route is part of the approval. Do not silently switch it later.
 
+Main agent is the default. Preserve exactly one brainstorming consent marker:
+`Grouped Workers Consent: Not requested`, `Grouped Workers Consent: Declined`,
+or `Grouped Workers Consent: Approved`; planning must not ask for grouped-worker consent
+or promote grouped execution independently.
+
 Select `Implementation Route: Main agent` when:
 
 - The write scope forms one cohesive implementation package.
@@ -123,6 +137,14 @@ Select `Implementation Route: Grouped workers` only when:
   another ready worker package.
 - The coordination value outweighs the extra prompt, review, and lifecycle
   overhead.
+- The evolving plan contains `Grouped Workers Consent: Approved` from the
+  brainstorming phase.
+
+Objective suitability without `Approved` consent is insufficient. Silence, uncertainty, or contradictory evidence
+never authorizes grouped execution:
+retain `Implementation Route: Main agent` for absent or non-approved consent,
+and stop for user direction when the recorded design and consent state
+contradict each other.
 
 Capacity only queues approved packages; it never justifies splitting tiny tasks.
 Keep closely related production code and tests in the same package unless their
@@ -139,7 +161,8 @@ core with concrete content and no placeholders:
 3. `Design Summary`: approved design, cohesion/specialization reasoning,
    constraints, decisions, risks, and success criteria.
 4. `Implementation Route`: exactly `Main agent` or `Grouped workers`, with the
-   objective route-selection reason.
+   objective route-selection reason and exact retained `Grouped Workers
+   Consent` marker. A grouped route requires `Approved`.
 5. `Exact Files`: every file that may be created, modified, deleted, or
    generated. Use exact paths and include the saved plan's own path as the
    coordinator-owned execution record.
@@ -193,6 +216,14 @@ dispatch boilerplate. Reference canonical global rules and record only values
 that are specific to the plan, such as exact files, route, package contracts,
 selected FAST/NORMAL/BEST allocation, and verification commands.
 
+Before plan self-review, fold confirmed brainstorming facts into the permanent
+design sections and remove the Brainstorming Continuity section. Add the
+execution-phase continuity contract to the permanent plan text: main-agent
+execution maintains one replaceable `## Implementation Continuity` snapshot;
+an approved grouped route maintains coordinator-written package continuity
+sections from worker reports. These temporary execution sections are folded
+into `## Execution Summary` and removed at completion.
+
 ## Main Agent Route Requirements
 
 For `Implementation Route: Main agent`, use the shared compact plan core only.
@@ -204,7 +235,10 @@ session, then runs mandatory quick verification through the approved executor,
 performs the main-agent final diff review and in-scope fixes, runs final
 verification, updates the original plan's execution summary, reruns terminal
 verification without further file edits, and reaches the final checkpoint
-condition.
+condition. After meaningful milestones it replaces the current implementation
+continuity snapshot with completed work, partial results, changed files,
+verification, blockers, and next action; after compaction it rereads the active
+plan before further action.
 
 ## Grouped Workers Route Extensions
 
@@ -237,6 +271,9 @@ include:
 - Exact timed verification commands.
 - Risk/model reason and FAST/NORMAL/BEST allocation.
 - Completion report requirements.
+- A stable package identifier, the active plan path, structured milestone
+  `PROGRESS_SNAPSHOT` reporting, and the worker's read-only package-continuity
+  recovery boundary.
 
 Label the relevant shared facts as `Contract inputs`. Every package must state
 `Serialization required: No`, or `Serialization required: Yes` with the exact
@@ -286,6 +323,11 @@ After writing the plan, the main agent self-reviews it before asking the user
 for approval. Check:
 
 - The route follows the objective `Main agent` or `Grouped workers` criteria.
+- The exact `Grouped Workers Consent` marker is present; grouped execution has
+  both objective value and `Approved` brainstorming consent.
+- The same evolving plan was expanded in place, brainstorming continuity was
+  folded into permanent content, and the applicable execution continuity
+  contract is explicit.
 - The plan has the shared compact core, exact files, implementation steps,
   risks, timed quick verification, timed final verification, its own path as
   the execution record, the concise summary contract, and exactly two mandatory
@@ -482,9 +524,10 @@ failures:
 
 ## Remember
 
-- Route selection happens before user approval.
-- Main agent is the default for one cohesive package without material
-  specialization benefit.
+- Route selection happens before user approval, but grouped-worker consent is
+  requested only during brainstorming.
+- Main agent is the default. It remains selected whenever grouped execution was
+  not both objectively suitable and explicitly approved during brainstorming.
 - Grouped workers require independent non-overlapping packages or specialized
   work with clear delegation value.
 - Capacity queues packages; it does not split tiny tasks.

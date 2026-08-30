@@ -13,6 +13,11 @@ design and get user approval.
 
 <HARD-GATE>
 Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
+
+The only pre-approval write exception is the evolving Markdown plan described
+below. It may contain only draft identity, goal, grouped-worker consent state,
+and the replaceable brainstorming continuity snapshot. It does not authorize
+implementation or detailed implementation instructions.
 </HARD-GATE>
 
 ## Approved Path Enforcement
@@ -63,7 +68,40 @@ still mandatory before implementation.
    - Synthesize all explorer reports yourself. Explorers gather context only;
      you retain every question, approach comparison, design approval, and
      handoff responsibility.
-2. **Offer the visual companion only when visual questions are likely.** The
+2. **Assess scope and establish the feature name.** If the request spans
+   multiple independent subsystems, flag that immediately instead of refining
+   details for an oversized plan. Help decompose the project into sub-projects,
+   explain how they relate and what order to build them, then brainstorm the
+   first sub-project through this same procedure. Each sub-project gets its own
+   plan and implementation cycle. Finish initial triage by selecting a stable,
+   descriptive `<feature-name>` slug for the current design.
+3. **Create the evolving plan before detailed questions.** Create
+   `docs/simplepower/plans/YYYY-MM-DD-<feature-name>.md` and retain that exact
+   path as the active plan. Its initial content is limited to a draft status,
+   the current goal, exactly one of `Grouped Workers Consent: Not requested`,
+   `Grouped Workers Consent: Declined`, or
+   `Grouped Workers Consent: Approved`, and `## Brainstorming Continuity`.
+   Main agent is the default, so begin with `Not requested` unless a grouped
+   route was already explicitly discussed and decided in this brainstorming
+   phase. If creation or refresh fails, stop and report the path, error, and
+   recovery state rather than continuing from memory or creating another
+   artifact.
+
+   The coordinator is the only writer. After every meaningful requirement,
+   constraint, approach, route, or approval decision, replace the current snapshot
+   in place with these concise fields:
+
+   - `Confirmed requirements and constraints`
+   - `Decisions and rejected choices`
+   - `Open questions`
+   - `Proposed route and consent status`
+   - `Next action`
+
+   This proactive write is the brainstorming pre-compaction protocol. If the
+   context was compacted or reconstructed, reread the active plan before asking
+   another question, invoking a tool, or changing the snapshot. Missing,
+   ambiguous, or unreadable active-plan state blocks continuation; do not guess.
+4. **Offer the visual companion only when visual questions are likely.** The
    companion is a temporary browser aid, not a mode and not an implementation
    artifact. If upcoming questions would benefit from mockups, wireframes,
    layout comparisons, diagrams, or other visual treatment, send exactly this
@@ -77,20 +115,14 @@ still mandatory before implementation.
    use the terminal for requirements, scope, tradeoffs, conceptual options, and
    text decisions. Optional inline visuals in saved Markdown plans belong to
    `simplepower:writing-plans`, not brainstorming.
-3. **Assess scope before detailed questions.** If the request spans multiple
-   independent subsystems, flag that immediately instead of refining details for
-   an oversized plan. Help decompose the project into sub-projects, explain how
-   they relate and what order to build them, then brainstorm the first
-   sub-project through this same procedure. Each sub-project gets its own plan
-   and implementation cycle.
-4. **Ask clarifying questions one at a time.** Understand purpose, constraints,
+5. **Ask clarifying questions one at a time.** Understand purpose, constraints,
    success criteria, and user priorities. Prefer multiple-choice questions when
    useful, but use open-ended questions when the answer needs room. If a topic
    needs more exploration, split it across messages.
-5. **Compare approaches before designing.** Propose 2-3 approaches with
+6. **Compare approaches before designing.** Propose 2-3 approaches with
    tradeoffs, lead with the recommended option, and explain why. Apply YAGNI:
    remove unnecessary features from every option.
-6. **Present the design for approval, scaled to complexity.** Use short sections
+7. **Present the design for approval, scaled to complexity.** Use short sections
    for simple work and up to 200-300 words for nuanced sections. Ask after each
    section whether it looks right so far, revise when needed, and do not move to
    implementation until the user approves the complete design. Cover the
@@ -102,17 +134,31 @@ still mandatory before implementation.
    is one cohesive package or multiple independent packages, whether any
    specialization materially benefits from delegation, hard constraints, and
    observable success criteria.
-7. **Hand off only to implementation planning.** After approval, invoke
+
+   Record `Implementation Route: Main agent` unless grouped delegation has
+   objective value through at least two independent non-overlapping cohesive
+   packages or material specialization. When it does, explain the proposed
+   packages and material benefit, recommend `Implementation Route: Grouped
+   workers`, and ask for explicit user consent during brainstorming. Record an
+   affirmative answer as `Grouped Workers Consent: Approved`; record rejection
+   as `Grouped Workers Consent: Declined`. Silence, uncertainty, ambiguity, or
+   a route suggestion without an affirmative answer never counts as approval
+   and leaves the route at Main agent. Do not ask for grouped-worker consent
+   when grouped delegation is not being recommended.
+8. **Hand off only to implementation planning.** After approval, invoke
    `simplepower:writing-plans` and pass only the approved design context needed
    for adaptive planning: design summary, cohesion assessment, specialization or
    delegation value, constraints, decisions, exact known file areas, risks, and
-   success criteria. The plan file selects `Implementation Route: Main agent` or
-   `Implementation Route: Grouped workers`, keeps mandatory quick verification,
+   success criteria, the exact consent state, and the existing evolving plan
+   path. Planning expands the same plan path instead of creating a second
+   artifact. The plan file preserves `Implementation Route: Main agent` or the
+   explicitly consented `Implementation Route: Grouped workers`, keeps mandatory quick verification,
    records the resolved `skip_quick_verifier` value and `Main agent` or
    `FAST subagent` executor, names its coordinator-owned execution record, and
    defines the two mandatory coordinator checkpoint types plus any
    bounded active-run execution-commit conditions. The plan file is the
-   authoritative implementation artifact.
+   authoritative implementation artifact. Before handoff, refresh the snapshot
+   with the approved design, route/consent state, and exact planning action.
 
 The terminal state is invoking `simplepower:writing-plans`. Do not write a
 standalone spec document, ask the user to review a written spec, create a

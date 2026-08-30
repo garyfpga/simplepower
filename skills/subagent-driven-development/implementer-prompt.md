@@ -20,7 +20,9 @@ Preserve concurrent edits, do not overwrite work you did not make, and do not
 revert unrelated changes.
 
 Approved package context:
-- Plan path/title: [PLAN PATH OR TITLE]
+- Plan path: [EXACT PLAN PATH]
+- Plan title: [PLAN TITLE]
+- Package identifier: [STABLE PACKAGE IDENTIFIER]
 - Design summary relevant to this package: [SUMMARY]
 - Implementation Route: Grouped workers
 - Contract inputs / relevant Interface Contract entries: [ONLY ENTRIES THIS PACKAGE NEEDS]
@@ -43,6 +45,25 @@ Verification for this package:
 Report requirements:
 [PASTE ANY PACKAGE-SPECIFIC OUTPUT REQUIREMENTS.]
 
+Milestone continuity:
+- After every meaningful implementation or verification milestone, deliver a
+  `PROGRESS_SNAPSHOT` to the coordinator before proceeding beyond that
+  milestone.
+- Report exactly:
+  - Package identifier: [STABLE PACKAGE IDENTIFIER]
+  - Completed work
+  - Partial results
+  - Changed files
+  - Verification
+  - Blockers
+  - Next action
+- The coordinator is the only writer to the plan. Do not edit the plan.
+- If your context was compacted or reconstructed, use the supplied Plan path to
+  read only your package continuity section. Revalidate the package boundary
+  and next action before resuming. Do not read the rest of the plan for task
+  discovery. If the section is missing, ambiguous, or unreadable, report
+  `BLOCKED` or `NEEDS_CONTEXT` and stop.
+
 Rules:
 - Implement exactly this cohesive package and only within the assigned write
   scope.
@@ -64,8 +85,7 @@ Rules:
   rebase, push, or open PRs.
 - Do not spawn subagents, run Codex CLI, invoke Simple Power workflow skills,
   recurse into another workflow, or reroute execution.
-- Do not update the approved plan unless that file is explicitly in your
-  assigned write scope and package.
+- Do not edit the plan or include it in your assigned write scope.
 
 Before reporting, self-check:
 - every assigned package requirement is implemented or explicitly blocked;

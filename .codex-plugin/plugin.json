@@ -1,7 +1,7 @@
 {
   "name": "simplepower",
   "version": "1.1.0",
-  "description": "Simple Power is a Codex-only skills workflow for brainstorming, optional single-pass plan review, adaptive direct/grouped implementation, mandatory quick verification, and read-only code discussion.",
+  "description": "Simple Power is a Codex-only workflow with evolving-plan continuity, main-agent implementation by default, consent-gated grouped workers, mandatory verification, and read-only code discussion.",
   "homepage": "https://github.com/garyfpga/simplepower",
   "repository": "https://github.com/garyfpga/simplepower",
   "license": "MIT",
@@ -18,8 +18,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Simple Power",
-    "shortDescription": "Codex-only planning, optional plan review, adaptive implementation, and verification",
-    "longDescription": "Use Simple Power to guide Codex through brainstorming, authoritative implementation planning, an optional configured single-pass read-only plan reviewer limited to Critical and Must Fix findings, coordinator-led on-demand read-only explorer fan-out, adaptive Main agent or Grouped workers implementation, cohesive worker packages when delegation has clear value, mandatory quick verification run by the main agent by default or an optional FAST subagent with temporary local scratch refs, main-agent final diff review and in-scope fixes, concise execution summaries in original plans, two mandatory coordinator checkpoint types with bounded active-run execution commits, deprecated no-op compatibility validation for legacy review settings, terminal verification, and an explicit read-only code discussion mode.",
+    "shortDescription": "Codex planning with main-agent default, plan continuity, and verification",
+    "longDescription": "Use Simple Power to guide Codex through brainstorming that creates one evolving authoritative plan, instruction-level compaction continuity in that plan, Main agent implementation by default, consent-gated Grouped workers only when brainstorming finds clear delegation value and the user agrees, an optional configured single-pass read-only plan reviewer limited to Critical and Must Fix findings, coordinator-led on-demand read-only explorer fan-out, mandatory quick verification run by the main agent by default or an optional FAST subagent with temporary local scratch refs, coordinator-only plan writes and grouped-worker progress snapshots, main-agent final diff review and in-scope fixes, concise execution summaries in original plans, two mandatory coordinator checkpoint types with bounded active-run execution commits, deprecated no-op compatibility validation for legacy review settings, terminal verification, and an explicit read-only code discussion mode.",
     "developerName": "Simple Power maintainers",
     "category": "Coding",
     "capabilities": [

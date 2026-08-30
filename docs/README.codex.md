@@ -38,8 +38,9 @@ Add this to your Codex config if it is not already present:
 multi_agent = true
 ```
 
-That setting lets Simple Power dispatch grouped workers when the approved route
-has clear delegation value, dispatch the optional plan reviewer when configured,
+That setting lets Simple Power dispatch grouped workers when brainstorming has
+clear delegation value and records explicit user consent for the approved
+route, dispatch the optional plan reviewer when configured,
 and dispatch the quick verifier when selected. Default main-agent quick
 verification needs no multi-agent support.
 
@@ -191,7 +192,10 @@ per key.
 ## Implementation Flow
 
 Simple Power keeps generated implementation plans in
-`docs/simplepower/plans/` as Markdown files. Plans may include optional inline
+`docs/simplepower/plans/` as Markdown files. Brainstorming creates the one
+evolving plan after initial triage establishes the feature name; planning
+expands that same file in place instead of creating a second workflow-state
+artifact. Plans may include optional inline
 visual aids when they reduce ambiguity. This is separate from the
 `simplepower:brainstorming` visual companion, which uses a temporary localhost
 page during brainstorming instead of saved plan visuals. After
@@ -206,10 +210,14 @@ commits during the active run, and immediate current-session execution in one
 step. If the user approves, the coordinator creates the accepted-plan
 checkpoint commit and immediately invokes
 `simplepower:subagent-driven-development` with the approved allocation.
-`Implementation Route: Main agent` directly edits one cohesive package without
-spawning `sp-impl`. `Implementation Route: Grouped workers` dispatches only
-cohesive packages that are independent, non-overlapping, or materially benefit
-from specialization; workers receive only relevant design, contract, scope, and
+`Implementation Route: Main agent` is the default and directly edits one
+cohesive package without spawning `sp-impl`. `Implementation Route: Grouped
+workers` is eligible only when brainstorming recommends independent,
+non-overlapping packages or material specialization and records `Grouped
+Workers Consent: Approved`; planning cannot infer or request that consent.
+Absent, declined, silent, or uncertain consent retains Main agent. This gate is
+separate from optional explorers, optional plan review, and quick-verifier
+selection. Grouped workers receive only relevant design, contract, scope, and
 verification context. Every route runs mandatory quick verification through
 the resolved Main agent or FAST subagent executor, then the main agent performs
 final diff review, in-scope fixes, and a first
@@ -224,6 +232,17 @@ verification uses quick-verifier Git scratch refs as diff anchors. Optional
 plan review, main-agent quick verification, and final review have no scratch
 phase. Created quick-verifier scratch refs are cleaned up after success; on blockers or
 failed checkpoints they are preserved for manual cleanup reporting.
+
+Compaction continuity is plan-based and instruction-level. During brainstorming
+or direct implementation, the main agent replaces the current continuity
+snapshot after meaningful milestones and rereads the active plan before acting
+from compacted or reconstructed context. Grouped workers send structured
+`PROGRESS_SNAPSHOT` reports; only the coordinator writes their package
+continuity sections, and a recovering worker may reread only its own section.
+Temporary snapshots are folded into permanent design content or `Execution
+Summary` and removed at phase completion. No executable compaction helper,
+helper agent, transcript parser, extra state artifact, or new configuration key
+is added.
 
 ## Starting Implementation
 

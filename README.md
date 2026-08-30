@@ -107,7 +107,7 @@ fast_model = "gpt-5.3-codex-spark-xhigh"
 
 `skip_quick_verifier=true` 是默认值：quick verification 仍然必须运行，但由 main agent 直接执行 plan 中相同的 timed commands，不 spawn verifier 或使用 scratch refs。`false` 才会 dispatch FAST quick-verifier subagent，并保留 tiny-fix 限制与 before/optional-after scratch refs。`fast_model` 只选择该 subagent 的模型，不能启用或禁用它。
 
-正常 implementation route 是自适应的：`Implementation Route: Main agent` 用于一个 cohesive package 且没有实质 specialization benefit 的工作；`Implementation Route: Grouped workers` 只用于至少两个 independent non-overlapping packages，或确实因专业化 delegation 明显受益的工作。Main-agent plans 保持紧凑，包含 design summary、route、exact files、implementation steps、risks、timed quick/final verification、原始 plan execution record，以及两个 mandatory checkpoint types。Grouped-worker plans 额外包含 Interface Contract、File Ownership、cohesive Worker Packages、serialization decisions，以及 FAST/NORMAL/BEST allocation。Closely related code and tests stay in one package；capacity 只能 queue package，不能造成 tiny-task splitting。
+正常 implementation route 在 consent boundary 内自适应：默认使用 `Implementation Route: Main agent`。只有 brainstorming 识别出至少两个 independent non-overlapping packages，或 specialization 确实带来明显 delegation value，向用户建议 grouped route，并记录 `Grouped Workers Consent: Approved` 后，planning 才能选择 `Implementation Route: Grouped workers`。未询问、拒绝、沉默或不确定都保留 Main agent；这个 consent gate 不影响 optional explorers、optional plan reviewer 或 quick-verifier executor。Main-agent plans 保持紧凑，包含 design summary、route、exact files、implementation steps、risks、timed quick/final verification、原始 plan execution record，以及两个 mandatory checkpoint types。Grouped-worker plans 额外包含 Interface Contract、File Ownership、cohesive Worker Packages、serialization decisions，以及 FAST/NORMAL/BEST allocation。Closely related code and tests stay in one package；capacity 只能 queue package，不能造成 tiny-task splitting。
 
 这次变更不会创建或 track repository-level `simplepower.toml`；如果该文件存在，系统会支持它并按 key overlay home 文件。
 
@@ -115,7 +115,9 @@ fast_model = "gpt-5.3-codex-spark-xhigh"
 
 Simple Power skills 使用 `simplepower:*` namespace。当你想让 Codex 使用某个 skill 时，直接提到它的名字，例如 `simplepower:brainstorming`。
 
-brainstorming skill 可以使用临时的 localhost visual companion 来处理 mockups、diagrams 和其他视觉问题。生成的 implementation plans 会保存到 `docs/simplepower/plans/`。
+brainstorming skill 可以使用临时的 localhost visual companion 来处理 mockups、diagrams 和其他视觉问题。初步 triage 确定 feature name 后，brainstorming 会在 `docs/simplepower/plans/` 提前创建唯一的 evolving Markdown plan；planning 直接扩展同一个文件，不创建第二个 state artifact。
+
+Compaction continuity 是 instruction-level protocol。Brainstorming 和 main-agent implementation 会在 meaningful milestones 后替换 plan 中的 current snapshot；context compact 或重建后，main agent 必须先重新读取 active plan。Grouped workers 只发送结构化 milestone snapshots，coordinator 是 plan 的唯一 writer；worker 恢复时只能读取自己的 package continuity section。阶段结束后，temporary snapshots 会被折叠进 permanent design 或 `Execution Summary` 并删除。流程不增加 executable compaction helper、helper agent、transcript parser 或新 config key。
 
 在 `simplepower:writing-plans` 完成 main-agent plan self-review 之后，如果 optional `plan_review_model` 已启用，Simple Power 会 dispatch 一次 read-only reviewer，只处理 Critical 和 Must Fix findings。Main agent 做一次 fix pass 后不会 re-review；review dispatch 失败或 report unusable 时继续使用已完成的 self-review。之后 Simple Power 会一次性询问你是否批准最终 plan、route/model allocation、两个 mandatory checkpoint types、active run 内受限的 coordinator execution commits，以及立刻在当前 session 里启动 `simplepower:subagent-driven-development`。
 你确认后，coordinator 会创建 accepted plan checkpoint commit，并立即调用 `simplepower:subagent-driven-development` 执行已批准的 plan。
@@ -316,11 +318,15 @@ quick-verifier subagent with its tiny-fix limit and before/optional-after refs.
 `fast_model` selects that subagent's model only; it never enables or disables
 the executor.
 
-The normal implementation route is adaptive. `Implementation Route: Main
-agent` is for one cohesive package with no material specialization benefit.
-`Implementation Route: Grouped workers` is only for at least two independent,
+The normal implementation route is adaptive within a consent boundary.
+`Implementation Route: Main agent` is the default. Brainstorming may recommend
+`Implementation Route: Grouped workers` only for at least two independent,
 non-overlapping packages or specialized work that materially benefits from
-delegation. Main-agent plans stay compact with design summary, route, exact
+delegation, and planning may select it only after brainstorming records
+`Grouped Workers Consent: Approved`. Not-requested, declined, silent, or
+uncertain consent retains Main agent. This gate does not control optional
+explorers, the optional plan reviewer, or quick-verifier executor selection.
+Main-agent plans stay compact with design summary, route, exact
 files, implementation steps, risks, timed quick/final verification, the
 original-plan execution record, and two mandatory checkpoint types.
 Grouped-worker plans add Interface Contract, File
@@ -337,8 +343,20 @@ Simple Power skills use the `simplepower:*` namespace. Mention a skill by name,
 such as `simplepower:brainstorming`, when you want Codex to use it.
 
 The brainstorming skill can use a temporary localhost visual companion for
-mockups, diagrams, and other visual questions. Generated implementation plans
-are saved under `docs/simplepower/plans/`.
+mockups, diagrams, and other visual questions. After initial triage establishes
+the feature name, brainstorming creates the one evolving Markdown plan under
+`docs/simplepower/plans/`; planning expands that same file in place rather than
+creating a second state artifact.
+
+Compaction continuity is an instruction-level protocol. Brainstorming and
+main-agent implementation replace the plan's current snapshot after meaningful
+milestones; after compacted or reconstructed context, the main agent rereads the
+active plan before continuing. Grouped workers send structured milestone
+snapshots and the coordinator remains the only plan writer; a recovering worker
+may read only its package continuity section. Temporary snapshots are folded
+into permanent design content or `Execution Summary` and removed at phase
+completion. The workflow adds no executable compaction helper, helper agent,
+transcript parser, or new configuration key.
 
 After `simplepower:writing-plans` finishes main-agent plan self-review, it runs
 one read-only reviewer when optional `plan_review_model` is active. The main
